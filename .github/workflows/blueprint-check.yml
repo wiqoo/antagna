@@ -1,0 +1,125 @@
+name: Blueprint invariants
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pillar-*.md"
+      - "pillar-*/**.md"
+      - "decisions-log.md"
+      - "config/**"
+      - "README.md"
+      - "STATUS.md"
+      - "CLAUDE.md"
+      - ".github/workflows/blueprint-check.yml"
+  pull_request:
+    paths:
+      - "pillar-*.md"
+      - "pillar-*/**.md"
+      - "decisions-log.md"
+      - "config/**"
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq (for YAML parsing)
+        run: |
+          sudo wget -q -O /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      # ── Per Pillar 16 §B.1: "Inngest" must only appear in annotation contexts.
+      # Allowed:
+      #   - decisions-log.md (history)
+      #   - pillar-16-hardening.md (the source of the rename rule)
+      #   - lines that also mention "Trigger.dev" (annotations like "Inngest → Trigger.dev v3")
+      #   - lines flagged "superseded" or "Previous decision"
+      - name: No bare "Inngest" references
+        run: |
+          bad=$(grep -nri --include="*.md" "Inngest" . \
+                | grep -v -E "decisions-log\.md|pillar-16-hardening\.md|Trigger\.dev|superseded|Previous decision" \
+                || true)
+          if [ -n "$bad" ]; then
+            echo "❌ Bare 'Inngest' reference found (Pillar 16 §B.1 violation):"
+            echo "$bad"
+            exit 1
+          fi
+          echo "✓ No bare Inngest references."
+
+      - name: Each pillar has Success Criteria / Acceptance Checklist
+        run: |
+          missing=()
+          for f in pillar-*.md; do
+            # Pillar 16 is a hardening patch, not a feature pillar — skip
+            if [ "$f" = "pillar-16-hardening.md" ]; then continue; fi
+            if ! grep -qE "^## .*(Success Criteria|ACCEPTANCE CHECKLIST|Acceptance Checklist)" "$f"; then
+              missing+=("$f")
+            fi
+          done
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "❌ Pillars missing Success Criteria / Acceptance Checklist:"
+            printf '  - %s\n' "${missing[@]}"
+            exit 1
+          fi
+          echo "✓ Every feature pillar has acceptance criteria."
+
+      - name: decisions.yaml — unique IDs
+        run: |
+          dupes=$(yq -r '.decisions[].id' config/decisions.yaml | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "❌ Duplicate decision IDs in config/decisions.yaml:"
+            echo "$dupes"
+            exit 1
+          fi
+          echo "✓ All decision IDs unique."
+
+      - name: decisions.yaml — every ID also appears in decisions-log.md
+        run: |
+          missing=()
+          for id in $(yq -r '.decisions[].id' config/decisions.yaml); do
+            if ! grep -qE "^### $id " decisions-log.md; then
+              missing+=("$id")
+            fi
+          done
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "❌ Decision IDs in config/decisions.yaml not found in decisions-log.md:"
+            printf '  - %s\n' "${missing[@]}"
+            exit 1
+          fi
+          echo "✓ Every decision ID is mirrored in prose."
+
+      - name: roles.yaml — exactly 11 people
+        run: |
+          n=$(yq -r '.team | length' config/roles.yaml)
+          if [ "$n" -ne 11 ]; then
+            echo "❌ roles.yaml has $n people; expected 11 (per Pillar 16 §A)."
+            exit 1
+          fi
+          echo "✓ Team roster has 11 people."
+
+      - name: Internal markdown links resolve
+        run: |
+          fail=0
+          while IFS= read -r line; do
+            file="$(echo "$line" | cut -d: -f1)"
+            link="$(echo "$line" | grep -oE '\]\([^)]+\)' | head -1 | sed -E 's/^\]\(|\)$//g')"
+            # Skip external (http(s):), anchors only (#…), mailto:
+            case "$link" in
+              http://*|https://*|mailto:*|#*|"") continue ;;
+            esac
+            # Strip any trailing #anchor
+            target="${link%%#*}"
+            # Resolve relative to the file's directory
+            dir="$(dirname "$file")"
+            resolved="$(realpath -m "$dir/$target")"
+            if [ ! -e "$resolved" ]; then
+              echo "❌ Broken link in $file → $link  (resolves to $resolved)"
+              fail=1
+            fi
+          done < <(grep -rnE '\]\([^)]+\)' --include="*.md" .)
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "✓ All internal markdown links resolve."
