@@ -1,0 +1,26 @@
+{
+  "name": "@antagna/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "trigger dev",
+    "build": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
+    "deploy": "trigger deploy"
+  },
+  "dependencies": {
+    "@antagna/ai": "workspace:*",
+    "@antagna/db": "workspace:*",
+    "@antagna/shared": "workspace:*",
+    "@trigger.dev/sdk": "^3.3.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.36.4",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "@trigger.dev/build": "^3.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
