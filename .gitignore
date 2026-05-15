@@ -5,5 +5,27 @@ Thumbs.db
 .idea/
 .env
 .env.local
+.env.*.local
 *.pem
 node_modules/
+
+# editor swap files
+*.swp
+*.swo
+*~
+
+# binary installers / large artifacts that don't belong in a blueprint repo
+*.deb
+*.dmg
+*.exe
+*.msi
+*.tar.gz
+*.zip
+
+# build output / cache
+dist/
+build/
+.next/
+.turbo/
+.cache/
+coverage/
