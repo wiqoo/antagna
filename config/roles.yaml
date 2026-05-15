@@ -1,0 +1,135 @@
+# Antagna — Canonical Team Roster
+# Source of truth for `profiles` seeding. Extracted from pillar-16-hardening.md §A.
+# When code seeds the database, it imports from THIS file, not the markdown.
+#
+# Total: 11 people. Abu Luka and Mohammed Almalki are the SAME person.
+# Mohammed Ghareeb is a DIFFERENT person. "Hammad" in older notes was a misread of "Hamada".
+
+team:
+  - id: 1
+    name_ar: محمد غريب
+    name_en: Mohammed Ghareeb
+    role: system_admin
+    capabilities:
+      - production_manager  # primary
+      - shooter
+      - editor
+      - ai_specialist
+    email: ghareib@voltsaudi.com
+    notes: The user / system owner / Director of Production
+
+  - id: 2
+    name_ar: أبو لوكا
+    legal_name: محمد المالكي  # Mohammed Almalki
+    name_en: Abu Luka
+    role: general_manager
+    capabilities:
+      - director
+      - talent
+      - approver
+    email: null   # old m.malki@voltsaudi.com cancelled; new mailbox TBD (D-017)
+    active: false  # D-017 — active=false until new mailbox provisioned
+    acting_for_pattern: true  # Mohammed can act on his behalf via audit-log `acting_for_id`
+
+  - id: 3
+    name_ar: خالد الغامدي
+    name_en: Khaled AlGhamdi
+    role: project_manager
+    capabilities:
+      - project_manager   # primary
+    email: khalid@voltsaudi.com
+
+  - id: 4
+    name_ar: عبدالله منصوري
+    name_en: Abdullah Mansoury
+    role: account_manager
+    capabilities:
+      - account_manager   # primary
+    email: mansouri@voltsaudi.com
+
+  - id: 5
+    name_ar: حمادة
+    name_en: Hamada
+    role: user
+    capabilities:
+      - shooter
+      - editor
+    priority_for:
+      - abu_luka_content
+      - social_media
+    email: hamada@voltsaudi.com
+
+  - id: 6
+    name_ar: محسن
+    name_en: Mohsen
+    role: user
+    capabilities:
+      - shooter
+      - editor
+    email: mohsen@voltsaudi.com
+
+  - id: 7
+    name_ar: مساعد
+    name_en: Musa3ed
+    role: user
+    capabilities:
+      - equipment_manager  # primary
+    email: musaed@voltsaudi.com
+
+  - id: 8
+    name_ar: أحمد
+    name_en: Ahmed
+    role: user
+    capabilities:
+      - trainee
+    email: null  # TBD
+
+  - id: 9
+    name_ar: كبسي
+    name_en: Kabsy
+    role: user
+    capabilities:
+      - procurement   # primary
+      - talent        # managed social-media account, early stage
+    email: alkibsi@voltsaudi.com
+
+  - id: 10
+    name_ar: تركي
+    name_en: Turky
+    role: hr
+    capabilities:
+      - hr   # primary
+    email: hr@voltsaudi.com
+
+  - id: 11
+    name_ar: حسين
+    name_en: Hussein
+    role: finance
+    capabilities:
+      - accounting   # primary
+    email: finance@voltsaudi.com
+
+# Role hierarchy (for the redesigned permission system flagged as the staging-side
+# open issue). NOT enforced yet — Pillar 3 / Pillar 16 §A.
+role_tiers:
+  system:           # DB / settings / cost guard
+    - system_admin
+  business_admin:   # operational control
+    - general_manager
+    - project_manager
+    - account_manager
+  domain:           # work-related capabilities (multi-hat per user)
+    - shooter
+    - editor
+    - director
+    - talent
+    - approver
+    - production_manager
+    - ai_specialist
+    - equipment_manager
+    - procurement
+    - hr
+    - accounting
+    - trainee
+  meta:
+    - groups  # group management is the cross-cutting layer

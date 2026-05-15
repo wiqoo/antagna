@@ -4,6 +4,17 @@
 **Depends on:** Pillars 1-11
 **Estimated effort:** 4-5 sessions (UI is broad)
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§C.3** — PDPL subject rights are **promoted to first-class features** (data export, deletion, consent screens)
+> - **§H.1** — Cmd+K command registry spec
+> - **§H.2** — empty/loading/error states one-pager required per pillar
+> - **§H.3** — mobile flows for critical actions specified
+> - **§H.4** — in-app onboarding (per-user)
+> - **§H.5** — RTL/LTR details
+> - **§H.6** — power-user customization (schema-ready, Phase 2)
+> - **§N.6** — UI surfaces for the D-026 internal approval workflow
+> - **§O.3** — UI changes for Dafterah-only invoicing (no quote/invoice forms in Antagna)
+
 The visual + interaction language. Mohammed asked for: **ممتع، حي، غني، مؤتمت، فيه معلومات قيمة فعلاً**. Translation: fun + alive + dense + smart. We adopt the **Linear + Vercel** vibe (keyboard-first, dark, dense, beautiful) blended with **Arc's playfulness** (subtle animations with purpose, personality in copy).
 
 ---

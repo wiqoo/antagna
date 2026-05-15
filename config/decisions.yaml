@@ -1,0 +1,223 @@
+# Antagna — Decisions Log (machine-readable)
+# Mirror of decisions-log.md. The markdown stays authoritative for prose;
+# this file is what CI + tools query.
+#
+# When you add a new decision: add it BOTH here and in decisions-log.md.
+# Never edit a past decision in place — supersede it with a new ID.
+
+decisions:
+  - id: D-001
+    title: Dev environment — Ubuntu, not WSL
+    date: 2026-05-14
+    pillar: 1
+    reversibility: moderate
+    status: locked
+
+  - id: D-002
+    title: Hosting — Vercel + Supabase (Frankfurt)
+    date: 2026-05-14
+    pillar: 1
+    reversibility: moderate
+    status: locked
+    note: Saudi data residency deferred; PDPL accepted at MVP (see D-021)
+
+  - id: D-003
+    title: ORM — Drizzle (not Prisma)
+    date: 2026-05-14
+    pillar: 1
+    reversibility: hard
+    status: locked
+
+  - id: D-004
+    title: Monorepo — pnpm + Turborepo
+    date: 2026-05-14
+    pillar: 1
+    reversibility: easy
+    status: locked
+
+  - id: D-005
+    title: Job orchestration — Trigger.dev v3 (revised from Inngest)
+    date: 2026-05-14
+    pillar: 1
+    reversibility: moderate
+    status: locked
+    supersedes: Inngest (previous decision)
+
+  - id: D-006
+    title: Scheduled SQL — Supabase pg_cron
+    date: 2026-05-14
+    pillar: 1
+    reversibility: easy
+    status: locked
+
+  - id: D-007
+    title: AI — Anthropic Claude (Sonnet 4.6 default)
+    date: 2026-05-14
+    pillar: 1, 10
+    reversibility: moderate
+    status: locked
+
+  - id: D-008
+    title: Embeddings — OpenAI text-embedding-3-small (1536-dim)
+    date: 2026-05-14
+    pillar: 10
+    reversibility: hard
+    status: locked
+
+  - id: D-009
+    title: Mobile — PWA first
+    date: 2026-05-14
+    pillar: 12
+    reversibility: easy
+    status: locked
+
+  - id: D-010
+    title: AI cost — open with guards (no hard cap, per-feature/user tracking)
+    date: 2026-05-14
+    pillar: 10
+    reversibility: easy
+    status: locked
+
+  - id: D-011
+    title: Migration — selective (equipment + active clients + active projects only)
+    date: 2026-05-14
+    pillar: 15
+    reversibility: easy
+    status: locked
+
+  - id: D-012
+    title: Communications — Email Phase 1, WhatsApp Phase 2 (superseded by D-023)
+    date: 2026-05-14
+    pillar: 8
+    reversibility: easy
+    status: superseded
+    superseded_by: D-023
+
+  - id: D-013
+    title: Single legal entity — مؤسسة فولت الإبداعية
+    date: 2026-05-14
+    pillar: 2, 13
+    reversibility: hard
+    status: locked
+    cr: "4030483856"
+    vat: "310314280500003"
+
+  - id: D-014
+    title: Phase 1 out-of-scope (HR, finance, old AR, partner share, WhatsApp, history)
+    date: 2026-05-14
+    pillar: all
+    reversibility: easy
+    status: locked
+    note: WhatsApp partially reversed by D-023 (self-hosted Baileys)
+
+  - id: D-015
+    title: Names locked — Antagna / أنتجنا
+    date: 2026-05-14
+    pillar: all
+    reversibility: hard
+    status: locked
+
+  - id: D-016
+    title: Ubuntu username `mohammed`, code path `/home/mohammed/antagna`
+    date: 2026-05-14
+    pillar: 1
+    reversibility: easy
+    status: locked
+    note: Per 2026-05-15 rename, the antagna-blueprint repo is now just `antagna` — one repo for blueprint + code
+
+  - id: D-017
+    title: Abu Luka's account — deferred (active=false until new mailbox)
+    date: 2026-05-14
+    pillar: 1, 3
+    reversibility: easy
+    status: locked
+    superseded_by: D-024  # Abu Luka treatment further simplified
+
+  - id: D-018
+    title: GitHub user `wiqoo`; repo `wiqoo/antagna`
+    date: 2026-05-14
+    pillar: 1
+    reversibility: easy
+    status: locked
+    note: 2026-05-15 — collapsed to a single repo `antagna` (was `antagna-blueprint` + `antagna`)
+
+  - id: D-019
+    title: Antagna exposes its own MCP server at /api/mcp
+    date: 2026-05-14
+    pillar: 13
+    reversibility: easy
+    status: locked
+
+  - id: D-020
+    title: Anthropic model strings locked (claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5-20251001)
+    date: 2026-05-14
+    pillar: 10
+    reversibility: easy
+    status: locked
+    source_of_truth: packages/ai/src/models.ts
+
+  - id: D-021
+    title: PDPL — Frankfurt hosting permitted (non-critical sector)
+    date: 2026-05-14
+    pillar: 1, 14
+    reversibility: depends_on_client_contract
+    status: locked
+    revisit_if: a client demands KSA-resident storage as contract condition
+
+  - id: D-022
+    title: Finance / ZATCA — Dafterah owns invoicing; Antagna stores references only
+    date: 2026-05-14
+    pillar: 13
+    reversibility: easy
+    status: locked
+    supersedes: ZATCA-elevated decision from Pillar 16 §C.1
+
+  - id: D-023
+    title: WhatsApp — open-source Baileys self-hosted (not Meta Cloud API)
+    date: 2026-05-14
+    pillar: 8
+    reversibility: moderate
+    status: locked
+    supersedes: D-012 (Phase 2 deferral) + Pillar 16 §F.2 Meta-specific fields
+    note: New service `apps/whatsapp-gateway` on a VPS
+
+  - id: D-024
+    title: Abu Luka — no special handling (sign in when ready, acting_for_id pattern)
+    date: 2026-05-14
+    pillar: 3
+    reversibility: easy
+    status: locked
+    supersedes: D-017
+
+  - id: D-025
+    title: National Data Governance Platform (NDGP) — NOT required (no biometrics)
+    date: 2026-05-14
+    pillar: 9, 14
+    reversibility: easy
+    status: locked
+    revisit_if: biometric processing added later
+
+  - id: D-026
+    title: Internal approval workflow on deliverables (Creator → Director → AM → Client)
+    date: 2026-05-14
+    pillar: 5, 11, 12
+    reversibility: moderate
+    status: locked
+    schema_section: pillar-16-hardening.md §N
+
+# Pending — to be resolved in noted pillars
+pending:
+  - title: Sentry tier (free vs paid)
+    decide_in: pillar 14
+
+  - title: Domain name (antagna.voltsaudi.com vs app.antagna.me)
+    decide_in: pillar 14
+
+  - title: Email sending domain + provider (Resend / Postmark / Workspace)
+    decide_in: pillar 8
+
+  - title: PDPL compliance level (minimum vs comprehensive)
+    decide_when: KSA-resident client demands
+
+  - title: Backup strategy (Supabase native vs additional off-site)
+    decide_in: pillar 14

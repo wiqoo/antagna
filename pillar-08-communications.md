@@ -4,6 +4,12 @@
 **Depends on:** Pillars 1-5, 10
 **Estimated effort:** 3-4 sessions (one of the most substantial pillars)
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§F.1** — WhatsApp **promoted from Phase 2 to Phase 1** (parallel build with main work)
+> - **§F.3** — NEW `unified_communications_view` (cross-channel: email + WhatsApp + Slack)
+> - **§F.4** — cross-channel anchoring (same person across email + WhatsApp = same identity)
+> - **§P** — WhatsApp is now **self-hosted via Baileys**, NOT Meta Cloud API (D-023). The schema additions from §F.2 (`business_scoped_user_id`, `conversation_category`, `template_status`) are **dropped** — original Pillar 8 §3.6 schema stands
+
 The most user-visible "always-on" surface. Wire Gmail (real-time via Pub/Sub), unify inbound threads with project/lead context, build draft→review→send workflow, integrate Gemini meeting notes. WhatsApp deferred to Phase 2 but schema-ready.
 
 ---

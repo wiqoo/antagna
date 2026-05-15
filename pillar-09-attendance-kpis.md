@@ -4,6 +4,10 @@
 **Depends on:** Pillars 1-5, 8
 **Estimated effort:** 2-3 sessions
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§C.2** — face matching **fully removed** (no biometric embeddings). Avoids PDPL "Sensitive Personal Data" + NDGP registration. Selfie is audit artifact only.
+> - **§D.1** — `attendance_records` schema corrected (selfie URL + GPS + timestamp + audit, no embedding columns)
+
 Two related features Mohammed asked for explicitly:
 1. **Attendance** via selfie + GPS + timestamp (PWA). **No automated face-matching** — selfie is an audit-trail artifact only. This decision (taken 2026-05-14 after peer review) avoids PDPL "Sensitive Personal Data" classification of biometric embeddings, which would otherwise require KSA-resident storage + Saudi SCC templates + risk assessment + National Data Governance Platform registration.
 2. **KPIs** derived from system events — never manual forms (lesson from 4 abandoned Drive folders).

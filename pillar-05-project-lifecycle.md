@@ -4,6 +4,10 @@
 **Depends on:** Pillars 1-4
 **Estimated effort:** 3-4 sessions (the longest feature pillar)
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§N** (entire section) — D-026 internal approval workflow: every deliverable passes Creator → Director → AM → Client, with state machine + revision cycles. Affects deliverable lifecycle here.
+> - **§B.3** — share links are now `project_share_views` (already defined in §3.3); the `projects.share_token` column is dropped (was duplicated)
+
 The heart of the system. Replicates and structures Volt's existing 11-stage project flow, but with state-machine enforcement, auto-advance triggers, deliverables review (Sheet-pattern → first-class feature), and the share-token client portal.
 
 ---

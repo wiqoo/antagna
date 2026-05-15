@@ -4,6 +4,16 @@
 **Depends on:** Pillars 1-10
 **Estimated effort:** 2-3 sessions
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§B.1** — all "Inngest" references → "Trigger.dev v3"
+> - **§G.1** — equipment conflict resolution workflow
+> - **§G.2** — auto-replan on project date change
+> - **§G.3** — battery "Mark Charged" UI flow
+> - **§G.4** — pre-shoot checklist surfaced from `project_learnings`
+> - **§G.5** — vendor onboarding packet workflow
+> - **§N.5** — new alert rules for the D-026 internal approval workflow
+> - **§O.4** — alert rules **removed** related to Antagna-side invoicing (Dafterah owns invoicing per D-022)
+
 The system that turns Mohammed's stated requirement ("zero human errors, follow-up automatic, never forget anything") into rules + scheduled scanners. Everything that should NOT depend on a human remembering is implemented here.
 
 ---

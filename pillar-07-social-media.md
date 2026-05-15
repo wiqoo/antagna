@@ -4,6 +4,9 @@
 **Depends on:** Pillars 1-5
 **Estimated effort:** 2-3 sessions
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§J** — Social OAuth token health monitoring (refresh-before-expiry job, alert on revocation)
+
 A first-class module for the social-media service line Volt provides to talents (Abu Luka, Maha, Kabsy currently). Replaces the manual one-event-per-Lexus-story calendar pattern. Cross-links to projects so we know "this campaign drove this post which drove these analytics".
 
 ---

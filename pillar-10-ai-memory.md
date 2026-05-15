@@ -4,6 +4,15 @@
 **Depends on:** Pillars 1-8
 **Estimated effort:** 3-4 sessions (heart of "always-on AI")
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§B.1** — all "Inngest" references → "Trigger.dev v3"
+> - **§E.1** — NEW `project_learnings` table (per-project outcomes feeding back into prompts)
+> - **§E.2** — NEW `decision_outcomes` table (track which AI suggestions stuck)
+> - **§E.3** — memory chunk quality signals (recency + click-through + edit-distance)
+> - **§E.4** — NEW `template_edit_patterns` (learning from user edits to AI drafts)
+> - **§E.5** — NEW `state_transition_overrides` (learning from manual state changes)
+> - **§G.6** — inbound spam classifier (filter before AI processing)
+
 The pillar that turns Antagna from a CRUD app into an AI agent loop with humans in it. Defines exactly which AI loops run, when, with which model, against what memory.
 
 ---

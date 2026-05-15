@@ -4,6 +4,10 @@
 **Depends on:** Pillars 1, 2, 3
 **Estimated effort:** 2 sessions
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§B.5** — `equipment_groups` is ~60 (one per model), making `kit_suggestions` precise — confirms this pillar's §7 design
+> - **§D.5** — new `equipment_profiles` table for per-context settings per item
+
 Extends Pillar 2's equipment skeleton with smart kit suggestions, compatibility intelligence, the 1-day booking rule, location auto-sync, and repair workflow. Builds on lessons learned from the old VOLT OS schema (which had this stuff but no UI).
 
 ---

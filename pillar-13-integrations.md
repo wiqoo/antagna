@@ -4,6 +4,12 @@
 **Depends on:** Pillars 1, 5, 7, 8, 10
 **Estimated effort:** 2-3 sessions
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§B.1** — all "Inngest" references → "Trigger.dev v3"
+> - **§C.1** — **ZATCA section is now MOOT for Phase 1** — Dafterah handles invoicing/ZATCA per D-022. The ZATCA UBL 2.1 design in §7 is kept as schema reference only.
+> - **§I** — Drive permission management (`drive-sync-permissions` task on project folder create)
+> - **§O.1** — Antagna stores `dafterah_*_number` references only; no invoice generation
+
 The external connectors. Google Drive auto-folders, Google Calendar sync, Gemini meeting notes ingest, ZATCA invoice prep, social-platform APIs, Resend for transactional email, WhatsApp Phase 2.
 
 ---

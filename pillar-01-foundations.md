@@ -4,6 +4,10 @@
 **Owner:** Mohammed Ghareeb
 **Estimated effort:** 2-4 Claude Code sessions on the Ubuntu machine
 
+> **🩹 Patches (see [pillar-16-hardening.md](pillar-16-hardening.md)):**
+> - **§B.1** — "Inngest" globally replaced with "Trigger.dev v3"
+> - **§B.2** — Trigger.dev starts on Pro tier ($25/mo) from day 1 (free tier exhausts in week 1 given expected job volume)
+
 This pillar establishes everything before any feature code is written: the Ubuntu machine, the cloud accounts, the repo structure, the AI architecture pattern, the security baseline. When this is done, the team has a working dev environment that can be handed off to any later pillar without re-decisions.
 
 ---
