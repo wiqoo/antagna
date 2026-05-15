@@ -31,6 +31,55 @@ Status: blueprint design complete (Pillars 1–16). Zero code written. Pillar 1 
 
 ---
 
+## Autonomy contract (aggressive — set 2026-05-15)
+
+**Mohammed authorizes Claude Code to act autonomously on this repo.** Don't pause for routine confirmations. The allowlist in `.claude/settings.local.json` is generous; the rules below define what's still gated.
+
+### ✅ Do without asking
+
+- Read / Write / Edit anything inside `/home/mohammed/antagna/**`.
+- Git: add, commit, branch, switch, merge (--ff or --no-ff), rebase, pull, push (to any branch including `main`), tag, fetch, remote config, cherry-pick, revert.
+- Pnpm/npm: `install`, `add <pkg>`, `remove`, `update`, `build`, `typecheck`, `lint`, `test`, `db:*`. Vetting npm dependencies is on the user's reasonable judgment — install reputable libraries without asking.
+- Local file ops: mkdir, mv, cp, chmod, ln. `rm` is allowed within `/home/mohammed/antagna/**` and `/tmp/**`; nowhere else.
+- Cloud (staging AND production):
+  - Provision Supabase / Vercel projects via the scripts in `scripts/`.
+  - `vercel deploy` (preview or `--yes` prod), `vercel env` add/pull/list.
+  - `supabase db push`, migration apply, function deploy.
+  - Curl POST/PATCH against `api.supabase.com`, `api.vercel.com`, `api.trigger.dev` using the tokens in memory.
+- GitHub: create repos, open PRs, comment on PRs/issues, merge PRs (after CI passes), view runs.
+- Docker: build, compose up/down/logs, run containers in this repo's compose files.
+- Run any of `scripts/*.sh` or `./antagna-bootstrap.sh`.
+- Update `STATUS.md`, `decisions-log.md` (new `D-NNN`), `config/decisions.yaml`, `config/roles.yaml` — and commit those updates yourself.
+
+### ⚠️ Still ask first ("مصيري")
+
+These five categories pause for explicit user confirmation, every time:
+
+1. **Force operations on shared history** — `git push --force`, `git push --force-with-lease`, `git reset --hard` on a branch that has been pushed, `git branch -D` on a branch with un-merged commits, rewriting public history with `git rebase -i` of pushed commits.
+2. **Destructive blast outside this repo** — `rm` / `mv` / `chmod` outside `/home/mohammed/antagna/**` and `/tmp/**`. Editing system files (`/etc/...`, anything in `~/.config/` that isn't Claude's own). Anything with `sudo`.
+3. **Rotating live production secrets** — replacing the Anthropic / OpenAI / Vercel / Supabase service-role keys that real users depend on. (Setting NEW keys for a new staging env is fine.)
+4. **Spending real money beyond stated caps** — upgrading any service tier whose monthly bill jumps by more than ~$25; provisioning a paid Supabase Pro/Team for a new project; raising AI cost caps (Pillar 16 §B.2 already locks Trigger.dev Pro from day 1, that doesn't need re-asking).
+5. **Operations visible to other humans** — sending email (Resend, Gmail API), posting WhatsApp, pinging Slack/Teams, opening PRs / commenting on issues in repos owned by other people, merging PRs into other people's repos.
+
+Anything that fits ≥1 category → say what you're about to do in one sentence, then ask.
+
+### 🛑 Never (without explicit, scoped permission)
+
+- `git push --force` to `main` / a release branch.
+- Drop a Supabase project, delete a Vercel project, delete a GitHub repo.
+- Rotate Mohammed's personal credentials (the GitHub PAT, the cloud tokens) without a clear "yes, rotate".
+- Touch the LIVE Antagna data (`prj_CPB8DKAwejSOjGr8T9jcn2r8t7xu` / Supabase `jhfkgmomntkgzzycdbmt`) without scope confirmation. Staging is fair game; live is privileged.
+- Commit anything that looks like a real secret (a key matching `sk-ant-…`, `sb_secret_…`, `vca_…`, `sbp_…`). If you find one, surface it; don't commit it.
+
+### How to behave inside this contract
+
+- Move fast. Don't narrate every decision. Make the call, do the work, summarize at the end.
+- Commit liberally — small, focused commits are cheaper to revert than one huge one.
+- If a step is reversible and stays local, just do it. If it's irreversible OR external, pause and quote what you're about to do.
+- When in genuine doubt, ask. The contract trades fewer prompts for more responsibility; don't burn the user by guessing wrong on something they'd have caught.
+
+---
+
 ## Conventions
 
 - **Append-only decisions log.** New decisions get a new `D-NNN` ID; never edit a past decision in place — supersede it with a new one and link.
