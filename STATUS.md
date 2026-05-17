@@ -3,8 +3,8 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-17 (Pillar 3 complete)
-**Phase:** Pillars 1, 2, and 3 all green. Pillar 4 (CRM Core) is next.
+**Last updated:** 2026-05-17 (Pillar 4 schema complete)
+**Phase:** Pillars 1-3 fully done; Pillar 4 schema applied (runtime logic deferred to its dependencies). Pillar 5 (Project Lifecycle) is next.
 
 **Live URL:** <https://antagna-v2.vercel.app>
 
@@ -26,8 +26,8 @@
 | 01 | Foundations & Infra | ✓ | ✓ | ✅ 8 PASS |
 | 02 | Data Model | ✓ | ✓ | ✅ 8/8 §16 acceptance |
 | 03 | Identity & Permissions | ✓ | ✓ | ✅ 10/10 §10 acceptance |
-| 04 | CRM Core | ✓ | ⏳ **next** | — |
-| 05 | Project Lifecycle | ✓ | ⏳ | — |
+| 04 | CRM Core | ✓ | 🟡 schema only | runtime logic → Pillar 8/10 |
+| 05 | Project Lifecycle | ✓ | ⏳ **next** | — |
 | 06 | Equipment & Reservations | ✓ | ⏳ | — |
 | 07 | Social Media Module | ✓ | ⏳ | — |
 | 08 | Communications Layer | ✓ | ⏳ | — |
@@ -65,8 +65,8 @@ Legend: ✓ done · ⏳ pending · ⏸ blocked
 
 ## 📊 Database snapshot
 
-- **64 tables** in production (`nicijexpmpekzuzevarf`).
-- **20 migrations** applied.
+- **68 tables** in production (`nicijexpmpekzuzevarf`).
+- **21 migrations** applied.
 - **Pillar 16 patches applied:** B.3 (no share_token), B.5 (equipment_groups by model), D.2 (talents), D.3 (freelancers + project_assignments.freelancer_id), D.4 (locations), D.5 (equipment_profiles), N (internal_approvals + extended deliverable_status enum), O.1 (Dafterah refs).
 - **Seeded:** 21 capabilities, 5 departments, 14 notification event types, 6 starter tags, **43 permissions**, **126 role→permission grants** across 7 roles.
 - **Resolver functions live:** `has_permission`, `has_capability`, `is_assigned_to_project`, `current_user_has_*`, `current_acting_as_id`.
