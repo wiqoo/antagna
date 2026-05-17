@@ -4,6 +4,7 @@ export * from './projects';
 export * from './briefs';
 export * from './money';
 export * from './equipment';
+export * from './equipment_workflow';
 export * from './cross_cutting';
 export * from './permissions';
 export * from './crm';
