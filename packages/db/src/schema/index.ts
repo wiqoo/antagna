@@ -5,6 +5,7 @@ export * from './briefs';
 export * from './money';
 export * from './equipment';
 export * from './cross_cutting';
+export * from './permissions';
 export * from './audit';
 export * from './memory';
 export * from './system';

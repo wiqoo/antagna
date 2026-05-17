@@ -3,8 +3,8 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-17 (Pillar 2 complete)
-**Phase:** Pillars 1 and 2 done. Ready to start Pillar 3 (Identity & Permissions).
+**Last updated:** 2026-05-17 (Pillar 3 complete)
+**Phase:** Pillars 1, 2, and 3 all green. Pillar 4 (CRM Core) is next.
 
 **Live URL:** <https://antagna-v2.vercel.app>
 
@@ -12,13 +12,10 @@
 
 ## 🎯 Next concrete action
 
-> **Start Pillar 3 (Identity & Permissions).** Pillar 2 left every table with a
-> baseline RLS (read=authenticated, write=admin). Pillar 3 refines those into
-> role-tier predicates (system / business / domain / meta per `config/roles.yaml`)
-> and wires the SystemRole + Capability checks that already exist in
-> `@antagna/shared`.
-
-Nothing in Pillar 3 blocks on manual prerequisites — pure schema + policy work.
+> **Start Pillar 4 (CRM Core).** Schema for managing clients/contacts is
+> mostly in Pillar 2 — Pillar 4 wires the UI + business logic (lead → client
+> conversion, contact deduplication, agency-brand assignments, AM ownership
+> rules, follow-ups). Pure code work; no manual prerequisites.
 
 ---
 
@@ -28,8 +25,8 @@ Nothing in Pillar 3 blocks on manual prerequisites — pure schema + policy work
 |---|--------|------|------|----------|
 | 01 | Foundations & Infra | ✓ | ✓ | ✅ 8 PASS |
 | 02 | Data Model | ✓ | ✓ | ✅ 8/8 §16 acceptance |
-| 03 | Identity & Permissions | ✓ | ⏳ **next** | — |
-| 04 | CRM Core | ✓ | ⏳ | — |
+| 03 | Identity & Permissions | ✓ | ✓ | ✅ 10/10 §10 acceptance |
+| 04 | CRM Core | ✓ | ⏳ **next** | — |
 | 05 | Project Lifecycle | ✓ | ⏳ | — |
 | 06 | Equipment & Reservations | ✓ | ⏳ | — |
 | 07 | Social Media Module | ✓ | ⏳ | — |
@@ -68,10 +65,12 @@ Legend: ✓ done · ⏳ pending · ⏸ blocked
 
 ## 📊 Database snapshot
 
-- **61 tables** in production (`nicijexpmpekzuzevarf`).
-- **15 migrations** applied: extensions, Pillar 1 tables + RLS + audit + pg_cron + GRANTs, Pillar 2 people/orgs/projects/briefs/money/equipment/cross-cutting + seed lookups + audit-fn polymorphic-PK fix.
+- **64 tables** in production (`nicijexpmpekzuzevarf`).
+- **20 migrations** applied.
 - **Pillar 16 patches applied:** B.3 (no share_token), B.5 (equipment_groups by model), D.2 (talents), D.3 (freelancers + project_assignments.freelancer_id), D.4 (locations), D.5 (equipment_profiles), N (internal_approvals + extended deliverable_status enum), O.1 (Dafterah refs).
-- **Seeded:** 21 capabilities, 5 departments, 14 notification event types, 6 starter tags.
+- **Seeded:** 21 capabilities, 5 departments, 14 notification event types, 6 starter tags, **43 permissions**, **126 role→permission grants** across 7 roles.
+- **Resolver functions live:** `has_permission`, `has_capability`, `is_assigned_to_project`, `current_user_has_*`, `current_acting_as_id`.
+- **Acting-for pattern wired:** `SET LOCAL app.acting_as = '<uuid>'` inside a transaction stamps audit_log.acted_as_id and activity_events.acted_as_id.
 
 ---
 
