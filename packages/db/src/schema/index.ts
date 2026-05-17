@@ -12,6 +12,8 @@ export * from './lifecycle';
 export * from './social';
 export * from './comms';
 export * from './attendance_kpis';
+export * from './ai';
+export * from './automation';
 export * from './audit';
 export * from './memory';
 export * from './system';
