@@ -3,15 +3,18 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-15
-**Phase:** Pre-execution. Blueprint complete, **no code written yet.**
+**Last updated:** 2026-05-17
+**Phase:** Pillar 1 execution in progress. Monorepo + Pillar 1 schema + migrations written; cloud provisioning underway.
 
 ---
 
 ## 🎯 Next concrete action
 
-> **Execute Pillar 1 — Foundations.** Start with `pillar-01-foundations.md §3` (Ubuntu machine setup).
-> Then §4 (cloud accounts — 7 services to provision) → §5 (monorepo structure) → run §19 acceptance checklist.
+> **Wire `apps/web` to the new Supabase project** (`nicijexpmpekzuzevarf`):
+> 1. Fill `apps/web/.env.local` with the Antagna-V2 keys.
+> 2. Push local commits to GitHub (`wiqoo/antagna`) so Supabase's GitHub integration
+>    auto-applies the 5 Pillar 1 migrations.
+> 3. Smoke-test the schema (insert profile, query back, verify pgvector).
 
 **Where the work happens:** this same repo (`/home/mohammed/antagna`). Code lands in `apps/` and `packages/` alongside the existing pillar docs.
 
