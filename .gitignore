@@ -13,6 +13,9 @@ node_modules/
 *.swp
 *.swo
 *~
+*.save
+*.orig
+*.bak
 
 # binary installers / large artifacts that don't belong in a blueprint repo
 *.deb
