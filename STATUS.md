@@ -3,8 +3,10 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-17 (Pillar 5 complete)
-**Phase:** Pillars 1, 2, 3, 5 fully done. Pillar 4 schema applied (runtime → 8/10). Pillar 6 (Equipment & Reservations) is next.
+**Last updated:** 2026-05-17 (all 15 pillars: schema + foundations done)
+**Phase:** Build phase complete at the schema/foundations layer. UI feature pages
++ runtime integration work + the legacy data migration remain (each is its own
+multi-day session).
 
 **Live URL:** <https://antagna-v2.vercel.app>
 
@@ -12,10 +14,28 @@
 
 ## 🎯 Next concrete action
 
-> **Start Pillar 4 (CRM Core).** Schema for managing clients/contacts is
-> mostly in Pillar 2 — Pillar 4 wires the UI + business logic (lead → client
-> conversion, contact deduplication, agency-brand assignments, AM ownership
-> rules, follow-ups). Pure code work; no manual prerequisites.
+> **Pick a feature direction and start the UI/runtime work for it.** All 15
+> pillars' DB layer is in place — every domain has its schema, RLS,
+> resolver functions, scheduled hooks, audit, and seed data. What's left is:
+>
+> 1. **UI feature pages** in `apps/web/src/app/` for the modules on the
+>    sidebar (`/projects`, `/crm`, `/equipment`, `/tasks`, `/inbox`, `/kpis`).
+>    The shell + tokens + StatusPill/MoneyDisplay/Kbd primitives are in
+>    `@antagna/ui`; each page is its own ~half-day of work.
+>
+> 2. **Trigger.dev tasks** for the scheduled scanners — alert_scanner,
+>    insights-scanner, daily-brief, post-analytics-capture, learning extractors.
+>    Wire to the dev API key already in env.
+>
+> 3. **Integration runtime** for Drive / Calendar / Gmail / Resend / social
+>    platforms — needs the Google service account + Resend domain verification
+>    + social platform OAuth setups Mohammed mentioned as the remaining manual
+>    items.
+>
+> 4. **Legacy data merge (Pillar 15)** — when Mohammed is ready, run
+>    `scripts/migrate-from-volt-os.ts` against the old Supabase project. Pulls
+>    equipment + active clients + active projects into the staging tables;
+>    second pass maps to the canonical schema with FK validation.
 
 ---
 
@@ -24,87 +44,73 @@
 | # | Pillar | Plan | Code | Verified |
 |---|--------|------|------|----------|
 | 01 | Foundations & Infra | ✓ | ✓ | ✅ 8 PASS |
-| 02 | Data Model | ✓ | ✓ | ✅ 8/8 §16 acceptance |
-| 03 | Identity & Permissions | ✓ | ✓ | ✅ 10/10 §10 acceptance |
-| 04 | CRM Core | ✓ | 🟡 schema only | runtime logic → Pillar 8/10 |
-| 05 | Project Lifecycle | ✓ | ✓ | ✅ 9/9 §10 acceptance |
-| 06 | Equipment & Reservations | ✓ | ⏳ **next** | — |
-| 07 | Social Media Module | ✓ | ⏳ | — |
-| 08 | Communications Layer | ✓ | ⏳ | — |
-| 09 | Attendance & KPIs | ✓ | ⏳ | — |
-| 10 | AI & Memory Layer | ✓ | ⏳ | — |
-| 11 | Automation & Alerts | ✓ | ⏳ | — |
-| 12 | UI/UX System | ✓ | ⏳ | — |
-| 13 | Integrations | ✓ | ⏳ | — |
-| 14 | Deployment & Ops | ✓ | ⏳ | — |
-| 15 | Migration & Launch | ✓ | ⏳ | — |
-| 16 | Hardening (patch) | ✓ | n/a | n/a |
+| 02 | Data Model | ✓ | ✓ | ✅ 8/8 §16 |
+| 03 | Identity & Permissions | ✓ | ✓ | ✅ 10/10 §10 |
+| 04 | CRM Core | ✓ | 🟡 schema | runtime → Pillars 8/10 |
+| 05 | Project Lifecycle | ✓ | ✓ | ✅ 9/9 §10 |
+| 06 | Equipment & Reservations | ✓ | ✓ | ✅ 9/9 |
+| 07 | Social Media Module | ✓ | 🟡 schema | OAuth → manual |
+| 08 | Communications Layer | ✓ | 🟡 schema | Resend domain + WhatsApp VPS → manual |
+| 09 | Attendance & KPIs | ✓ | 🟡 schema | PWA UI → Pillar 12 |
+| 10 | AI & Memory Layer | ✓ | 🟡 schema | worker tasks → Trigger.dev deploy |
+| 11 | Automation & Alerts | ✓ | 🟡 schema | scanner worker → Trigger.dev deploy |
+| 12 | UI/UX System | ✓ | 🟡 foundations | tokens + AppShell + StatusPill/Money/Kbd; feature pages TBD |
+| 13 | Integrations | ✓ | 🟡 schema | Google service account + OAuth → manual |
+| 14 | Deployment & Ops | ✓ | 🟡 CI + runbooks | custom domain + Sentry tier → manual |
+| 15 | Migration & Launch | ✓ | 🟡 staging tables | run when ready to merge legacy data |
+| 16 | Hardening (patch) | ✓ | ✓ | applied across pillars |
 
-Legend: ✓ done · ⏳ pending · ⏸ blocked
-
----
-
-## 🟢 Pillar 2 §16 acceptance
-
-| # | Criterion | Status |
-|---|---|---|
-| 1 | All tables + RLS enabled | ✅ 61 tables, 61 with RLS |
-| 2 | Triggers compile + fire | ✅ audit trigger writes on every change |
-| 3 | Drizzle types match SQL | ✅ pnpm type-check clean |
-| 4 | Domain test rows | ✅ smoke-tested via acceptance script |
-| 5 | Audit log captures CRUD across Pillar 2 tables | ✅ verified — 5 deliverable transitions captured |
-| 6 | Project with all FK refs in one transaction | ✅ PRJ-NNNN auto-generated, all FKs satisfied |
-| 7 | Deliverable state machine | ✅ draft → submitted → pending_director → pending_am → client_ready → delivered |
-| 8 | Equipment reservation overlap rejected | ✅ exclusion constraint `no_overlap_per_unit` rejected the conflicting insert |
-| 9 | Selective migration ≥ 162 equipment + ≥ 20 clients | ⏸ Pillar 15 (migration plan) |
-| 10 | type-check across packages/db consumers | ✅ 5/5 packages |
-
-**8 PASS, 2 deferred (#9 → Pillar 15, RLS per-role refinement → Pillar 3).**
+Legend: ✓ done · 🟡 partial (schema landed, runtime/UI/manual deferred) · ✅ tested · ⏳ pending
 
 ---
 
 ## 📊 Database snapshot
 
-- **71 tables** in production (`nicijexpmpekzuzevarf`).
-- **23 migrations** applied.
-- **Pillar 16 patches applied:** B.3 (no share_token), B.5 (equipment_groups by model), D.2 (talents), D.3 (freelancers + project_assignments.freelancer_id), D.4 (locations), D.5 (equipment_profiles), N (internal_approvals + extended deliverable_status enum), O.1 (Dafterah refs).
-- **Seeded:** 21 capabilities, 5 departments, 14 notification event types, 6 starter tags, **43 permissions**, **126 role→permission grants** across 7 roles.
-- **Resolver functions live:** `has_permission`, `has_capability`, `is_assigned_to_project`, `current_user_has_*`, `current_acting_as_id`.
-- **Acting-for pattern wired:** `SET LOCAL app.acting_as = '<uuid>'` inside a transaction stamps audit_log.acted_as_id and activity_events.acted_as_id.
+- **107 tables** + 2 views (`v_battery_alerts`, `v_integration_health`) in `nicijexpmpekzuzevarf`.
+- **31 migrations** applied.
+- **Pillar 16 patches:** all 26 hardening items live (B.1-B.5, C.1-C.3, D.1-D.6, E.1-E.5, F-J, N, O, P).
+- **Seeded:** 21 capabilities · 5 departments · 14 notification event types · 6 starter tags · 43 permissions · 126 role→permission grants · 30 stage task templates · 24 KPI definitions · 12 alert rules · 4 email templates.
+- **Resolver functions:** `has_permission`, `has_capability`, `is_assigned_to_project`, `current_user_has_*`, `current_acting_as_id`, `write_activity`, `fn_get_shared_project`, `fn_create_project_from_template`, `fn_suggest_kit_for_equipment`, `fn_checkout_equipment`, `fn_return_equipment`.
+- **State machines wired:** projects.stage (with admin override), deliverables.status (Pillar 16 §N approval pipeline).
+- **Cron heartbeats:** `antagna_heartbeat` every minute, `antagna_alert_scan_tick` every 5 minutes (worker scanner listens).
 
 ---
 
-## 🚧 Open blockers
+## 🟢 Acceptance verifications green
 
-1. **Email confirmation** in Supabase still disabled (`mailer_autoconfirm: true`) for dev convenience. Re-enable before real-user launch.
-2. (No blockers for the next pillar.)
+- Pillar 1 §1: 8/10 (1 partial latency, 1 → Pillar 15)
+- Pillar 2 §16: 8/8
+- Pillar 3 §10: 10/10
+- Pillar 5 §10: 9/9
+- Pillar 6: 9/9
+
+`scripts/smoke/` has the 5 acceptance scripts + the 3 Pillar 1 smokes (auth/ai/pgvector).
 
 ---
 
-## 🛠 Manual items resolved this session (2026-05-17)
+## 🚧 Open blockers (for feature/runtime layers)
 
-- ✅ OpenAI key rotated + $5 credit. Real embeddings now work.
-- ✅ Trigger.dev DEV API key generated and in `.env.local`/Vercel.
-- ✅ Resend API key in env.
-- ✅ Google API key (Gmail/Calendar/Drive) in env. Note: API key alone is read-only / public-API; OAuth or service-account still pending for Pillar 13.
-- ✅ Sentry source-map auth token in env. Next Vercel build will upload source maps for unminified stack traces.
-
-## 🛠 Manual items still pending
-
-- **Trigger.dev PROD API key** — generate when Pillar 5 starts deploying tasks.
-- **WhatsApp Baileys VPS** — deferred per Mohammed (Pillar 8).
-- **Custom domain** — deferred per Mohammed (Pillar 14).
-- **Google service account + domain-wide delegation** — Pillar 13 (the API key alone won't access user data).
-- **Resend domain verification (`notifications.voltsaudi.com`)** — before Pillar 8 send goes to anyone but Mohammed.
-- **Sentry orphan project cleanup** — optional housekeeping.
-- **Email confirmation re-enable** — before Pillar 15 launch.
+1. **Google service account JSON** (Pillar 13 runtime). Needed for Drive/Calendar/Gmail-on-behalf-of-user.
+2. **Resend domain verification** for `notifications.voltsaudi.com` (Pillar 8 send target).
+3. **Social platform OAuth tokens** (Instagram/TikTok/YouTube) (Pillar 7 analytics).
+4. **Trigger.dev PROD API key** (when first prod-grade task ships).
+5. **Custom domain** (Pillar 14 §3).
+6. **Supabase email confirmation re-enable** before real user launch (Pillar 15 cutover).
+7. **Legacy DB dump** when ready for Pillar 15 cutover.
 
 ---
 
 ## ⚠️ Recent events
 
-- **2026-05-17 (afternoon)** — Pillar 2 fully complete. 51 new tables across 8 migrations. §16 acceptance script passed 8/8. OpenAI quota top-up confirmed by re-running pgvector smoke with real embeddings (1536-dim returned, similarity=1.000000 for identical text). Sentry source-map token + Resend + Google API key + Trigger.dev dev key all pushed to Vercel production env.
-- **2026-05-17 (morning)** — Pillar 1 complete (8 PASS), Sentry verified, smoke tests, single-Supabase decision recorded.
+- **2026-05-17 (evening)** — Pillars 7–15 schema + Pillar 12 UI foundations
+  landed end-to-end. 107 tables, 31 migrations, new `@antagna/ui` workspace
+  with tokens + AppShell + StatusPill / MoneyDisplay / Kbd. CI workflow added
+  (type-check + build + migration syntax check). 5 ops runbooks under
+  `docs/runbooks/`.
+- **2026-05-17 (afternoon)** — Pillars 2–6 complete + verified, OpenAI rotated,
+  Trigger.dev DEV key, Resend / Google / Sentry tokens all live in env.
+- **2026-05-17 (morning)** — Pillar 1 complete (8 PASS), Sentry verified live,
+  single-Supabase plan locked.
 
 ---
 
