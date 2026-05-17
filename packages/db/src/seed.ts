@@ -1,4 +1,19 @@
-import 'dotenv/config';
+/**
+ * LOCAL-DEV ONLY. NOT run in production.
+ *
+ * Pre-fills profiles from config/roles.yaml so a developer testing against a
+ * local or throwaway Supabase project has the team roster available for
+ * UI/permission work.
+ *
+ * For the actual production database:
+ *   - new users get a profile auto-created on first Google SSO sign-in (see
+ *     supabase/migrations/00000000000006_auth_user_to_profile.sql)
+ *   - the team's REAL profile data merges in from the legacy Volt OS DB at the
+ *     end of Pillar 15 (Migration & Launch).
+ *
+ * To prevent accidental seeds against prod/staging, this script requires the
+ * env var ANTAGNA_ALLOW_SEED=1 to be set.
+ */
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +35,16 @@ type TeamMember = {
 type RolesFile = { team: TeamMember[] };
 
 async function main() {
+  if (process.env.ANTAGNA_ALLOW_SEED !== '1') {
+    console.error(
+      'Refusing to seed: set ANTAGNA_ALLOW_SEED=1 to confirm this is a local-dev database.',
+    );
+    console.error(
+      'See the file header for why: production profiles come from auth-trigger + Pillar 15 merge.',
+    );
+    process.exit(2);
+  }
+
   const rolesPath = join(__dirname, '../../../config/roles.yaml');
   const roles = parseYaml(readFileSync(rolesPath, 'utf8')) as RolesFile;
 
