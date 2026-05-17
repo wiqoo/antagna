@@ -12,7 +12,7 @@ import {
   index,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { profiles } from './auth';
+import { profiles } from './people';
 
 // ai_usage — append-only cost ledger
 export const aiUsage = pgTable(

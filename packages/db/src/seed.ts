@@ -56,16 +56,15 @@ async function main() {
       continue;
     }
 
-    const fullName = member.legal_name ?? member.name_en;
-
     await db
       .insert(schema.profiles)
       .values({
         email: member.email,
-        fullName,
-        fullNameAr: member.name_ar,
+        displayName: member.name_ar,
+        displayNameEn: member.name_en,
+        legalName: member.legal_name ?? null,
         role: member.role,
-        active: member.active ?? true,
+        status: member.active === false ? 'inactive' : 'active',
       })
       .onConflictDoNothing({ target: schema.profiles.email });
 

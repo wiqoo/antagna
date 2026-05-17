@@ -1,6 +1,6 @@
 import { pgTable, bigserial, uuid, text, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { profiles } from './auth';
+import { profiles } from './people';
 
 export const auditLog = pgTable(
   'audit_log',

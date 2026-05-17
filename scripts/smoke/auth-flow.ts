@@ -48,7 +48,7 @@ async function main() {
   });
   const profileQuery = await admin
     .from('profiles')
-    .select('id, auth_user_id, email, full_name, role, active, created_at')
+    .select('id, auth_user_id, email, display_name, role, status, created_at')
     .eq('auth_user_id', userId)
     .single();
   if (profileQuery.error || !profileQuery.data) {
