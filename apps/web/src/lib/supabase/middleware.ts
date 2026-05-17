@@ -36,6 +36,8 @@ export async function updateSession(request: NextRequest) {
   const isPublicAsset =
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/auth') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/monitoring') ||
     url.pathname === '/favicon.ico';
 
   // Logged-out user trying to reach a protected route → /login

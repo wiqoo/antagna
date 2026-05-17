@@ -6,6 +6,7 @@ packages:
 # pnpm 11+ blocks lifecycle scripts by default; these are all mainstream/trusted.
 allowBuilds:
   '@parcel/watcher': true
+  '@sentry/cli': true
   '@swc/core': true
   esbuild: true
   protobufjs: true
