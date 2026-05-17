@@ -13,6 +13,7 @@
     "@antagna/ai": "workspace:*",
     "@antagna/db": "workspace:*",
     "@antagna/shared": "workspace:*",
+    "@antagna/ui": "workspace:*",
     "@sentry/nextjs": "^8.42.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
