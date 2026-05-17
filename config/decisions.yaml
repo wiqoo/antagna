@@ -205,6 +205,15 @@ decisions:
     status: locked
     schema_section: pillar-16-hardening.md §N
 
+  - id: D-027
+    title: Auth — Supabase email+password (drop Google SSO from Pillar 1 §7)
+    date: 2026-05-17
+    pillar: 1
+    reversibility: easy
+    status: locked
+    supersedes: 'Pillar 1 §7 "Primary: Google Workspace SSO"'
+    note: Any email accepted; admin controls authorization via roles + capabilities post-signup.
+
 # Pending — to be resolved in noted pillars
 pending:
   - title: Sentry tier (free vs paid)

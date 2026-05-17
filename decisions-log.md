@@ -153,6 +153,28 @@ A chronological record of every locked architectural / product decision, with th
 ### D-025 — National Data Governance Platform: NOT required
 **Decision (2026-05-14 by Mohammed):** Skip NDGP registration. With face matching removed (D-022-era decision) and no other biometric/sensitive-PII processing, the registration trigger is not met. Re-evaluate only if Volt adds biometric processing later.
 
+### D-027 — Authentication: Supabase email + password (no Google SSO)
+**Decision (2026-05-17 by Mohammed):** Drop the Pillar 1 §7 Google Workspace SSO plan.
+Users register and sign in with email + password via Supabase Auth directly. No
+Google Cloud Console OAuth client, no domain restriction.
+**Why:** Simpler. Removes the Google Workspace dependency. Anyone with any email
+can register (vendors, freelancers, external collaborators don't need a `@voltsaudi.com`
+mailbox to use Antagna). Admin still controls what they can DO via roles +
+capabilities once they're in.
+**What this changes:**
+- Pillar 1 §7 "Primary: Google Workspace SSO" is superseded.
+- No `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` env vars needed.
+- The `auth_user_to_profile` trigger (migration 00006) already handles email-only
+  signups — falls back to `split_part(email, '@', 1)` for `full_name` when no
+  Google metadata is present.
+**Reversibility:** Easy. Supabase Auth supports both providers simultaneously;
+Google SSO can be re-added later by enabling it in the Supabase dashboard +
+provisioning a Google OAuth client.
+**Trigger to revisit:** if Volt grows past ~30 users and password fatigue becomes
+real, OR if external clients demand SSO.
+
+---
+
 ### D-026 — NEW FEATURE: Internal approval workflow on deliverables
 **Decision (2026-05-14 by Mohammed):** Before any deliverable goes to the client, it passes through TWO internal approval stages:
 - **Stage 1: Director review** — Abu Luka reviews. He approves → moves to AM. He requests revisions → goes back to creator, then re-submits.
