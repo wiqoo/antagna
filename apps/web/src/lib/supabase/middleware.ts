@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith('/auth') ||
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/monitoring') ||
+    url.pathname.startsWith('/p/') || // client portal — public read of share_token URLs
     url.pathname === '/favicon.ico';
 
   // Logged-out user trying to reach a protected route → /login

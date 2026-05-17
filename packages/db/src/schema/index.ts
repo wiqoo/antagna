@@ -7,6 +7,7 @@ export * from './equipment';
 export * from './cross_cutting';
 export * from './permissions';
 export * from './crm';
+export * from './lifecycle';
 export * from './audit';
 export * from './memory';
 export * from './system';
