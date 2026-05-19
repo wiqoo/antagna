@@ -18,7 +18,7 @@ import {
   Button,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Briefcase, Plus, Search, X, ArrowUpRight } from 'lucide-react';
+import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 
@@ -117,13 +117,22 @@ export default async function ProjectsListPage({
         title="المشاريع"
         subtitle={`${count} مشروع · صفحة ${page} من ${totalPages}`}
         action={
-          <Link
-            href="/projects/new"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)] active:scale-[0.98] shadow-[0_8px_16px_-8px_rgba(245,214,10,0.5)]"
-          >
-            <Plus size={16} />
-            مشروع جديد
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/briefs/new"
+              className="magnet inline-flex h-10 items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+            >
+              <Sparkles size={14} />
+              برِيف بالـ AI
+            </Link>
+            <Link
+              href="/projects/new"
+              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
+            >
+              <Plus size={16} />
+              مشروع جديد
+            </Link>
+          </div>
         }
       />
 

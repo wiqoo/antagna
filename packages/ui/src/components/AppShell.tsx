@@ -39,7 +39,7 @@ const NAV_GROUPS: Array<{
       { href: '/inbox', label: 'الوارد', icon: Inbox },
       { href: '/crm', label: 'العملاء', icon: Users },
       { href: '/equipment', label: 'المعدات', icon: Camera },
-      { href: '/team', label: 'الفريق', icon: UserSquare2, soon: true },
+      { href: '/team', label: 'الفريق', icon: UserSquare2 },
       { href: '/calendar', label: 'التقويم', icon: Calendar, soon: true },
     ],
   },

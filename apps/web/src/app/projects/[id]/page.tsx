@@ -60,6 +60,11 @@ import {
   deleteDeliverable,
   addReservation,
 } from './deliverables-actions';
+import {
+  submitForReview,
+  approveDeliverable,
+  requestRevisions,
+} from './approval-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -887,60 +892,11 @@ export default async function ProjectDetailPage({
                 ) : (
                   <ul className="space-y-1.5">
                     {g.items.map((it) => (
-                      <li
+                      <DeliverableRow
                         key={it.id}
-                        className="flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)]/40 px-3 py-2"
-                      >
-                        <span className="font-mono text-xs text-[var(--text-dim)]">
-                          {it.itemNumber ?? '—'}
-                        </span>
-                        <span className="flex-1 text-sm text-[var(--text)]">
-                          {it.title ?? '(بدون عنوان)'}
-                        </span>
-                        <form
-                          action={async (formData: FormData) => {
-                            'use server';
-                            const next = formData.get('next')?.toString();
-                            if (next) await setDeliverableStatus(id, it.id, next);
-                          }}
-                        >
-                          <select
-                            name="next"
-                            defaultValue={it.status}
-                            onChange={undefined}
-                            className="h-7 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-medium"
-                          >
-                            <option value="draft">draft</option>
-                            <option value="submitted">submitted</option>
-                            <option value="pending_director">pending director</option>
-                            <option value="pending_am">pending AM</option>
-                            <option value="client_ready">client ready</option>
-                            <option value="in_client_review">in client review</option>
-                            <option value="revisions_director">revisions: director</option>
-                            <option value="revisions_am">revisions: AM</option>
-                            <option value="revisions_client">revisions: client</option>
-                            <option value="delivered">delivered</option>
-                            <option value="cancelled">cancelled</option>
-                          </select>
-                          <button
-                            type="submit"
-                            className="ms-1 inline-flex h-7 items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] hover:border-[var(--accent)]"
-                          >
-                            حفظ
-                          </button>
-                        </form>
-                        <form
-                          action={deleteDeliverable.bind(null, id, it.id)}
-                        >
-                          <button
-                            type="submit"
-                            title="حذف"
-                            className="grid h-7 w-7 place-items-center rounded-lg text-[var(--text-dim)] hover:bg-red-500/10 hover:text-red-400"
-                          >
-                            <X size={12} />
-                          </button>
-                        </form>
-                      </li>
+                        item={it}
+                        projectId={id}
+                      />
                     ))}
                   </ul>
                 )}
@@ -1146,3 +1102,174 @@ function SimpleStat({
     </Card>
   );
 }
+
+function DeliverableRow({
+  item,
+  projectId,
+}: {
+  item: {
+    id: string;
+    title: string | null;
+    itemNumber: string | null;
+    status: string;
+  };
+  projectId: string;
+}) {
+  const status = item.status;
+  const statusTone =
+    status === 'delivered'
+      ? 'success'
+      : status === 'cancelled'
+        ? 'neutral'
+        : status.startsWith('revisions')
+          ? 'danger'
+          : status.startsWith('pending')
+            ? 'warning'
+            : status === 'client_ready' || status === 'in_client_review'
+              ? 'info'
+              : 'neutral';
+
+  const canSubmit = status === 'draft';
+  const canApprove =
+    status === 'pending_director' ||
+    status === 'pending_am' ||
+    status === 'client_ready' ||
+    status === 'in_client_review';
+  const isDone = status === 'delivered' || status === 'cancelled';
+
+  return (
+    <li className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-mono text-[11px] text-[var(--text-dim)]">
+          {item.itemNumber ?? '—'}
+        </span>
+        <span className="flex-1 text-[13px] text-[var(--text)]">
+          {item.title ?? '(بدون عنوان)'}
+        </span>
+        <StatusPill tone={statusTone}>
+          {STATUS_LABEL_AR[status] ?? status}
+        </StatusPill>
+
+        {!isDone && (
+          <div className="flex items-center gap-1">
+            {canSubmit && (
+              <form action={submitForReview.bind(null, projectId, item.id)}>
+                <button
+                  type="submit"
+                  className="magnet inline-flex h-7 items-center gap-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                >
+                  أرسل للمراجعة
+                </button>
+              </form>
+            )}
+            {canApprove && (
+              <form action={approveDeliverable.bind(null, projectId, item.id)}>
+                <button
+                  type="submit"
+                  className="magnet inline-flex h-7 items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  ✓ موافقة
+                </button>
+              </form>
+            )}
+            {(canSubmit || canApprove) && (
+              <details className="relative">
+                <summary className="grid h-7 w-7 cursor-pointer place-items-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] [&::-webkit-details-marker]:hidden hover:text-[var(--danger)]">
+                  ↺
+                </summary>
+                <div className="absolute end-0 top-9 z-10 w-64 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-3 shadow-2xl">
+                  <form
+                    action={requestRevisions.bind(null, projectId, item.id)}
+                    className="space-y-2"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
+                      — طلب تعديلات
+                    </p>
+                    <select
+                      name="stage"
+                      defaultValue={
+                        status === 'pending_am' ? 'am' :
+                        status === 'in_client_review' ? 'client' : 'director'
+                      }
+                      className="h-8 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px]"
+                    >
+                      <option value="director">من المدير</option>
+                      <option value="am">من الـ Account Manager</option>
+                      <option value="client">من العميل</option>
+                    </select>
+                    <textarea
+                      name="note"
+                      rows={2}
+                      placeholder="الملاحظة (اختياري)"
+                      className="w-full rounded-md border border-[var(--line)] bg-[var(--surface)] p-2 text-[12px]"
+                    />
+                    <button
+                      type="submit"
+                      className="inline-flex h-7 w-full items-center justify-center rounded-md border border-red-500/40 bg-red-500/10 text-[11px] font-semibold text-red-300 hover:bg-red-500/20"
+                    >
+                      إرسال
+                    </button>
+                  </form>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+
+        <form action={async (fd: FormData) => {
+          'use server';
+          const next = fd.get('next')?.toString();
+          if (next) await setDeliverableStatus(projectId, item.id, next);
+        }}>
+          <select
+            name="next"
+            defaultValue={status}
+            className="h-7 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[10px] text-[var(--text-muted)]"
+          >
+            <option value="draft">draft</option>
+            <option value="submitted">submitted</option>
+            <option value="pending_director">pending director</option>
+            <option value="pending_am">pending AM</option>
+            <option value="client_ready">client ready</option>
+            <option value="in_client_review">in client review</option>
+            <option value="revisions_director">revisions: director</option>
+            <option value="revisions_am">revisions: AM</option>
+            <option value="revisions_client">revisions: client</option>
+            <option value="delivered">delivered</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+          <button
+            type="submit"
+            className="ms-1 inline-flex h-7 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[10px] hover:border-[var(--accent)]"
+          >
+            حفظ
+          </button>
+        </form>
+
+        <form action={deleteDeliverable.bind(null, projectId, item.id)}>
+          <button
+            type="submit"
+            title="حذف"
+            className="grid h-7 w-7 place-items-center rounded-md text-[var(--text-dim)] hover:bg-red-500/10 hover:text-red-400"
+          >
+            <X size={12} />
+          </button>
+        </form>
+      </div>
+    </li>
+  );
+}
+
+const STATUS_LABEL_AR: Record<string, string> = {
+  draft: 'مسودة',
+  submitted: 'مُقدَّم',
+  pending_director: 'بانتظار المدير',
+  pending_am: 'بانتظار AM',
+  revisions_director: 'تعديلات المدير',
+  revisions_am: 'تعديلات AM',
+  client_ready: 'جاهز للعميل',
+  in_client_review: 'لدى العميل',
+  revisions_client: 'تعديلات العميل',
+  delivered: 'مُسلَّم',
+  cancelled: 'مُلغى',
+};
