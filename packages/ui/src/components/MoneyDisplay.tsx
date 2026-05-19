@@ -20,8 +20,10 @@ export function MoneyDisplay({
     maximumFractionDigits: 2,
   });
   return (
-    <span className={`font-mono tabular-nums ${className ?? ''}`}>
-      <span className="text-[--text-dim]">{currency}</span>{' '}
+    <span className={`tabular ${className ?? ''}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+        {currency}
+      </span>{' '}
       <span className="text-[--text]">{formatted}</span>
     </span>
   );

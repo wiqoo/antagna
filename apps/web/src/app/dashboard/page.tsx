@@ -2,16 +2,15 @@ import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import {
-  
   PageHeader,
-  StatTile,
   Card,
-  CardHeader,
   EmptyState,
   StatusPill,
-  Button,
+  Counter,
+  Avatar,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
+import Link from 'next/link';
 import {
   Briefcase,
   Users,
@@ -21,6 +20,7 @@ import {
   ArrowUpRight,
   Inbox,
   Activity,
+  Plus,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
@@ -34,7 +34,6 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/dashboard');
 
-  // Pull dashboard stats. Empty DB still resolves to zeros — no crashes.
   const [stats] = (await db.execute<{
     active_projects: number;
     open_tasks: number;
@@ -124,11 +123,14 @@ export default async function DashboardPage() {
     actor_name: string | null;
   }>;
 
-  const greeting = new Date().getHours() < 12
-    ? 'صباح الخير'
-    : new Date().getHours() < 18
-      ? 'مرحباً'
-      : 'مساء الخير';
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? 'صباح الخير' : hour < 18 ? 'مرحباً' : 'مساء الخير';
+  const dateStr = new Date().toLocaleDateString('ar-SA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   return (
     <Shell
@@ -136,152 +138,161 @@ export default async function DashboardPage() {
       activePath="/dashboard"
     >
       <PageHeader
-        eyebrow={greeting}
-        title="مرحباً بك في Antagna"
-        subtitle="نظام التشغيل الداخلي لـ Volt Production — كل المشاريع والمعدات والعملاء في مكان واحد."
+        eyebrow={`${greeting} · ${dateStr}`}
+        title="لوحة التحكم"
+        subtitle="نظرة عامة على كل شيء يحرّك Volt Production اليوم."
         action={
-          <Button
-            variant="primary"
-            size="lg"
-            icon={<Sparkles size={16} />}
-            onClick={undefined}
+          <Link
+            href="/projects/new"
+            className="magnet inline-flex h-11 items-center gap-2 rounded-md bg-[--accent] px-5 text-[13px] font-semibold text-black hover:bg-[--accent-hover]"
           >
-            <a href="/projects/new" className="contents">
-              مشروع جديد
-            </a>
-          </Button>
+            <Plus size={15} />
+            مشروع جديد
+          </Link>
         }
       />
 
-      {/* Stat tiles */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <StatTile
+      {/* Stats row — 5 tiles */}
+      <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-3 lg:grid-cols-5">
+        <DashStat
           label="مشاريع نشطة"
           value={stats?.active_projects ?? 0}
-          sub="قيد التنفيذ الآن"
-          icon={<Briefcase size={18} />}
-          tone="accent"
+          sub="قيد التنفيذ"
+          icon={<Briefcase size={16} />}
           href="/projects"
+          tone="accent"
         />
-        <StatTile
+        <DashStat
           label="مهام مفتوحة"
           value={stats?.open_tasks ?? 0}
           sub="على الفريق"
-          icon={<ListChecks size={18} />}
+          icon={<ListChecks size={16} />}
           href="/tasks"
         />
-        <StatTile
-          label="فرص (leads)"
+        <DashStat
+          label="Leads"
           value={stats?.open_leads ?? 0}
           sub="في الـ funnel"
-          icon={<Users size={18} />}
-          tone="success"
+          icon={<Users size={16} />}
           href="/crm"
         />
-        <StatTile
+        <DashStat
           label="معدات"
           value={stats?.equipment_count ?? 0}
           sub="في الكتالوج"
-          icon={<Camera size={18} />}
+          icon={<Camera size={16} />}
           href="/equipment"
         />
-        <StatTile
-          label="محادثات وارد"
+        <DashStat
+          label="بريد وارد"
           value={stats?.open_threads ?? 0}
           sub="بحاجة لرد"
-          icon={<Inbox size={18} />}
-          tone="warning"
+          icon={<Inbox size={16} />}
           href="/inbox"
         />
       </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Recent projects */}
-        <Card className="lg:col-span-2" padded={false}>
-          <div className="p-6 pb-4">
-            <CardHeader
-              title="مشاريع حديثة"
-              subtitle="آخر 6 مشاريع تم تحديثها"
-              action={
-                <a
-                  href="/projects"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-[--accent] hover:underline"
-                >
-                  عرض الكل
-                  <ArrowUpRight size={14} />
-                </a>
-              }
-            />
-          </div>
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.6fr,1fr]">
+        {/* Projects */}
+        <section className="space-y-5">
+          <header className="flex items-end justify-between gap-4">
+            <div>
+              <p className="section-rule" style={{ minWidth: 120 }}>
+                المشاريع
+              </p>
+              <h2 className="mt-3 text-xl font-semibold text-[--text]">
+                نشاط أخير
+              </h2>
+            </div>
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[--accent] hover:underline"
+            >
+              عرض الكل
+              <ArrowUpRight size={11} className="rtl:rotate-180" />
+            </Link>
+          </header>
+
           {recentProjects.length === 0 ? (
-            <EmptyState
-              icon={<Briefcase size={20} />}
-              title="لا توجد مشاريع بعد"
-              description="ابدأ بإنشاء أول مشروع — يمكنك استخدام template أو البدء من الصفر."
-              action={
-                <a
-                  href="/projects/new"
-                  className="inline-flex h-9 items-center rounded-xl bg-[--accent] px-4 text-sm font-medium text-black hover:bg-[--accent-hover]"
-                >
-                  + مشروع جديد
-                </a>
-              }
-            />
+            <Card>
+              <EmptyState
+                icon={<Briefcase size={18} />}
+                title="لا توجد مشاريع بعد"
+                description="ابدأ بإنشاء مشروع، أو شغّل demo data من صفحة الإدارة."
+                action={
+                  <Link
+                    href="/projects/new"
+                    className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[--accent] px-4 text-[12px] font-semibold text-black hover:bg-[--accent-hover]"
+                  >
+                    <Plus size={14} />
+                    مشروع جديد
+                  </Link>
+                }
+              />
+            </Card>
           ) : (
-            <ul className="divide-y divide-[--line]">
+            <ul className="space-y-px stagger-in">
               {recentProjects.map((p) => (
                 <li key={p.id}>
-                  <a
+                  <Link
                     href={`/projects/${p.id}`}
-                    className="flex items-center gap-4 px-6 py-3.5 hover:bg-[--surface-hover]"
+                    className="grid grid-cols-[64px,1fr,auto] items-center gap-4 border-b border-[--line] bg-[--bg-elevated]/40 px-5 py-4 hover:bg-[--bg-elevated]/80"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] text-[--text-dim]">
-                          {p.code}
-                        </span>
-                        <StatusPill tone={stageTone(p.stage)}>
-                          {stageLabelAr(p.stage)}
-                        </StatusPill>
-                        {p.ai_risk === 'red' && (
-                          <StatusPill tone="danger">⚠ خطر</StatusPill>
-                        )}
-                      </div>
-                      <p className="mt-1 truncate text-sm font-medium text-[--text]">
+                    <span className="font-mono text-[11px] text-[--text-dim]">
+                      {p.code}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-medium text-[--text]">
                         {p.title_ar ?? p.title}
                       </p>
-                      <p className="truncate text-xs text-[--text-muted]">
+                      <p className="truncate text-[11px] text-[--text-muted]">
                         {p.client_name ?? '—'}
-                        {p.pm_name && <> · {p.pm_name}</>}
+                        {p.pm_name && (
+                          <>
+                            {' '}·{' '}
+                            <span className="text-[--text]">{p.pm_name}</span>
+                          </>
+                        )}
                       </p>
                     </div>
-                    <ArrowUpRight
-                      size={14}
-                      className="text-[--text-dim] rtl:rotate-180"
-                    />
-                  </a>
+                    <div className="flex items-center gap-3">
+                      {p.ai_risk === 'red' && (
+                        <StatusPill tone="danger">خطر</StatusPill>
+                      )}
+                      <StatusPill tone={stageTone(p.stage)}>
+                        {stageLabelAr(p.stage)}
+                      </StatusPill>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
-        </Card>
+        </section>
 
         {/* Activity feed */}
-        <Card padded={false}>
-          <div className="p-6 pb-4">
-            <CardHeader
-              title="آخر النشاط"
-              subtitle="آخر 8 أحداث في النظام"
-            />
-          </div>
+        <section className="space-y-5">
+          <header className="flex items-end justify-between gap-4">
+            <div>
+              <p className="section-rule" style={{ minWidth: 140 }}>
+                مجرى النشاط
+              </p>
+              <h2 className="mt-3 text-xl font-semibold text-[--text]">
+                آخر التحديثات
+              </h2>
+            </div>
+          </header>
+
           {recentActivity.length === 0 ? (
-            <EmptyState
-              icon={<Activity size={20} />}
-              title="هادئ هنا"
-              description="لا يوجد نشاط بعد — سيظهر هنا كل ما يحدث في النظام."
-            />
+            <Card>
+              <EmptyState
+                icon={<Activity size={18} />}
+                title="هادئ هنا"
+                description="سيظهر النشاط هنا تلقائياً مع كل تغيير في النظام."
+              />
+            </Card>
           ) : (
-            <ul className="space-y-0">
+            <ul className="space-y-0 stagger-in">
               {recentActivity.map((a) => {
                 const minsAgo = Math.floor(
                   (Date.now() - new Date(a.created_at).getTime()) / 60000,
@@ -289,29 +300,109 @@ export default async function DashboardPage() {
                 return (
                   <li
                     key={a.id}
-                    className="flex items-start gap-3 border-t border-[--line] px-6 py-3 first:border-t-0"
+                    className="relative border-r-2 border-[--line] px-5 py-3 hover:border-[--accent]"
                   >
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[--accent]" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-[--text]">
-                        {a.summary_ar ?? a.summary_en ?? a.action}
-                      </p>
-                      <p className="text-[11px] text-[--text-dim]">
-                        {a.actor_name ?? 'النظام'} ·{' '}
-                        {minsAgo < 60
-                          ? `${minsAgo}د`
-                          : minsAgo < 1440
-                            ? `${Math.floor(minsAgo / 60)}س`
-                            : `${Math.floor(minsAgo / 1440)}ي`}
-                      </p>
-                    </div>
+                    <span className="absolute end-[-5px] top-5 h-2 w-2 rounded-full bg-[--accent]" />
+                    <p className="text-[13px] text-[--text]">
+                      {a.summary_ar ?? a.summary_en ?? a.action}
+                    </p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[--text-dim]">
+                      {a.actor_name ?? 'النظام'} ·{' '}
+                      {minsAgo < 60
+                        ? `${minsAgo}د`
+                        : minsAgo < 1440
+                          ? `${Math.floor(minsAgo / 60)}س`
+                          : `${Math.floor(minsAgo / 1440)}ي`}
+                    </p>
                   </li>
                 );
               })}
             </ul>
           )}
-        </Card>
+        </section>
       </div>
+
+      {/* AI hint */}
+      <div className="rounded-lg border border-[--accent]/25 bg-gradient-to-l from-[--accent]/[0.06] to-transparent p-6">
+        <div className="flex items-start gap-4">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[--accent]/30 text-[--accent]">
+            <Sparkles size={15} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--accent]">
+              AI · Insights Scanner
+            </p>
+            <p className="text-[14px] text-[--text]">
+              لما الـ worker يبدأ شغّال، هتلاقي هنا تلخيص لما حصل في الـ24
+              ساعة الماضية + توصيات للخطوات التالية لكل مشروع.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-[--line] pt-6 text-[10px] uppercase tracking-[0.22em] text-[--text-dim]">
+        <span>— Antagna Dashboard</span>
+        <span>{new Date().getFullYear()} · Volt Production</span>
+      </div>
+
+      <Avatar name="" className="hidden" />
     </Shell>
   );
+}
+
+function DashStat({
+  label,
+  value,
+  sub,
+  icon,
+  href,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  sub?: string;
+  icon?: React.ReactNode;
+  href?: string;
+  tone?: 'default' | 'accent';
+}) {
+  const numColor = tone === 'accent' ? 'text-[--accent]' : 'text-[--text]';
+  const inner = (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+          {label}
+        </span>
+        {icon && (
+          <span className="text-[--text-dim] group-hover:text-[--accent]">
+            {icon}
+          </span>
+        )}
+      </div>
+      <div className="mt-5">
+        <span
+          className={`text-[40px] font-bold leading-none tracking-tight tabular ${numColor}`}
+        >
+          <Counter to={value} />
+        </span>
+      </div>
+      {sub && <p className="mt-2 text-[11px] text-[--text-muted]">{sub}</p>}
+      {href && (
+        <ArrowUpRight
+          size={12}
+          className="absolute bottom-5 start-5 text-[--text-dim] opacity-0 transition-opacity group-hover:text-[--accent] group-hover:opacity-100 rtl:rotate-180"
+        />
+      )}
+    </>
+  );
+  const cls =
+    'group relative overflow-hidden rounded-lg border border-[--line] bg-[--bg-elevated]/60 p-6 backdrop-blur ' +
+    (href ? 'magnet cursor-pointer hover:border-[--line-strong]' : '');
+  if (href) {
+    return (
+      <a href={href} className={cls}>
+        {inner}
+      </a>
+    );
+  }
+  return <div className={cls}>{inner}</div>;
 }

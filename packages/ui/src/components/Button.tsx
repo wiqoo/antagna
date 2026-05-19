@@ -6,17 +6,18 @@ type Size = 'sm' | 'md' | 'lg';
 
 const VARIANT: Record<Variant, string> = {
   primary:
-    'bg-[--accent] text-black hover:bg-[--accent-hover] shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_8px_16px_-8px_rgba(245,214,10,0.4)]',
+    'bg-[--accent] text-black hover:bg-[--accent-hover] font-semibold',
   secondary:
-    'bg-[--surface] text-[--text] border border-[--line] hover:bg-[--surface-hover] hover:border-[--line-strong]',
-  ghost: 'text-[--text-muted] hover:bg-[--surface]/80 hover:text-[--text]',
-  danger: 'bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20',
+    'border border-[--line] bg-[--bg-elevated] text-[--text] hover:border-[--line-strong] hover:bg-[--surface]',
+  ghost: 'text-[--text-muted] hover:bg-[--surface]/60 hover:text-[--text]',
+  danger:
+    'border border-[--danger]/30 bg-[--danger]/10 text-[--danger] hover:bg-[--danger]/20',
 };
 
 const SIZE: Record<Size, string> = {
-  sm: 'h-7 px-2.5 text-xs gap-1.5',
-  md: 'h-9 px-3.5 text-sm gap-2',
-  lg: 'h-11 px-5 text-sm gap-2',
+  sm: 'h-8 px-3 text-[12px] gap-1.5',
+  md: 'h-10 px-4 text-[13px] gap-2',
+  lg: 'h-12 px-5 text-[14px] gap-2',
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -36,7 +37,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        'inline-flex items-center justify-center rounded-xl font-medium',
+        'magnet inline-flex items-center justify-center rounded-md',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'active:scale-[0.98]',
         VARIANT[variant],

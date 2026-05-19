@@ -9,18 +9,23 @@ import {
   profiles,
 } from '@antagna/db';
 import {
-  
   PageHeader,
   Card,
-  CardHeader,
   StatusPill,
-  MoneyDisplay,
   EmptyState,
-  Avatar,
+  Counter,
+  MoneyDisplay,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
-import { Camera, Calendar, Plus } from 'lucide-react';
+import {
+  Camera,
+  Calendar,
+  Plus,
+  Battery,
+  Wrench,
+  CheckCircle2,
+} from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -33,9 +38,9 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> 
   retired: 'neutral',
 };
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL_AR: Record<string, string> = {
   available: 'متاح',
-  checked_out: 'مخرج',
+  checked_out: 'في الموقع',
   repair: 'صيانة',
   lost: 'مفقود',
   retired: 'متقاعد',
@@ -63,6 +68,7 @@ export default async function EquipmentPage() {
         status: equipment.status,
         currentLocation: equipment.currentLocation,
         insuranceValueSar: equipment.insuranceValueSar,
+        requiresCharging: equipment.requiresCharging,
         groupNameAr: equipmentGroups.nameAr,
       })
       .from(equipment)
@@ -71,10 +77,7 @@ export default async function EquipmentPage() {
       .orderBy(asc(equipment.category), asc(equipment.code))
       .limit(200),
     db
-      .select({
-        status: equipment.status,
-        count: sql<number>`count(*)::int`,
-      })
+      .select({ status: equipment.status, count: sql<number>`count(*)::int` })
       .from(equipment)
       .where(isNull(equipment.archivedAt))
       .groupBy(equipment.status),
@@ -89,6 +92,7 @@ export default async function EquipmentPage() {
         groupNameAr: equipmentGroups.nameAr,
         projectCode: projects.code,
         projectTitle: projects.title,
+        projectTitleAr: projects.titleAr,
         projectId: projects.id,
         reservedByName: profiles.displayName,
       })
@@ -107,225 +111,355 @@ export default async function EquipmentPage() {
       .limit(30),
   ]);
 
+  const totalCount = items.length;
+  const availableCount = statusCounts.find((s) => s.status === 'available')?.count ?? 0;
+  const checkedOutCount = statusCounts.find((s) => s.status === 'checked_out')?.count ?? 0;
+  const repairCount = statusCounts.find((s) => s.status === 'repair')?.count ?? 0;
   const totalInsurance = items.reduce(
     (s, i) => s + (i.insuranceValueSar ? Number(i.insuranceValueSar) : 0),
     0,
   );
 
+  const byCategory = items.reduce<Record<string, typeof items>>((acc, it) => {
+    (acc[it.category] ??= []).push(it);
+    return acc;
+  }, {});
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/equipment">
       <PageHeader
-        eyebrow="Equipment"
+        eyebrow="Equipment Inventory"
         title="المعدات"
-        subtitle={`${items.length} وحدة · إجمالي قيمة التأمين ${totalInsurance.toLocaleString('en-US')} ر.س`}
+        subtitle="كاميرات، عدسات، إضاءة، صوت — كل ما يحرّك إنتاج Volt."
         action={
           <Link
             href="/equipment/new"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover]"
+            className="magnet inline-flex h-11 items-center gap-2 rounded-md bg-[--accent] px-5 text-[13px] font-semibold text-black hover:bg-[--accent-hover]"
           >
-            <Plus size={16} />
-            معدّة جديدة
+            <Plus size={15} />
+            إضافة معدّة
           </Link>
         }
       />
 
-      {/* Status overview */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        {statusCounts.map((s) => (
-          <Card key={s.status} className="!p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-[--text-dim]">
-              {STATUS_LABEL[s.status] ?? s.status}
-            </p>
-            <p className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-semibold text-[--text]">
-                {s.count}
-              </span>
-              <StatusPill
-                tone={STATUS_TONE[s.status] ?? 'neutral'}
-                withDot={false}
-                className="!text-[9px]"
-              >
-                {s.status}
-              </StatusPill>
-            </p>
-          </Card>
-        ))}
+      <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-4">
+        <StatBox
+          label="إجمالي"
+          value={totalCount}
+          sub="وحدة في الكتالوج"
+          icon={<Camera size={16} />}
+        />
+        <StatBox
+          label="متاح"
+          value={availableCount}
+          tone="success"
+          sub={`${totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 0}% من الإجمالي`}
+          icon={<CheckCircle2 size={16} />}
+        />
+        <StatBox
+          label="في الموقع"
+          value={checkedOutCount}
+          tone="warning"
+          sub="مع طاقم تصوير"
+          icon={<Battery size={16} />}
+        />
+        <StatBox
+          label="صيانة"
+          value={repairCount}
+          tone={repairCount > 0 ? 'danger' : 'default'}
+          sub={
+            repairCount > 0
+              ? 'تحتاج متابعة'
+              : 'لا توجد معدات في الصيانة'
+          }
+          icon={<Wrench size={16} />}
+        />
       </section>
 
-      {/* Upcoming reservations */}
-      <Card padded={false}>
-        <div className="p-6 pb-4">
-          <CardHeader
-            title="الحجوزات القادمة"
-            subtitle="الـ14 يوم القادمة"
-            action={
-              <span className="inline-flex items-center gap-1 text-xs text-[--text-dim]">
-                <Calendar size={12} />
-                {upcoming.length}
-              </span>
-            }
-          />
+      <div className="flex items-center justify-between border-y border-[--line] py-4">
+        <div className="flex items-center gap-6">
+          <p className="section-rule" style={{ minWidth: 140 }}>
+            القيمة المؤمَّن عليها
+          </p>
+          <p className="text-2xl font-bold text-[--text] tabular">
+            <Counter to={totalInsurance} />
+            <span className="ms-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+              SAR
+            </span>
+          </p>
         </div>
+        <p className="hidden text-[11px] text-[--text-muted] md:block">
+          محسوبة من{' '}
+          <span className="text-[--text]">
+            {items.filter((i) => i.insuranceValueSar).length}
+          </span>{' '}
+          وحدة لها تأمين مسجَّل
+        </p>
+      </div>
+
+      <section className="space-y-5">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <p className="section-rule" style={{ minWidth: 160 }}>
+              الحجوزات القادمة
+            </p>
+            <h2 className="mt-3 text-xl font-semibold text-[--text]">
+              الأسبوعين القادمين
+            </h2>
+          </div>
+          <span className="text-[11px] text-[--text-muted]">
+            {upcoming.length} حجز
+          </span>
+        </header>
+
         {upcoming.length === 0 ? (
-          <EmptyState
-            icon={<Calendar size={20} />}
-            title="لا توجد حجوزات قادمة"
-            description="المعدات هتظهر هنا لما يتم حجزها لمشروع."
-          />
+          <Card>
+            <EmptyState
+              icon={<Calendar size={18} />}
+              title="لا حجوزات قادمة"
+              description="ابدأ بحجز معدة من صفحة المشروع لتأمين التواجد قبل التصوير."
+            />
+          </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
-                  <th className="px-5 py-3 text-start">المعدة</th>
-                  <th className="px-5 py-3 text-start">المشروع</th>
-                  <th className="px-5 py-3 text-start">المسؤول</th>
-                  <th className="px-5 py-3 text-start">من</th>
-                  <th className="px-5 py-3 text-start">إلى</th>
-                  <th className="px-5 py-3 text-start">حالة</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[--line]">
-                {upcoming.map((r) => (
-                  <tr key={r.id} className="hover:bg-[--surface-hover]">
-                    <td className="px-5 py-3.5">
+          <div className="space-y-px stagger-in">
+            {upcoming.map((r) => {
+              const startStr = new Date(r.startsAt).toISOString();
+              const dateStr = startStr.slice(0, 10);
+              const timeStr = startStr.slice(11, 16);
+              return (
+                <div
+                  key={r.id}
+                  className="grid grid-cols-[80px,1fr,auto] items-center gap-5 border-b border-[--line] bg-[--bg-elevated]/40 px-5 py-4 hover:bg-[--bg-elevated]/80"
+                >
+                  <div>
+                    <p className="font-mono text-[11px] text-[--text-dim]">{dateStr}</p>
+                    <p className="font-mono text-[14px] text-[--text]">{timeStr}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] text-[--text]">
                       {r.eqCode ? (
-                        <div>
-                          <span className="font-mono text-xs text-[--text-dim]">
+                        <>
+                          <span className="font-mono text-[10px] text-[--text-dim]">
                             {r.eqCode}
                           </span>{' '}
-                          <span className="text-[--text]">{r.eqModel}</span>
-                        </div>
+                          <span>{r.eqModel}</span>
+                        </>
                       ) : (
-                        <span className="italic text-[--text-dim]">
+                        <span className="italic text-[--text-muted]">
                           مجموعة: {r.groupNameAr ?? '—'}
                         </span>
                       )}
-                    </td>
-                    <td className="px-5 py-3.5">
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[--text-muted]">
                       {r.projectId ? (
-                        <a
+                        <Link
                           href={`/projects/${r.projectId}`}
                           className="hover:text-[--accent]"
                         >
-                          <span className="font-mono text-xs text-[--text-dim]">
-                            {r.projectCode}
-                          </span>{' '}
-                          <span className="text-sm">{r.projectTitle}</span>
-                        </a>
+                          <span className="font-mono">{r.projectCode}</span>{' '}
+                          {r.projectTitleAr ?? r.projectTitle}
+                        </Link>
                       ) : (
-                        <span className="text-xs text-[--text-dim]">—</span>
+                        '—'
                       )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {r.reservedByName ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar name={r.reservedByName} size="sm" />
-                          <span className="text-xs">{r.reservedByName}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-[--text-dim]">—</span>
+                      {r.reservedByName && (
+                        <>
+                          {' '}· بإذن{' '}
+                          <span className="text-[--text]">{r.reservedByName}</span>
+                        </>
                       )}
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
-                      {new Date(r.startsAt).toISOString().slice(0, 16).replace('T', ' ')}
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
-                      {new Date(r.endsAt).toISOString().slice(0, 16).replace('T', ' ')}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <StatusPill
-                        tone={
-                          r.status === 'checked_out'
-                            ? 'warning'
-                            : r.status === 'returned'
-                              ? 'success'
-                              : r.status === 'cancelled'
-                                ? 'neutral'
-                                : 'info'
-                        }
-                      >
-                        {r.status}
-                      </StatusPill>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </p>
+                  </div>
+                  <StatusPill
+                    tone={
+                      r.status === 'checked_out'
+                        ? 'warning'
+                        : r.status === 'returned'
+                          ? 'success'
+                          : r.status === 'cancelled'
+                            ? 'neutral'
+                            : 'info'
+                    }
+                  >
+                    {r.status}
+                  </StatusPill>
+                </div>
+              );
+            })}
           </div>
         )}
-      </Card>
+      </section>
 
-      {/* Catalog */}
-      <Card padded={false}>
-        <div className="p-6 pb-4">
-          <CardHeader
-            title="الكتالوج"
-            subtitle={`${items.length} وحدة معدات في قاعدة البيانات`}
-          />
-        </div>
-        {items.length === 0 ? (
-          <EmptyState
-            icon={<Camera size={20} />}
-            title="الكتالوج فاضي"
-            description="هتُستورَد المعدات من legacy DB في Pillar 15."
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
-                  <th className="px-5 py-3 text-start">code</th>
-                  <th className="px-5 py-3 text-start">الفئة</th>
-                  <th className="px-5 py-3 text-start">الموديل</th>
-                  <th className="px-5 py-3 text-start">serial</th>
-                  <th className="px-5 py-3 text-start">الموقع</th>
-                  <th className="px-5 py-3 text-start">قيمة تأمين</th>
-                  <th className="px-5 py-3 text-start">الحالة</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[--line]">
-                {items.map((it) => (
-                  <tr key={it.id} className="hover:bg-[--surface-hover]">
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
-                      {it.code}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-[--text-muted]">
-                      {it.category}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {it.manufacturer && (
-                        <span className="text-[--text-dim]">{it.manufacturer} </span>
-                      )}
-                      <span className="text-[--text]">{it.model}</span>
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
-                      {it.serialNumber ?? '—'}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs">{it.currentLocation}</td>
-                    <td className="px-5 py-3.5 text-end">
-                      {it.insuranceValueSar ? (
-                        <MoneyDisplay
-                          amount={Number(it.insuranceValueSar)}
-                          currency="SAR"
-                          className="text-xs"
-                        />
-                      ) : (
-                        <span className="text-xs text-[--text-dim]">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <StatusPill tone={STATUS_TONE[it.status] ?? 'neutral'}>
-                        {STATUS_LABEL[it.status] ?? it.status}
-                      </StatusPill>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <section className="space-y-8">
+        <header className="flex items-end justify-between gap-4">
+          <div>
+            <p className="section-rule" style={{ minWidth: 100 }}>
+              الكتالوج
+            </p>
+            <h2 className="mt-3 text-xl font-semibold text-[--text]">
+              كل المعدات
+            </h2>
           </div>
+          <span className="text-[11px] text-[--text-muted]">
+            {items.length} وحدة · {Object.keys(byCategory).length} فئة
+          </span>
+        </header>
+
+        {Object.keys(byCategory).length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<Camera size={18} />}
+              title="الكتالوج فاضي"
+              description="هتُستورَد المعدات من legacy DB في Pillar 15، أو ضيف معدّة الآن."
+              action={
+                <Link
+                  href="/equipment/new"
+                  className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[--accent] px-4 text-[12px] font-semibold text-black hover:bg-[--accent-hover]"
+                >
+                  <Plus size={14} />
+                  إضافة معدّة
+                </Link>
+              }
+            />
+          </Card>
+        ) : (
+          Object.entries(byCategory).map(([cat, list]) => (
+            <div key={cat} className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[--text-muted]">
+                  {cat}
+                </h3>
+                <span className="text-[10px] text-[--text-dim]">
+                  {list.length} وحدة
+                </span>
+              </div>
+              <div className="overflow-hidden rounded-lg border border-[--line]">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[--line] bg-[--bg-elevated]/60">
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                        Code
+                      </th>
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                        Model
+                      </th>
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                        Serial
+                      </th>
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                        Location
+                      </th>
+                      <th className="px-5 py-3 text-end text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                        Insurance
+                      </th>
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[--line]">
+                    {list.map((it) => (
+                      <tr
+                        key={it.id}
+                        className="bg-[--bg-elevated]/30 hover:bg-[--bg-elevated]/80"
+                      >
+                        <td className="px-5 py-3.5 font-mono text-[11px] text-[--text-dim]">
+                          {it.code}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="text-[13px] text-[--text]">
+                            {it.manufacturer && (
+                              <span className="text-[--text-dim]">
+                                {it.manufacturer}{' '}
+                              </span>
+                            )}
+                            {it.model}
+                          </span>
+                          {it.requiresCharging && (
+                            <Battery
+                              size={11}
+                              className="ms-2 inline text-[--text-dim]"
+                            />
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 font-mono text-[11px] text-[--text-dim]">
+                          {it.serialNumber ?? '—'}
+                        </td>
+                        <td className="px-5 py-3.5 text-[12px] text-[--text-muted]">
+                          {it.currentLocation}
+                        </td>
+                        <td className="px-5 py-3.5 text-end">
+                          {it.insuranceValueSar ? (
+                            <MoneyDisplay
+                              amount={Number(it.insuranceValueSar)}
+                              currency="SAR"
+                              className="text-[12px]"
+                            />
+                          ) : (
+                            <span className="text-[11px] text-[--text-dim]">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <StatusPill tone={STATUS_TONE[it.status] ?? 'neutral'}>
+                            {STATUS_LABEL_AR[it.status] ?? it.status}
+                          </StatusPill>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
         )}
-      </Card>
+      </section>
+
+      <div className="flex items-center justify-between border-t border-[--line] pt-6 text-[10px] uppercase tracking-[0.22em] text-[--text-dim]">
+        <span>— Antagna Equipment</span>
+        <span>Volt Production · Jeddah</span>
+      </div>
     </Shell>
+  );
+}
+
+function StatBox({
+  label,
+  value,
+  sub,
+  icon,
+  tone = 'default',
+}: {
+  label: string;
+  value: number;
+  sub?: string;
+  icon?: React.ReactNode;
+  tone?: 'default' | 'success' | 'warning' | 'danger';
+}) {
+  const numColor =
+    tone === 'success'
+      ? 'text-[--success]'
+      : tone === 'warning'
+        ? 'text-[--warning]'
+        : tone === 'danger'
+          ? 'text-[--danger]'
+          : 'text-[--text]';
+
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-[--line] bg-[--bg-elevated]/60 p-6 backdrop-blur">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+          {label}
+        </span>
+        {icon && <span className="text-[--text-dim]">{icon}</span>}
+      </div>
+      <div className="mt-5">
+        <span
+          className={`text-[44px] font-bold leading-none tracking-tight tabular ${numColor}`}
+        >
+          <Counter to={value} />
+        </span>
+      </div>
+      {sub && <p className="mt-2 text-[11px] text-[--text-muted]">{sub}</p>}
+    </div>
   );
 }

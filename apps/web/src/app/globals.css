@@ -1,105 +1,167 @@
 @import "tailwindcss";
 
-/* Tailwind 4 only auto-scans files in the same package by default.
-   Pull classes from the shared @antagna/ui workspace. */
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
-  --color-bg: #08090a;
-  --color-bg-elevated: #101214;
-  --color-surface: #15181b;
-  --color-surface-hover: #1c2024;
-  --color-line: #2a2f34;
-  --color-line-strong: #3a4148;
-  --color-text: #f4f4f5;
-  --color-text-muted: #a1a1aa;
-  --color-text-dim: #71717a;
-  --color-accent: #f5d60a;
-  --color-accent-hover: #ffe635;
-  --color-accent-dim: #5a4d05;
-  --color-success: #34d399;
-  --color-warning: #fb923c;
-  --color-danger: #f87171;
-  --color-info: #60a5fa;
+  --color-bg: #0E0E0D;
+  --color-bg-elevated: #131312;
+  --color-surface: #1C1C1A;
+  --color-surface-hover: #232321;
+  --color-line: #2A2A27;
+  --color-line-strong: #3A3A36;
+  --color-text: #F2EFE8;
+  --color-text-muted: #88847A;
+  --color-text-dim: #5A5852;
+  --color-accent: #FF6B1A;
+  --color-accent-hover: #FF8540;
+  --color-accent-dim: #5A2A0A;
+  --color-success: #7EB36B;
+  --color-warning: #E8A547;
+  --color-danger: #D44C4C;
+  --color-info: #6B98D4;
 
   --font-sans: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-numeric: var(--font-sans), ui-sans-serif, system-ui;
   --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 }
 
 :root {
-  --bg: #08090a;
-  --bg-elevated: #101214;
-  --surface: #15181b;
-  --surface-hover: #1c2024;
-  --line: #2a2f34;
-  --line-strong: #3a4148;
-  --text: #f4f4f5;
-  --text-muted: #a1a1aa;
-  --text-dim: #71717a;
-  --accent: #f5d60a;
-  --accent-hover: #ffe635;
+  --bg: #0E0E0D;
+  --bg-elevated: #131312;
+  --surface: #1C1C1A;
+  --surface-hover: #232321;
+  --line: #2A2A27;
+  --line-strong: #3A3A36;
+  --text: #F2EFE8;
+  --text-muted: #88847A;
+  --text-dim: #5A5852;
+  --accent: #FF6B1A;
+  --accent-hover: #FF8540;
+  --accent-dim: #5A2A0A;
 }
 
 html, body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "cv11";
-  background:
-    radial-gradient(1200px 800px at 80% -10%, rgba(245, 214, 10, 0.04), transparent 60%),
-    radial-gradient(1000px 600px at 0% 100%, rgba(96, 165, 250, 0.03), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
+  letter-spacing: -0.005em;
+}
+
+/* Hero glow — radial accent on top-left (right in RTL) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 560px at 95% -10%, rgba(255, 107, 26, 0.06), transparent 55%),
+    radial-gradient(700px 400px at 5% 100%, rgba(255, 107, 26, 0.025), transparent 60%);
 }
 
 ::selection {
-  background: rgba(245, 214, 10, 0.3);
+  background: rgba(255, 107, 26, 0.28);
   color: #fff;
 }
 
-/* Refined scrollbar */
+/* Editorial scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--line);
-  border-radius: 9999px;
-  border: 2px solid var(--bg);
+  border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--line-strong);
-}
+::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
-/* Make form inputs feel native-dark */
 input, select, textarea, button {
   font-family: inherit;
 }
 
-/* Apple-style focus ring */
+/* Editorial focus */
 *:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 1px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
-/* Smooth defaults */
+/* Cubic-bezier for everything interactive */
 * {
   transition-property: color, background-color, border-color, opacity, transform, box-shadow;
-  transition-duration: 150ms;
+  transition-duration: 220ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* But not on layout-affecting properties */
 .no-transition,
-.no-transition * {
-  transition: none !important;
+.no-transition * { transition: none !important; }
+
+/* Stagger animation — apply class `stagger-in` to a list parent */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.stagger-in > * {
+  opacity: 0;
+  animation: rise-in 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.stagger-in > *:nth-child(1)  { animation-delay: 40ms; }
+.stagger-in > *:nth-child(2)  { animation-delay: 90ms; }
+.stagger-in > *:nth-child(3)  { animation-delay: 140ms; }
+.stagger-in > *:nth-child(4)  { animation-delay: 190ms; }
+.stagger-in > *:nth-child(5)  { animation-delay: 240ms; }
+.stagger-in > *:nth-child(6)  { animation-delay: 290ms; }
+.stagger-in > *:nth-child(7)  { animation-delay: 340ms; }
+.stagger-in > *:nth-child(8)  { animation-delay: 390ms; }
+.stagger-in > *:nth-child(9)  { animation-delay: 440ms; }
+.stagger-in > *:nth-child(10) { animation-delay: 490ms; }
+.stagger-in > *:nth-child(n+11) { animation-delay: 540ms; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  opacity: 0;
+  animation: fade-up 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page enter */
+main {
+  animation: fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Editorial number style */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Magnetic-style hover */
+.magnet:hover {
+  transform: translateY(-1px);
+}
+
+/* Decorative divider with label */
+.section-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.section-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
 }
