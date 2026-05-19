@@ -3,10 +3,11 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-17 (all 15 pillars: schema + foundations done)
-**Phase:** Build phase complete at the schema/foundations layer. UI feature pages
-+ runtime integration work + the legacy data migration remain (each is its own
-multi-day session).
+**Last updated:** 2026-05-19 (feature pages + worker scheduled tasks landed)
+**Phase:** Feature surfaces wired end-to-end (Projects, Tasks, CRM, Equipment,
+KPIs, Inbox — all listing + reading real data via Drizzle). Trigger.dev scanner
+tasks coded against the schema. Remaining: integration runtime (Google JSON,
+Resend, social OAuth), legacy data merge, Trigger.dev prod deploy.
 
 **Live URL:** <https://antagna-v2.vercel.app>
 
@@ -14,28 +15,14 @@ multi-day session).
 
 ## 🎯 Next concrete action
 
-> **Pick a feature direction and start the UI/runtime work for it.** All 15
-> pillars' DB layer is in place — every domain has its schema, RLS,
-> resolver functions, scheduled hooks, audit, and seed data. What's left is:
+> **Manual blockers are the only thing gating production launch.** App now
+> renders every feature surface against the real schema. The runtime
+> integrations and the legacy data merge are the remaining work — see the
+> blockers section below.
 >
-> 1. **UI feature pages** in `apps/web/src/app/` for the modules on the
->    sidebar (`/projects`, `/crm`, `/equipment`, `/tasks`, `/inbox`, `/kpis`).
->    The shell + tokens + StatusPill/MoneyDisplay/Kbd primitives are in
->    `@antagna/ui`; each page is its own ~half-day of work.
->
-> 2. **Trigger.dev tasks** for the scheduled scanners — alert_scanner,
->    insights-scanner, daily-brief, post-analytics-capture, learning extractors.
->    Wire to the dev API key already in env.
->
-> 3. **Integration runtime** for Drive / Calendar / Gmail / Resend / social
->    platforms — needs the Google service account + Resend domain verification
->    + social platform OAuth setups Mohammed mentioned as the remaining manual
->    items.
->
-> 4. **Legacy data merge (Pillar 15)** — when Mohammed is ready, run
->    `scripts/migrate-from-volt-os.ts` against the old Supabase project. Pulls
->    equipment + active clients + active projects into the staging tables;
->    second pass maps to the canonical schema with FK validation.
+> If a blocker frees up: wire the corresponding runtime layer (Gmail send,
+> Drive folder create, social post fetch). The schema + scheduled scanners
+> already exist; they just call no-op stubs until tokens arrive.
 
 ---
 
@@ -52,9 +39,9 @@ multi-day session).
 | 07 | Social Media Module | ✓ | 🟡 schema | OAuth → manual |
 | 08 | Communications Layer | ✓ | 🟡 schema | Resend domain + WhatsApp VPS → manual |
 | 09 | Attendance & KPIs | ✓ | 🟡 schema | PWA UI → Pillar 12 |
-| 10 | AI & Memory Layer | ✓ | 🟡 schema | worker tasks → Trigger.dev deploy |
-| 11 | Automation & Alerts | ✓ | 🟡 schema | scanner worker → Trigger.dev deploy |
-| 12 | UI/UX System | ✓ | 🟡 foundations | tokens + AppShell + StatusPill/Money/Kbd; feature pages TBD |
+| 10 | AI & Memory Layer | ✓ | 🟡 schema + scanners | daily-brief + insights-scanner coded; Trigger.dev prod deploy → manual |
+| 11 | Automation & Alerts | ✓ | 🟡 schema + scanner | alert-scanner coded with 4 handlers; Trigger.dev prod deploy → manual |
+| 12 | UI/UX System | ✓ | ✓ | tokens + shell + 6 feature pages (Projects/Tasks/CRM/Equipment/KPIs/Inbox) |
 | 13 | Integrations | ✓ | 🟡 schema | Google service account + OAuth → manual |
 | 14 | Deployment & Ops | ✓ | 🟡 CI + runbooks | custom domain + Sentry tier → manual |
 | 15 | Migration & Launch | ✓ | 🟡 staging tables | run when ready to merge legacy data |
@@ -102,6 +89,13 @@ Legend: ✓ done · 🟡 partial (schema landed, runtime/UI/manual deferred) · 
 
 ## ⚠️ Recent events
 
+- **2026-05-19** — Feature pages landed: `/projects` (list/detail/new + stage
+  state machine + comments), `/tasks` (project + daily, status toggles),
+  `/crm` (clients + leads), `/equipment` (catalog + 14d reservation window),
+  `/kpis` (latest snapshots by scope), `/inbox` (email threads + drafts +
+  WhatsApp). Worker scheduled tasks added: `alert-scanner` (4 handlers),
+  `daily-brief`, `insights-scanner`, `post-analytics-capture`. `@antagna/db`
+  client made lazy so Next.js builds without DATABASE_URL at module-load time.
 - **2026-05-17 (evening)** — Pillars 7–15 schema + Pillar 12 UI foundations
   landed end-to-end. 107 tables, 31 migrations, new `@antagna/ui` workspace
   with tokens + AppShell + StatusPill / MoneyDisplay / Kbd. CI workflow added
