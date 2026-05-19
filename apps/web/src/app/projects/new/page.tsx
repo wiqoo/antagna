@@ -8,7 +8,8 @@ import {
   projectTemplates,
   projectTypeEnum,
 } from '@antagna/db';
-import { AppShell } from '@antagna/ui';
+import { AppShell, PageHeader, Card, Button } from '@antagna/ui';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { createProject } from './actions';
 
@@ -47,158 +48,197 @@ export default async function NewProjectPage() {
 
   return (
     <AppShell user={{ email: user.email ?? '' }} activePath="/projects">
-      <div className="mx-auto max-w-2xl space-y-5">
+      <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href="/projects"
-          className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-yellow-500"
+          className="inline-flex items-center gap-1.5 text-sm text-[--text-muted] hover:text-[--accent]"
         >
-          ← المشاريع
+          <ArrowLeft size={14} className="rtl:rotate-180" />
+          كل المشاريع
         </Link>
 
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold">مشروع جديد</h1>
-          <p className="text-sm text-neutral-500">
-            اختار template (اختياري) — أو ابدأ من الصفر.
-          </p>
-        </header>
+        <PageHeader
+          eyebrow="مشروع جديد"
+          title="ابدأ مشروع"
+          subtitle="اختر template أو ابدأ من الصفر. التيمبليت بيولّد deliverable groups + tasks تلقائياً."
+        />
 
-        <form action={createProject} className="space-y-4">
-          <Field label="Template" hint="اختياري — يولّد deliverable groups + tasks تلقائياً">
-            <select
-              name="templateId"
-              defaultValue=""
-              className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-            >
-              <option value="">— بدون template —</option>
-              {templateList.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nameAr}
-                  {t.nameEn ? ` (${t.nameEn})` : ''}
-                  {t.useCount > 0 ? `  · ${t.useCount}×` : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="العميل *">
-            <select
-              name="clientId"
-              required
-              defaultValue=""
-              className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-            >
-              <option value="" disabled>
-                — اختار —
-              </option>
-              {clientList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code} · {c.nameAr}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="العنوان (عربي)">
-              <input
-                type="text"
-                name="titleAr"
-                placeholder="فيديو إعلاني — حمله الصيف"
-                className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-              />
-            </Field>
-
-            <Field label="Title (English) *">
-              <input
-                type="text"
-                name="title"
-                required
-                placeholder="Summer Campaign Video"
-                className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-              />
-            </Field>
-          </div>
-
-          <Field label="النوع">
-            <select
-              name="projectType"
-              defaultValue="shoot"
-              className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-            >
-              {projectTypeEnum.enumValues.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Project Manager">
-              <select
-                name="pmId"
-                defaultValue=""
-                className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
+        <Card>
+          <form action={createProject} className="space-y-6">
+            <Section title="القالب">
+              <Field
+                label="Template"
+                hint="اختياري — مثال: فيديو إعلاني، session تصوير"
               >
-                <option value="">—</option>
-                {profileList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName}
-                  </option>
-                ))}
-              </select>
-            </Field>
+                <select
+                  name="templateId"
+                  defaultValue=""
+                  className="form-input"
+                >
+                  <option value="">— بدون template —</option>
+                  {templateList.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nameAr}
+                      {t.nameEn ? ` (${t.nameEn})` : ''}
+                      {t.useCount > 0 ? `  · استُخدم ${t.useCount} مرة` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </Section>
 
-            <Field label="Account Manager">
-              <select
-                name="amId"
-                defaultValue=""
-                className="w-full rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
+            <Section title="الأساسيات">
+              <Field label="العميل" required>
+                <select
+                  name="clientId"
+                  required
+                  defaultValue=""
+                  className="form-input"
+                >
+                  <option value="" disabled>
+                    — اختر —
+                  </option>
+                  {clientList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} · {c.nameAr}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="العنوان (عربي)">
+                  <input
+                    type="text"
+                    name="titleAr"
+                    placeholder="فيديو إعلاني — حملة الصيف"
+                    className="form-input"
+                  />
+                </Field>
+                <Field label="Title (English)" required>
+                  <input
+                    type="text"
+                    name="title"
+                    required
+                    placeholder="Summer Campaign Video"
+                    className="form-input"
+                  />
+                </Field>
+              </div>
+
+              <Field label="النوع">
+                <select
+                  name="projectType"
+                  defaultValue="shoot"
+                  className="form-input"
+                >
+                  {projectTypeEnum.enumValues.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </Section>
+
+            <Section title="الفريق">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Project Manager">
+                  <select
+                    name="pmId"
+                    defaultValue=""
+                    className="form-input"
+                  >
+                    <option value="">— غير محدد —</option>
+                    {profileList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Account Manager">
+                  <select
+                    name="amId"
+                    defaultValue=""
+                    className="form-input"
+                  >
+                    <option value="">— غير محدد —</option>
+                    {profileList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            </Section>
+
+            <div className="flex items-center gap-3 border-t border-[--line] pt-6">
+              <Button variant="primary" size="lg" icon={<Sparkles size={16} />}>
+                إنشاء المشروع
+              </Button>
+              <Link
+                href="/projects"
+                className="inline-flex h-11 items-center rounded-xl px-4 text-sm text-[--text-muted] hover:bg-[--surface]/60 hover:text-[--text]"
               >
-                <option value="">—</option>
-                {profileList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              className="rounded-sm bg-yellow-500 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-yellow-400"
-            >
-              إنشاء
-            </button>
-            <Link
-              href="/projects"
-              className="rounded-sm border border-neutral-800 px-4 py-2 text-sm text-neutral-400 hover:text-yellow-500"
-            >
-              إلغاء
-            </Link>
-          </div>
-        </form>
+                إلغاء
+              </Link>
+            </div>
+          </form>
+        </Card>
       </div>
+
+      <style>{`
+        .form-input {
+          width: 100%;
+          height: 40px;
+          padding: 0 12px;
+          border-radius: 12px;
+          border: 1px solid var(--line);
+          background: var(--bg-elevated);
+          color: var(--text);
+          font-size: 14px;
+        }
+        .form-input:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+      `}</style>
     </AppShell>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+        {title}
+      </h3>
+      {children}
+    </div>
   );
 }
 
 function Field({
   label,
+  required,
   hint,
   children,
 }: {
   label: string;
+  required?: boolean;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-xs uppercase tracking-wide text-neutral-400">{label}</span>
+      <span className="block text-sm font-medium text-[--text]">
+        {label}
+        {required && <span className="text-[--accent]"> *</span>}
+      </span>
       {children}
-      {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
+      {hint && <span className="block text-xs text-[--text-dim]">{hint}</span>}
     </label>
   );
 }

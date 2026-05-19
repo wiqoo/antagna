@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { desc, eq, sql, ilike, and, isNull, type SQL } from 'drizzle-orm';
+import { desc, eq, sql, and, isNull, type SQL } from 'drizzle-orm';
 import {
   db,
   projects,
@@ -8,9 +8,18 @@ import {
   profiles,
   projectStageEnum,
 } from '@antagna/db';
-import { AppShell, StatusPill } from '@antagna/ui';
+import {
+  AppShell,
+  PageHeader,
+  Card,
+  StatusPill,
+  EmptyState,
+  Avatar,
+  Button,
+} from '@antagna/ui';
+import { Briefcase, Plus, Search, X, ArrowUpRight } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { stageTone, stageLabelAr, PROJECT_STAGE_ORDER } from '@/lib/project-stage';
+import { stageTone, stageLabelAr } from '@/lib/project-stage';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,22 +55,18 @@ export default async function ProjectsListPage({
   if (sp.stage && (projectStageEnum.enumValues as readonly string[]).includes(sp.stage)) {
     filters.push(eq(projects.stage, sp.stage as (typeof projectStageEnum.enumValues)[number]));
   }
-  if (sp.pm) {
-    filters.push(eq(projects.projectManagerId, sp.pm));
-  }
-  if (sp.client) {
-    filters.push(eq(projects.clientId, sp.client));
-  }
+  if (sp.pm) filters.push(eq(projects.projectManagerId, sp.pm));
+  if (sp.client) filters.push(eq(projects.clientId, sp.client));
   if (sp.q) {
     const like = `%${sp.q}%`;
-    const orExpr = sql`(${projects.title} ILIKE ${like} OR ${projects.titleAr} ILIKE ${like} OR ${projects.code} ILIKE ${like})`;
-    filters.push(orExpr);
+    filters.push(
+      sql`(${projects.title} ILIKE ${like} OR ${projects.titleAr} ILIKE ${like} OR ${projects.code} ILIKE ${like})`,
+    );
   }
-  if (sp.archived !== '1') {
-    filters.push(isNull(projects.archivedAt));
-  }
+  if (sp.archived !== '1') filters.push(isNull(projects.archivedAt));
 
   const where = filters.length ? and(...filters) : undefined;
+  const hasFilters = !!(sp.q || sp.stage || sp.pm || sp.client || sp.archived === '1');
 
   const [rows, countRows, pmList, clientList] = await Promise.all([
     db
@@ -106,40 +111,51 @@ export default async function ProjectsListPage({
 
   return (
     <AppShell user={{ email: user.email ?? '' }} activePath="/projects">
-      <div className="space-y-5">
-        <header className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold">المشاريع</h1>
-            <p className="text-sm text-neutral-500">
-              {count} project{Number(count) === 1 ? '' : 's'} ·{' '}
-              <span className="text-neutral-400">page {page} / {totalPages}</span>
-            </p>
-          </div>
+      <PageHeader
+        eyebrow="Projects"
+        title="المشاريع"
+        subtitle={`${count} مشروع · صفحة ${page} من ${totalPages}`}
+        action={
           <Link
             href="/projects/new"
-            className="rounded-sm bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-neutral-900 hover:bg-yellow-400"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover] active:scale-[0.98] shadow-[0_8px_16px_-8px_rgba(245,214,10,0.5)]"
           >
-            + مشروع جديد
+            <Plus size={16} />
+            مشروع جديد
           </Link>
-        </header>
+        }
+      />
 
-        <form className="flex flex-wrap items-end gap-3 rounded-md border border-neutral-800 bg-neutral-900 p-3 text-xs">
-          <label className="flex flex-col gap-1">
-            <span className="text-neutral-500">بحث</span>
-            <input
-              type="text"
-              name="q"
-              defaultValue={sp.q ?? ''}
-              placeholder="code / title"
-              className="w-48 rounded-sm border border-neutral-800 bg-neutral-950 px-2 py-1 font-mono"
-            />
+      {/* Filters bar */}
+      <Card padded={false} className="overflow-hidden">
+        <form className="flex flex-wrap items-end gap-3 p-4">
+          <label className="flex-1 min-w-[200px] space-y-1.5">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+              بحث
+            </span>
+            <div className="relative">
+              <Search
+                size={14}
+                className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-[--text-dim]"
+              />
+              <input
+                type="text"
+                name="q"
+                defaultValue={sp.q ?? ''}
+                placeholder="code، title، أو العميل…"
+                className="h-9 w-full rounded-xl border border-[--line] bg-[--bg-elevated] px-3 pe-9 text-sm text-[--text] placeholder:text-[--text-dim] focus:border-[--accent] focus:outline-none"
+              />
+            </div>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-neutral-500">stage</span>
+
+          <label className="space-y-1.5">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+              المرحلة
+            </span>
             <select
               name="stage"
               defaultValue={sp.stage ?? ''}
-              className="w-36 rounded-sm border border-neutral-800 bg-neutral-950 px-2 py-1"
+              className="h-9 w-40 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm focus:border-[--accent] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {projectStageEnum.enumValues.map((s) => (
@@ -149,12 +165,15 @@ export default async function ProjectsListPage({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-neutral-500">PM</span>
+
+          <label className="space-y-1.5">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+              المدير
+            </span>
             <select
               name="pm"
               defaultValue={sp.pm ?? ''}
-              className="w-44 rounded-sm border border-neutral-800 bg-neutral-950 px-2 py-1"
+              className="h-9 w-48 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm focus:border-[--accent] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {pmList.map((p) => (
@@ -164,12 +183,15 @@ export default async function ProjectsListPage({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-neutral-500">العميل</span>
+
+          <label className="space-y-1.5">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+              العميل
+            </span>
             <select
               name="client"
               defaultValue={sp.client ?? ''}
-              className="w-44 rounded-sm border border-neutral-800 bg-neutral-950 px-2 py-1"
+              className="h-9 w-48 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm focus:border-[--accent] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {clientList.map((c) => (
@@ -179,90 +201,126 @@ export default async function ProjectsListPage({
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-1.5">
+
+          <label className="flex h-9 items-center gap-2 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm">
             <input
               type="checkbox"
               name="archived"
               value="1"
               defaultChecked={sp.archived === '1'}
-              className="h-3 w-3"
+              className="accent-[--accent]"
             />
-            <span className="text-neutral-500">اعرض الأرشيف</span>
+            <span className="text-[--text-muted]">أرشيف</span>
           </label>
-          <button
-            type="submit"
-            className="rounded-sm border border-neutral-700 bg-neutral-800 px-3 py-1 text-xs hover:border-yellow-500"
-          >
+
+          <Button type="submit" variant="primary">
             تطبيق
-          </button>
-          {(sp.q || sp.stage || sp.pm || sp.client || sp.archived === '1') && (
+          </Button>
+
+          {hasFilters && (
             <Link
               href="/projects"
-              className="rounded-sm border border-neutral-800 px-3 py-1 text-xs text-neutral-400 hover:text-yellow-500"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm text-[--text-muted] hover:bg-[--surface]/80 hover:text-[--text]"
             >
+              <X size={14} />
               مسح
             </Link>
           )}
         </form>
+      </Card>
 
-        <div className="overflow-hidden rounded-md border border-neutral-800">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-900 text-left text-[11px] uppercase tracking-wide text-neutral-500">
-              <tr>
-                <th className="px-3 py-2 font-medium">code</th>
-                <th className="px-3 py-2 font-medium">title</th>
-                <th className="px-3 py-2 font-medium">client</th>
-                <th className="px-3 py-2 font-medium">stage</th>
-                <th className="px-3 py-2 font-medium">PM</th>
-                <th className="px-3 py-2 font-medium">delivery</th>
-                <th className="px-3 py-2 font-medium">value</th>
-                <th className="px-3 py-2 font-medium">risk</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800 bg-neutral-950">
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-12 text-center text-sm text-neutral-500">
-                    لا توجد مشاريع بهذه المعايير.
-                  </td>
+      {/* Table */}
+      <Card padded={false} className="overflow-hidden">
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={<Briefcase size={20} />}
+            title="لا توجد مشاريع بهذه المعايير"
+            description={
+              hasFilters
+                ? 'جرّب تعديل أو مسح الفلاتر.'
+                : 'ابدأ بإنشاء مشروعك الأول.'
+            }
+            action={
+              <Link
+                href={hasFilters ? '/projects' : '/projects/new'}
+                className="inline-flex h-9 items-center rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover]"
+              >
+                {hasFilters ? 'مسح الفلاتر' : '+ مشروع جديد'}
+              </Link>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                  <th className="px-5 py-3 font-medium text-start">code</th>
+                  <th className="px-5 py-3 font-medium text-start">المشروع</th>
+                  <th className="px-5 py-3 font-medium text-start">العميل</th>
+                  <th className="px-5 py-3 font-medium text-start">المرحلة</th>
+                  <th className="px-5 py-3 font-medium text-start">المدير</th>
+                  <th className="px-5 py-3 font-medium text-start">التسليم</th>
+                  <th className="px-5 py-3 font-medium text-start">القيمة</th>
+                  <th className="px-5 py-3 font-medium text-start">الخطر</th>
                 </tr>
-              ) : (
-                rows.map((r) => (
-                  <tr key={r.id} className="hover:bg-neutral-900">
-                    <td className="px-3 py-2 font-mono text-xs text-neutral-400">
-                      <Link href={`/projects/${r.id}`} className="hover:text-yellow-500">
+              </thead>
+              <tbody className="divide-y divide-[--line]">
+                {rows.map((r) => (
+                  <tr key={r.id} className="group hover:bg-[--surface-hover]">
+                    <td className="px-5 py-3.5">
+                      <Link
+                        href={`/projects/${r.id}`}
+                        className="font-mono text-xs text-[--text-dim] group-hover:text-[--accent]"
+                      >
                         {r.code}
                       </Link>
                     </td>
-                    <td className="px-3 py-2">
-                      <Link href={`/projects/${r.id}`} className="hover:text-yellow-500">
-                        <div>{r.titleAr ?? r.title}</div>
+                    <td className="px-5 py-3.5">
+                      <Link href={`/projects/${r.id}`} className="block">
+                        <div className="font-medium text-[--text]">
+                          {r.titleAr ?? r.title}
+                        </div>
                         {r.titleAr && r.title && (
-                          <div className="text-xs text-neutral-500">{r.title}</div>
+                          <div className="mt-0.5 text-xs text-[--text-dim]">
+                            {r.title}
+                          </div>
                         )}
                       </Link>
                     </td>
-                    <td className="px-3 py-2 text-xs text-neutral-400">
-                      <span className="font-mono text-neutral-500">{r.clientCode}</span>{' '}
-                      <span>{r.clientNameAr}</span>
+                    <td className="px-5 py-3.5 text-sm text-[--text-muted]">
+                      <span className="font-mono text-[10px] text-[--text-dim]">
+                        {r.clientCode}
+                      </span>
+                      <span className="ms-2">{r.clientNameAr}</span>
                     </td>
-                    <td className="px-3 py-2">
-                      <StatusPill tone={stageTone(r.stage)}>{stageLabelAr(r.stage)}</StatusPill>
+                    <td className="px-5 py-3.5">
+                      <StatusPill tone={stageTone(r.stage)}>
+                        {stageLabelAr(r.stage)}
+                      </StatusPill>
                     </td>
-                    <td className="px-3 py-2 text-xs text-neutral-400">
-                      {r.pmName ?? <span className="text-neutral-600">—</span>}
+                    <td className="px-5 py-3.5">
+                      {r.pmName ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar name={r.pmName} size="sm" />
+                          <span className="text-sm text-[--text-muted]">
+                            {r.pmName}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[--text-dim]">—</span>
+                      )}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-neutral-400">
+                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
                       {r.deliveryDueAt
                         ? new Date(r.deliveryDueAt).toISOString().slice(0, 10)
                         : '—'}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-xs text-neutral-400">
+                    <td className="px-5 py-3.5 text-end font-mono text-xs text-[--text-muted]">
                       {r.contractedValueSar
                         ? `${Number(r.contractedValueSar).toLocaleString('en-US')} ر.س`
                         : '—'}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-5 py-3.5">
                       {r.aiRiskLevel ? (
                         <StatusPill
                           tone={
@@ -276,51 +334,45 @@ export default async function ProjectsListPage({
                           {r.aiRiskLevel}
                         </StatusPill>
                       ) : (
-                        <span className="text-xs text-neutral-600">—</span>
+                        <span className="text-xs text-[--text-dim]">—</span>
                       )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <nav className="flex items-center justify-center gap-2 text-xs">
-            {page > 1 && (
-              <Link
-                href={{ pathname: '/projects', query: { ...sp, page: String(page - 1) } }}
-                className="rounded-sm border border-neutral-800 px-2 py-1 hover:border-yellow-500"
-              >
-                ← السابق
-              </Link>
-            )}
-            <span className="font-mono text-neutral-500">
-              {page} / {totalPages}
-            </span>
-            {page < totalPages && (
-              <Link
-                href={{ pathname: '/projects', query: { ...sp, page: String(page + 1) } }}
-                className="rounded-sm border border-neutral-800 px-2 py-1 hover:border-yellow-500"
-              >
-                التالي →
-              </Link>
-            )}
-          </nav>
-        )}
-
-        <details className="text-xs text-neutral-500">
-          <summary className="cursor-pointer">stage legend</summary>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {PROJECT_STAGE_ORDER.map((s) => (
-              <StatusPill key={s} tone={stageTone(s)}>
-                {stageLabelAr(s)}
-              </StatusPill>
-            ))}
+                ))}
+              </tbody>
+            </table>
           </div>
-        </details>
-      </div>
+        )}
+      </Card>
+
+      {totalPages > 1 && (
+        <nav className="flex items-center justify-center gap-2 text-xs">
+          {page > 1 && (
+            <Link
+              href={{ pathname: '/projects', query: { ...sp, page: String(page - 1) } }}
+              className="inline-flex h-8 items-center rounded-xl border border-[--line] bg-[--surface] px-3 hover:border-[--accent]"
+            >
+              ← السابق
+            </Link>
+          )}
+          <span className="font-mono text-[--text-dim]">
+            {page} / {totalPages}
+          </span>
+          {page < totalPages && (
+            <Link
+              href={{ pathname: '/projects', query: { ...sp, page: String(page + 1) } }}
+              className="inline-flex h-8 items-center rounded-xl border border-[--line] bg-[--surface] px-3 hover:border-[--accent]"
+            >
+              التالي →
+            </Link>
+          )}
+        </nav>
+      )}
+
+      {/* hide unused import warning */}
+      <span className="hidden">
+        <ArrowUpRight size={1} />
+      </span>
     </AppShell>
   );
 }

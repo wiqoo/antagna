@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { sql, eq, asc, isNull, and, gte, lte, gt } from 'drizzle-orm';
+import { sql, eq, asc, isNull, and, lte, gt } from 'drizzle-orm';
 import {
   db,
   equipment,
@@ -8,7 +8,17 @@ import {
   projects,
   profiles,
 } from '@antagna/db';
-import { AppShell, StatusPill, MoneyDisplay } from '@antagna/ui';
+import {
+  AppShell,
+  PageHeader,
+  Card,
+  CardHeader,
+  StatusPill,
+  MoneyDisplay,
+  EmptyState,
+  Avatar,
+} from '@antagna/ui';
+import { Camera, Calendar } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +29,14 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> 
   repair: 'danger',
   lost: 'danger',
   retired: 'neutral',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  available: 'متاح',
+  checked_out: 'مخرج',
+  repair: 'صيانة',
+  lost: 'مفقود',
+  retired: 'متقاعد',
 };
 
 export default async function EquipmentPage() {
@@ -39,14 +57,10 @@ export default async function EquipmentPage() {
         category: equipment.category,
         manufacturer: equipment.manufacturer,
         model: equipment.model,
-        modelNameAr: equipment.modelNameAr,
         serialNumber: equipment.serialNumber,
         status: equipment.status,
         currentLocation: equipment.currentLocation,
         insuranceValueSar: equipment.insuranceValueSar,
-        requiresCharging: equipment.requiresCharging,
-        lastChargedAt: equipment.lastChargedAt,
-        groupCode: equipmentGroups.code,
         groupNameAr: equipmentGroups.nameAr,
       })
       .from(equipment)
@@ -91,180 +105,216 @@ export default async function EquipmentPage() {
       .limit(30),
   ]);
 
-  const totalInsuranceValue = items.reduce(
+  const totalInsurance = items.reduce(
     (s, i) => s + (i.insuranceValueSar ? Number(i.insuranceValueSar) : 0),
     0,
   );
 
   return (
     <AppShell user={{ email: user.email ?? '' }} activePath="/equipment">
-      <div className="space-y-5">
-        <header>
-          <h1 className="text-xl font-semibold">المعدات</h1>
-          <p className="text-sm text-neutral-500">
-            {items.length} وحدة · إجمالي قيمة التأمين:{' '}
-            <span className="font-mono">
-              {totalInsuranceValue.toLocaleString('en-US')} ر.س
-            </span>
-          </p>
-        </header>
+      <PageHeader
+        eyebrow="Equipment"
+        title="المعدات"
+        subtitle={`${items.length} وحدة · إجمالي قيمة التأمين ${totalInsurance.toLocaleString('en-US')} ر.س`}
+      />
 
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          {statusCounts.map((s) => (
-            <div
-              key={s.status}
-              className="rounded-md border border-neutral-800 bg-neutral-900 p-3"
-            >
-              <div className="text-xs uppercase tracking-wide text-neutral-500">
+      {/* Status overview */}
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        {statusCounts.map((s) => (
+          <Card key={s.status} className="!p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-[--text-dim]">
+              {STATUS_LABEL[s.status] ?? s.status}
+            </p>
+            <p className="mt-2 flex items-baseline gap-2">
+              <span className="text-3xl font-semibold text-[--text]">
+                {s.count}
+              </span>
+              <StatusPill
+                tone={STATUS_TONE[s.status] ?? 'neutral'}
+                withDot={false}
+                className="!text-[9px]"
+              >
                 {s.status}
-              </div>
-              <div className="mt-1 text-2xl font-semibold">{s.count}</div>
-            </div>
-          ))}
-        </section>
+              </StatusPill>
+            </p>
+          </Card>
+        ))}
+      </section>
 
-        <section>
-          <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-            الحجوزات (الـ14 يوم القادمة)
-          </h2>
-          <div className="overflow-hidden rounded-md border border-neutral-800">
-            {upcoming.length === 0 ? (
-              <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                لا حجوزات قادمة.
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-neutral-900 text-left text-[11px] uppercase text-neutral-500">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">المعدة</th>
-                    <th className="px-3 py-2 font-medium">المشروع</th>
-                    <th className="px-3 py-2 font-medium">المسؤول</th>
-                    <th className="px-3 py-2 font-medium">من</th>
-                    <th className="px-3 py-2 font-medium">إلى</th>
-                    <th className="px-3 py-2 font-medium">حالة</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-800 bg-neutral-950">
-                  {upcoming.map((r) => (
-                    <tr key={r.id} className="hover:bg-neutral-900">
-                      <td className="px-3 py-2 text-xs">
-                        {r.eqCode ? (
-                          <>
-                            <span className="font-mono text-neutral-400">{r.eqCode}</span>{' '}
-                            {r.eqModel}
-                          </>
-                        ) : (
-                          <span className="italic text-neutral-500">
-                            مجموعة: {r.groupNameAr ?? '—'}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-xs">
-                        {r.projectId ? (
-                          <a
-                            href={`/projects/${r.projectId}`}
-                            className="text-yellow-500 hover:underline"
-                          >
-                            <span className="font-mono">{r.projectCode}</span>{' '}
-                            <span className="text-neutral-400">{r.projectTitle}</span>
-                          </a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-xs">{r.reservedByName ?? '—'}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-neutral-400">
-                        {new Date(r.startsAt).toISOString().slice(0, 16).replace('T', ' ')}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs text-neutral-400">
-                        {new Date(r.endsAt).toISOString().slice(0, 16).replace('T', ' ')}
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusPill
-                          tone={
-                            r.status === 'checked_out'
-                              ? 'warning'
-                              : r.status === 'returned'
-                                ? 'success'
-                                : r.status === 'cancelled'
-                                  ? 'neutral'
-                                  : 'info'
-                          }
+      {/* Upcoming reservations */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="الحجوزات القادمة"
+            subtitle="الـ14 يوم القادمة"
+            action={
+              <span className="inline-flex items-center gap-1 text-xs text-[--text-dim]">
+                <Calendar size={12} />
+                {upcoming.length}
+              </span>
+            }
+          />
+        </div>
+        {upcoming.length === 0 ? (
+          <EmptyState
+            icon={<Calendar size={20} />}
+            title="لا توجد حجوزات قادمة"
+            description="المعدات هتظهر هنا لما يتم حجزها لمشروع."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                  <th className="px-5 py-3 text-start">المعدة</th>
+                  <th className="px-5 py-3 text-start">المشروع</th>
+                  <th className="px-5 py-3 text-start">المسؤول</th>
+                  <th className="px-5 py-3 text-start">من</th>
+                  <th className="px-5 py-3 text-start">إلى</th>
+                  <th className="px-5 py-3 text-start">حالة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[--line]">
+                {upcoming.map((r) => (
+                  <tr key={r.id} className="hover:bg-[--surface-hover]">
+                    <td className="px-5 py-3.5">
+                      {r.eqCode ? (
+                        <div>
+                          <span className="font-mono text-xs text-[--text-dim]">
+                            {r.eqCode}
+                          </span>{' '}
+                          <span className="text-[--text]">{r.eqModel}</span>
+                        </div>
+                      ) : (
+                        <span className="italic text-[--text-dim]">
+                          مجموعة: {r.groupNameAr ?? '—'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {r.projectId ? (
+                        <a
+                          href={`/projects/${r.projectId}`}
+                          className="hover:text-[--accent]"
                         >
-                          {r.status}
-                        </StatusPill>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-            الكتالوج
-          </h2>
-          <div className="overflow-hidden rounded-md border border-neutral-800">
-            {items.length === 0 ? (
-              <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                لا معدات بعد. هتُستورَد من legacy في Pillar 15.
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-neutral-900 text-left text-[11px] uppercase text-neutral-500">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">code</th>
-                    <th className="px-3 py-2 font-medium">الفئة</th>
-                    <th className="px-3 py-2 font-medium">الموديل</th>
-                    <th className="px-3 py-2 font-medium">serial</th>
-                    <th className="px-3 py-2 font-medium">الموقع</th>
-                    <th className="px-3 py-2 font-medium">قيمة تأمين</th>
-                    <th className="px-3 py-2 font-medium">الحالة</th>
+                          <span className="font-mono text-xs text-[--text-dim]">
+                            {r.projectCode}
+                          </span>{' '}
+                          <span className="text-sm">{r.projectTitle}</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-[--text-dim]">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {r.reservedByName ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar name={r.reservedByName} size="sm" />
+                          <span className="text-xs">{r.reservedByName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[--text-dim]">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
+                      {new Date(r.startsAt).toISOString().slice(0, 16).replace('T', ' ')}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
+                      {new Date(r.endsAt).toISOString().slice(0, 16).replace('T', ' ')}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusPill
+                        tone={
+                          r.status === 'checked_out'
+                            ? 'warning'
+                            : r.status === 'returned'
+                              ? 'success'
+                              : r.status === 'cancelled'
+                                ? 'neutral'
+                                : 'info'
+                        }
+                      >
+                        {r.status}
+                      </StatusPill>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-800 bg-neutral-950">
-                  {items.map((it) => (
-                    <tr key={it.id} className="hover:bg-neutral-900">
-                      <td className="px-3 py-2 font-mono text-xs text-neutral-400">
-                        {it.code}
-                      </td>
-                      <td className="px-3 py-2 text-xs">{it.category}</td>
-                      <td className="px-3 py-2 text-xs">
-                        {it.manufacturer && <span className="text-neutral-500">{it.manufacturer}</span>}{' '}
-                        {it.model}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs text-neutral-500">
-                        {it.serialNumber ?? '—'}
-                      </td>
-                      <td className="px-3 py-2 text-xs">{it.currentLocation}</td>
-                      <td className="px-3 py-2 text-right">
-                        {it.insuranceValueSar ? (
-                          <MoneyDisplay
-                            amount={Number(it.insuranceValueSar)}
-                            currency="SAR"
-                            className="text-xs"
-                          />
-                        ) : (
-                          <span className="text-xs text-neutral-600">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusPill tone={STATUS_TONE[it.status] ?? 'neutral'}>
-                          {it.status}
-                        </StatusPill>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                ))}
+              </tbody>
+            </table>
           </div>
-        </section>
-      </div>
+        )}
+      </Card>
+
+      {/* Catalog */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="الكتالوج"
+            subtitle={`${items.length} وحدة معدات في قاعدة البيانات`}
+          />
+        </div>
+        {items.length === 0 ? (
+          <EmptyState
+            icon={<Camera size={20} />}
+            title="الكتالوج فاضي"
+            description="هتُستورَد المعدات من legacy DB في Pillar 15."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                  <th className="px-5 py-3 text-start">code</th>
+                  <th className="px-5 py-3 text-start">الفئة</th>
+                  <th className="px-5 py-3 text-start">الموديل</th>
+                  <th className="px-5 py-3 text-start">serial</th>
+                  <th className="px-5 py-3 text-start">الموقع</th>
+                  <th className="px-5 py-3 text-start">قيمة تأمين</th>
+                  <th className="px-5 py-3 text-start">الحالة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[--line]">
+                {items.map((it) => (
+                  <tr key={it.id} className="hover:bg-[--surface-hover]">
+                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                      {it.code}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs text-[--text-muted]">
+                      {it.category}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {it.manufacturer && (
+                        <span className="text-[--text-dim]">{it.manufacturer} </span>
+                      )}
+                      <span className="text-[--text]">{it.model}</span>
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                      {it.serialNumber ?? '—'}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs">{it.currentLocation}</td>
+                    <td className="px-5 py-3.5 text-end">
+                      {it.insuranceValueSar ? (
+                        <MoneyDisplay
+                          amount={Number(it.insuranceValueSar)}
+                          currency="SAR"
+                          className="text-xs"
+                        />
+                      ) : (
+                        <span className="text-xs text-[--text-dim]">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusPill tone={STATUS_TONE[it.status] ?? 'neutral'}>
+                        {STATUS_LABEL[it.status] ?? it.status}
+                      </StatusPill>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </AppShell>
   );
-
-  void gte;
 }

@@ -10,7 +10,16 @@ import {
   profiles,
   projects,
 } from '@antagna/db';
-import { AppShell, StatusPill } from '@antagna/ui';
+import {
+  AppShell,
+  PageHeader,
+  Card,
+  CardHeader,
+  StatusPill,
+  EmptyState,
+  Avatar,
+} from '@antagna/ui';
+import { Mail, MessageCircle, Send } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +63,6 @@ export default async function InboxPage() {
         status: emailThreads.status,
         messageCount: emailThreads.messageCount,
         lastMessageAt: emailThreads.lastMessageAt,
-        lastInboundAt: emailThreads.lastInboundAt,
         aiSummary: emailThreads.aiSummary,
         clientNameAr: clients.nameAr,
         primaryContactName: contacts.fullName,
@@ -76,9 +84,6 @@ export default async function InboxPage() {
         status: emailDrafts.status,
         toEmails: emailDrafts.toEmails,
         sendFromAlias: emailDrafts.sendFromAlias,
-        scheduledFor: emailDrafts.scheduledFor,
-        sentAt: emailDrafts.sentAt,
-        createdAt: emailDrafts.createdAt,
         sendError: emailDrafts.sendError,
         authorName: profiles.displayName,
       })
@@ -92,7 +97,6 @@ export default async function InboxPage() {
         direction: whatsappMessages.direction,
         fromE164: whatsappMessages.fromE164,
         bodyText: whatsappMessages.bodyText,
-        messageType: whatsappMessages.messageType,
         receivedAt: whatsappMessages.receivedAt,
         matchedContactName: contacts.fullName,
         matchedProfileName: profiles.displayName,
@@ -113,173 +117,205 @@ export default async function InboxPage() {
       .groupBy(emailDrafts.status),
   ]);
 
-  const awaitingReview = queueDepth.find((q) => q.status === 'awaiting_review')?.count ?? 0;
+  const awaitingReview =
+    queueDepth.find((q) => q.status === 'awaiting_review')?.count ?? 0;
   const failed = queueDepth.find((q) => q.status === 'failed')?.count ?? 0;
 
   return (
     <AppShell user={{ email: user.email ?? '' }} activePath="/inbox">
-      <div className="space-y-5">
-        <header>
-          <h1 className="text-xl font-semibold">Inbox</h1>
-          <p className="text-sm text-neutral-500">
-            {threads.length} thread · {whatsapps.length} WhatsApp · {drafts.length} draft
+      <PageHeader
+        eyebrow="Inbox"
+        title="الوارد"
+        subtitle={
+          <>
+            {threads.length} thread · {whatsapps.length} WhatsApp · {drafts.length}{' '}
+            draft
             {awaitingReview > 0 && (
-              <>
-                {' '}·{' '}
-                <span className="text-yellow-500">
-                  {awaitingReview} في انتظار الموافقة
-                </span>
-              </>
+              <span className="ms-2 text-[--accent]">
+                · {awaitingReview} في انتظار الموافقة
+              </span>
             )}
             {failed > 0 && (
-              <>
-                {' '}· <span className="text-red-500">{failed} فشل إرسال</span>
-              </>
+              <span className="ms-2 text-red-400">· {failed} فشل إرسال</span>
             )}
-          </p>
-        </header>
+          </>
+        }
+      />
 
-        <section>
-          <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-            البريد الإلكتروني — Threads
-          </h2>
-          <div className="overflow-hidden rounded-md border border-neutral-800">
-            {threads.length === 0 ? (
-              <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                لا threads بعد. Gmail Pub/Sub watch لسه manual setup.
-              </div>
-            ) : (
-              <ul className="divide-y divide-neutral-800 bg-neutral-950 text-sm">
-                {threads.map((t) => (
-                  <li key={t.id} className="px-3 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>{t.subject ?? '(بدون عنوان)'}</span>
-                          <StatusPill tone={THREAD_STATUS_TONE[t.status] ?? 'neutral'}>
-                            {t.status}
-                          </StatusPill>
-                        </div>
-                        <div className="mt-0.5 text-xs text-neutral-500">
-                          {t.clientNameAr ?? '—'}
-                          {t.primaryContactName && (
-                            <>
-                              {' '}· <span>{t.primaryContactName}</span>
-                            </>
-                          )}
-                          {t.projectCode && t.projectId && (
-                            <>
-                              {' '}·{' '}
-                              <a
-                                href={`/projects/${t.projectId}`}
-                                className="font-mono text-yellow-500 hover:underline"
-                              >
-                                {t.projectCode}
-                              </a>
-                            </>
-                          )}
-                          {t.assignedName && (
-                            <>
-                              {' '}· <span>{t.assignedName}</span>
-                            </>
-                          )}
-                          {' '}· {t.messageCount} msg
-                        </div>
-                        {t.aiSummary && (
-                          <p className="mt-1 text-xs text-neutral-400">{t.aiSummary}</p>
-                        )}
-                      </div>
-                      <div className="text-right font-mono text-xs text-neutral-500">
-                        {t.lastMessageAt
-                          ? new Date(t.lastMessageAt).toISOString().slice(0, 16).replace('T', ' ')
-                          : '—'}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <section>
-            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-              مسودات الإرسال
-            </h2>
-            <div className="overflow-hidden rounded-md border border-neutral-800">
-              {drafts.length === 0 ? (
-                <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                  لا مسودات.
-                </div>
-              ) : (
-                <ul className="divide-y divide-neutral-800 bg-neutral-950 text-sm">
-                  {drafts.map((d) => (
-                    <li key={d.id} className="flex items-start justify-between gap-3 px-3 py-2">
-                      <div className="flex-1">
-                        <div>{d.subject}</div>
-                        <div className="text-xs text-neutral-500">
-                          to:{' '}
-                          <span className="font-mono">{(d.toEmails ?? []).join(', ')}</span>
-                          {' '}from <span className="font-mono">{d.sendFromAlias}</span>
-                          {d.authorName && <> · {d.authorName}</>}
-                        </div>
-                        {d.sendError && (
-                          <p className="mt-1 text-xs text-red-400">⚠ {d.sendError}</p>
-                        )}
-                      </div>
-                      <StatusPill tone={DRAFT_STATUS_TONE[d.status] ?? 'neutral'}>
-                        {d.status}
-                      </StatusPill>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-              WhatsApp (آخر 10)
-            </h2>
-            <div className="overflow-hidden rounded-md border border-neutral-800">
-              {whatsapps.length === 0 ? (
-                <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                  WhatsApp/Baileys لسه manual setup (Pillar 8 / D-023).
-                </div>
-              ) : (
-                <ul className="divide-y divide-neutral-800 bg-neutral-950 text-sm">
-                  {whatsapps.map((w) => (
-                    <li key={w.id} className="px-3 py-2">
-                      <div className="flex items-center justify-between text-xs text-neutral-500">
-                        <span>
-                          <StatusPill tone={w.direction === 'inbound' ? 'info' : 'success'}>
-                            {w.direction}
-                          </StatusPill>{' '}
-                          <span className="font-mono">{w.fromE164}</span>
-                          {(w.matchedContactName || w.matchedProfileName) && (
-                            <> · {w.matchedContactName ?? w.matchedProfileName}</>
-                          )}
-                          {w.projectCode && (
-                            <>
-                              {' '}· <span className="font-mono">{w.projectCode}</span>
-                            </>
-                          )}
-                        </span>
-                        <span className="font-mono">
-                          {new Date(w.receivedAt).toISOString().slice(0, 16).replace('T', ' ')}
-                        </span>
-                      </div>
-                      {w.bodyText && (
-                        <p className="mt-1 truncate text-sm text-neutral-300">{w.bodyText}</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+      {/* Threads */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="البريد الإلكتروني"
+            subtitle="آخر 30 thread"
+            action={
+              <span className="inline-flex items-center gap-1 text-xs text-[--text-dim]">
+                <Mail size={12} />
+                {threads.length}
+              </span>
+            }
+          />
         </div>
+        {threads.length === 0 ? (
+          <EmptyState
+            icon={<Mail size={20} />}
+            title="لا threads بعد"
+            description="Gmail Pub/Sub watch لسه manual setup. لما يتفعّل هتظهر الـ threads هنا."
+          />
+        ) : (
+          <ul className="divide-y divide-[--line]">
+            {threads.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-start gap-3 px-6 py-3.5 hover:bg-[--surface-hover]"
+              >
+                <Avatar name={t.clientNameAr ?? t.primaryContactName ?? '?'} size="md" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-[--text]">
+                      {t.subject ?? '(بدون عنوان)'}
+                    </p>
+                    <StatusPill tone={THREAD_STATUS_TONE[t.status] ?? 'neutral'}>
+                      {t.status}
+                    </StatusPill>
+                  </div>
+                  <p className="mt-0.5 text-xs text-[--text-muted]">
+                    {t.clientNameAr ?? '—'}
+                    {t.primaryContactName && <> · {t.primaryContactName}</>}
+                    {t.projectCode && t.projectId && (
+                      <>
+                        {' '}·{' '}
+                        <a
+                          href={`/projects/${t.projectId}`}
+                          className="font-mono text-[--accent] hover:underline"
+                        >
+                          {t.projectCode}
+                        </a>
+                      </>
+                    )}
+                    {t.assignedName && <> · {t.assignedName}</>}{' '}
+                    · {t.messageCount} msg
+                  </p>
+                  {t.aiSummary && (
+                    <p className="mt-1 text-xs text-[--text]">{t.aiSummary}</p>
+                  )}
+                </div>
+                <div className="font-mono text-[10px] text-[--text-dim]">
+                  {t.lastMessageAt
+                    ? new Date(t.lastMessageAt)
+                        .toISOString()
+                        .slice(0, 16)
+                        .replace('T', ' ')
+                    : '—'}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card padded={false}>
+          <div className="p-6 pb-4">
+            <CardHeader
+              title="مسودات الإرسال"
+              subtitle="في الـ queue"
+              action={<Send size={12} className="text-[--text-dim]" />}
+            />
+          </div>
+          {drafts.length === 0 ? (
+            <EmptyState
+              icon={<Send size={20} />}
+              title="لا مسودات"
+              description="هتظهر هنا لما يبدأ الـ AI يبعت مسودات أو يبعتها أحد المستخدمين."
+            />
+          ) : (
+            <ul className="divide-y divide-[--line]">
+              {drafts.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-start gap-3 px-6 py-3 hover:bg-[--surface-hover]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-[--text]">
+                      {d.subject}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[--text-muted]">
+                      to:{' '}
+                      <span className="font-mono">
+                        {(d.toEmails ?? []).join(', ')}
+                      </span>
+                      {d.authorName && <> · {d.authorName}</>}
+                    </p>
+                    {d.sendError && (
+                      <p className="mt-1 text-xs text-red-400">⚠ {d.sendError}</p>
+                    )}
+                  </div>
+                  <StatusPill tone={DRAFT_STATUS_TONE[d.status] ?? 'neutral'}>
+                    {d.status}
+                  </StatusPill>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card padded={false}>
+          <div className="p-6 pb-4">
+            <CardHeader
+              title="WhatsApp"
+              subtitle="آخر 10 رسائل"
+              action={<MessageCircle size={12} className="text-[--text-dim]" />}
+            />
+          </div>
+          {whatsapps.length === 0 ? (
+            <EmptyState
+              icon={<MessageCircle size={20} />}
+              title="WhatsApp لسه manual setup"
+              description="هيشتغل عبر Baileys self-hosted (D-023) بعد إعداد الـ VPS."
+            />
+          ) : (
+            <ul className="divide-y divide-[--line]">
+              {whatsapps.map((w) => (
+                <li key={w.id} className="px-6 py-3 hover:bg-[--surface-hover]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <StatusPill
+                        tone={w.direction === 'inbound' ? 'info' : 'success'}
+                      >
+                        {w.direction}
+                      </StatusPill>
+                      <span className="font-mono text-xs text-[--text-dim]">
+                        {w.fromE164}
+                      </span>
+                      {(w.matchedContactName || w.matchedProfileName) && (
+                        <span className="text-xs text-[--text-muted]">
+                          · {w.matchedContactName ?? w.matchedProfileName}
+                        </span>
+                      )}
+                      {w.projectCode && (
+                        <span className="font-mono text-xs text-[--accent]">
+                          {w.projectCode}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-[10px] text-[--text-dim]">
+                      {new Date(w.receivedAt)
+                        .toISOString()
+                        .slice(0, 16)
+                        .replace('T', ' ')}
+                    </span>
+                  </div>
+                  {w.bodyText && (
+                    <p className="mt-1 truncate text-sm text-[--text]">
+                      {w.bodyText}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
     </AppShell>
   );

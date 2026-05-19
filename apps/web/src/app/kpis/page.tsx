@@ -1,7 +1,14 @@
 import { redirect } from 'next/navigation';
 import { sql, eq, asc } from 'drizzle-orm';
 import { db, kpiDefinitions } from '@antagna/db';
-import { AppShell, StatusPill } from '@antagna/ui';
+import {
+  AppShell,
+  PageHeader,
+  Card,
+  StatusPill,
+  EmptyState,
+} from '@antagna/ui';
+import { BarChart3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -16,8 +23,14 @@ type KpiRow = {
   thresholdGreen: string | null;
   thresholdAmber: string | null;
   latestValue: string | null;
-  latestPeriodEnd: string | null;
   latestComputedAt: Date | null;
+};
+
+const SCOPE_LABEL: Record<string, string> = {
+  company: 'الشركة',
+  project: 'المشاريع',
+  person: 'الأفراد',
+  client: 'العملاء',
 };
 
 export default async function KpisPage() {
@@ -42,11 +55,6 @@ export default async function KpisPage() {
         WHERE kpi_key = ${kpiDefinitions.key} AND scope_entity_id IS NULL
         ORDER BY computed_at DESC LIMIT 1
       )`,
-      latestPeriodEnd: sql<string | null>`(
-        SELECT period_end FROM kpi_snapshots
-        WHERE kpi_key = ${kpiDefinitions.key} AND scope_entity_id IS NULL
-        ORDER BY computed_at DESC LIMIT 1
-      )`,
       latestComputedAt: sql<Date | null>`(
         SELECT computed_at FROM kpi_snapshots
         WHERE kpi_key = ${kpiDefinitions.key} AND scope_entity_id IS NULL
@@ -64,27 +72,37 @@ export default async function KpisPage() {
 
   return (
     <AppShell user={{ email: user.email ?? '' }} activePath="/kpis">
-      <div className="space-y-5">
-        <header>
-          <h1 className="text-xl font-semibold">KPIs</h1>
-          <p className="text-sm text-neutral-500">
-            {rows.length} KPI نشط. القيم تحدّث بـ pg_cron + Trigger.dev (لما يُنشر).
-          </p>
-        </header>
+      <PageHeader
+        eyebrow="KPIs"
+        title="مؤشرات الأداء"
+        subtitle={`${rows.length} KPI نشط · القيم تتحدث بـ pg_cron و Trigger.dev`}
+      />
 
-        {Object.entries(byScope).map(([scope, items]) => (
-          <section key={scope}>
-            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-              {scope} ({items.length})
-            </h2>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {rows.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<BarChart3 size={20} />}
+            title="لا توجد KPIs"
+            description="ضيف تعريفات KPI من السكيمة لتفعيل التتبع."
+          />
+        </Card>
+      ) : (
+        Object.entries(byScope).map(([scope, items]) => (
+          <section key={scope} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[--text]">
+                {SCOPE_LABEL[scope] ?? scope}
+              </h2>
+              <span className="text-xs text-[--text-dim]">{items.length} KPI</span>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {items.map((k) => (
                 <KpiCard key={k.key} k={k} />
               ))}
             </div>
           </section>
-        ))}
-      </div>
+        ))
+      )}
     </AppShell>
   );
 }
@@ -94,7 +112,6 @@ function KpiCard({ k }: { k: KpiRow }) {
   const green = k.thresholdGreen != null ? Number(k.thresholdGreen) : null;
   const amber = k.thresholdAmber != null ? Number(k.thresholdAmber) : null;
 
-  // higher-is-better assumption when green > amber, lower-is-better otherwise
   let tone: 'success' | 'warning' | 'danger' | 'neutral' = 'neutral';
   if (numVal != null && green != null && amber != null) {
     const higherBetter = green >= amber;
@@ -109,33 +126,48 @@ function KpiCard({ k }: { k: KpiRow }) {
     numVal == null
       ? '—'
       : k.unit === 'sar'
-        ? `${numVal.toLocaleString('en-US')} ر.س`
+        ? `${numVal.toLocaleString('en-US')}`
         : k.unit === 'pct'
           ? `${(numVal * 100).toFixed(1)}%`
           : k.unit === 'days'
-            ? `${numVal.toFixed(1)} يوم`
+            ? `${numVal.toFixed(1)}`
             : numVal.toLocaleString('en-US');
 
+  const unitLabel =
+    k.unit === 'sar' ? 'ر.س' : k.unit === 'days' ? 'يوم' : k.unit === 'pct' ? '' : '';
+
   return (
-    <div className="rounded-md border border-neutral-800 bg-neutral-900 p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-sm font-medium">{k.nameAr}</h3>
-          {k.nameEn && <p className="text-xs text-neutral-500">{k.nameEn}</p>}
+    <Card className="!p-5 relative overflow-hidden group hover:border-[--line-strong] hover:-translate-y-0.5">
+      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-[--accent]/[0.03] to-transparent" />
+      <div className="relative">
+        <div className="flex items-start justify-between">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-medium text-[--text]">{k.nameAr}</h3>
+            {k.nameEn && (
+              <p className="text-xs text-[--text-dim]">{k.nameEn}</p>
+            )}
+          </div>
+          <StatusPill tone={tone}>{k.refreshFrequency}</StatusPill>
         </div>
-        <StatusPill tone={tone}>{k.unit}</StatusPill>
-      </div>
-      <p className="mt-3 text-3xl font-semibold font-mono">{formatted}</p>
-      <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
-        <span>{k.refreshFrequency}</span>
-        {k.latestComputedAt ? (
-          <span className="font-mono">
-            {new Date(k.latestComputedAt).toISOString().slice(0, 10)}
+        <div className="mt-5 flex items-baseline gap-2">
+          <span className="font-mono text-4xl font-semibold tracking-tight text-[--text]">
+            {formatted}
           </span>
-        ) : (
-          <span className="italic">pending compute</span>
-        )}
+          {unitLabel && (
+            <span className="text-sm text-[--text-dim]">{unitLabel}</span>
+          )}
+        </div>
+        <div className="mt-3 flex items-center justify-between text-xs text-[--text-dim]">
+          <span>{k.scope}</span>
+          {k.latestComputedAt ? (
+            <span className="font-mono">
+              {new Date(k.latestComputedAt).toISOString().slice(0, 10)}
+            </span>
+          ) : (
+            <span className="italic">pending</span>
+          )}
+        </div>
       </div>
-    </div>
+    </Card>
   );
 }

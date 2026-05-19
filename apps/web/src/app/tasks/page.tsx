@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { and, eq, ne, or, asc, desc, isNull } from 'drizzle-orm';
+import { and, eq, ne, asc, desc } from 'drizzle-orm';
 import {
   db,
   profiles,
@@ -8,7 +8,17 @@ import {
   dailyTasks,
   projects,
 } from '@antagna/db';
-import { AppShell, StatusPill } from '@antagna/ui';
+import {
+  AppShell,
+  PageHeader,
+  Card,
+  CardHeader,
+  StatusPill,
+  EmptyState,
+  Avatar,
+  Button,
+} from '@antagna/ui';
+import { ListChecks, Plus, CheckCircle2, Play, Circle } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { setTaskStatus, createDailyTask } from './actions';
 
@@ -21,13 +31,14 @@ const PRIORITY_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'danger'> =
   urgent: 'danger',
 };
 
-const STATUS_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'danger' | 'success'> = {
-  pending: 'neutral',
-  in_progress: 'warning',
-  blocked: 'danger',
-  completed: 'success',
-  cancelled: 'neutral',
-};
+const STATUS_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'danger' | 'success'> =
+  {
+    pending: 'neutral',
+    in_progress: 'warning',
+    blocked: 'danger',
+    completed: 'success',
+    cancelled: 'neutral',
+  };
 
 export default async function TasksPage({
   searchParams,
@@ -52,12 +63,19 @@ export default async function TasksPage({
   if (!actor) {
     return (
       <AppShell user={{ email: user.email ?? '' }} activePath="/tasks">
-        <p className="text-sm text-neutral-500">لا يوجد profile مربوط بحسابك بعد.</p>
+        <PageHeader title="المهام" />
+        <Card>
+          <EmptyState
+            icon={<ListChecks size={20} />}
+            title="لا يوجد profile مربوط بحسابك"
+            description="سيُنشأ تلقائياً عند أول استخدام، أو في Pillar 15 migration."
+          />
+        </Card>
       </AppShell>
     );
   }
 
-  const myProjectTasksWhere = showAll
+  const myProjWhere = showAll
     ? eq(projectTasks.assigneeId, actor.id)
     : and(
         eq(projectTasks.assigneeId, actor.id),
@@ -65,7 +83,7 @@ export default async function TasksPage({
         ne(projectTasks.status, 'cancelled'),
       );
 
-  const myDailyTasksWhere = showAll
+  const myDailyWhere = showAll
     ? eq(dailyTasks.ownerId, actor.id)
     : and(
         eq(dailyTasks.ownerId, actor.id),
@@ -88,7 +106,7 @@ export default async function TasksPage({
       })
       .from(projectTasks)
       .innerJoin(projects, eq(projects.id, projectTasks.projectId))
-      .where(myProjectTasksWhere)
+      .where(myProjWhere)
       .orderBy(
         asc(projectTasks.status),
         asc(projectTasks.dueAt),
@@ -103,150 +121,160 @@ export default async function TasksPage({
         dueAt: dailyTasks.dueAt,
       })
       .from(dailyTasks)
-      .where(myDailyTasksWhere)
+      .where(myDailyWhere)
       .orderBy(asc(dailyTasks.status), asc(dailyTasks.dueAt), desc(dailyTasks.createdAt)),
   ]);
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/tasks">
-      <div className="space-y-5">
-        <header className="flex items-end justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">المهام</h1>
-            <p className="text-sm text-neutral-500">
-              {actor.displayName} · {projTasks.length + dailies.length} task
-              {projTasks.length + dailies.length === 1 ? '' : 's'}
-            </p>
-          </div>
+    <AppShell
+      user={{ email: user.email ?? '', displayName: actor.displayName }}
+      activePath="/tasks"
+    >
+      <PageHeader
+        eyebrow={`مرحباً ${actor.displayName}`}
+        title="مهامك"
+        subtitle={`${projTasks.length + dailies.length} مهمة ${showAll ? 'في الإجمالي' : 'مفتوحة'}`}
+        action={
           <Link
             href={showAll ? '/tasks' : '/tasks?show=all'}
-            className="rounded-sm border border-neutral-800 px-3 py-1 text-xs hover:border-yellow-500"
+            className="inline-flex h-9 items-center rounded-xl border border-[--line] bg-[--surface] px-3.5 text-sm text-[--text-muted] hover:border-[--accent] hover:text-[--text]"
           >
-            {showAll ? 'مفتوحة فقط' : 'كل المهام'}
+            {showAll ? 'المفتوحة فقط' : 'كل المهام'}
           </Link>
-        </header>
+        }
+      />
 
-        <section className="rounded-md border border-neutral-800 bg-neutral-900 p-4">
-          <h2 className="mb-3 text-xs uppercase tracking-wide text-neutral-500">
-            مهمة يومية جديدة
-          </h2>
-          <form action={createDailyTask} className="flex flex-wrap gap-2">
-            <input
-              type="text"
-              name="title"
-              required
-              placeholder="ماذا تريد أن تنجز اليوم؟"
-              className="flex-1 min-w-[200px] rounded-sm border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-sm"
-            />
-            <input
-              type="date"
-              name="dueAt"
-              className="rounded-sm border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm font-mono"
-            />
-            <select
-              name="priority"
-              defaultValue="normal"
-              className="rounded-sm border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm"
-            >
-              <option value="low">low</option>
-              <option value="normal">normal</option>
-              <option value="high">high</option>
-              <option value="urgent">urgent</option>
-            </select>
-            <button
-              type="submit"
-              className="rounded-sm bg-yellow-500 px-3 py-1.5 text-xs font-semibold text-neutral-900 hover:bg-yellow-400"
-            >
-              + أضف
-            </button>
-          </form>
-        </section>
+      {/* Quick-add daily task */}
+      <Card>
+        <CardHeader
+          title="مهمة يومية سريعة"
+          subtitle="مهام شخصية مش مرتبطة بمشروع"
+        />
+        <form action={createDailyTask} className="flex flex-wrap gap-2">
+          <input
+            type="text"
+            name="title"
+            required
+            placeholder="ماذا تريد إنجازه اليوم؟"
+            className="h-10 min-w-[240px] flex-1 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm text-[--text] placeholder:text-[--text-dim] focus:border-[--accent] focus:outline-none"
+          />
+          <input
+            type="date"
+            name="dueAt"
+            className="h-10 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm font-mono"
+          />
+          <select
+            name="priority"
+            defaultValue="normal"
+            className="h-10 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+          >
+            <option value="low">low</option>
+            <option value="normal">normal</option>
+            <option value="high">high</option>
+            <option value="urgent">urgent</option>
+          </select>
+          <Button variant="primary" icon={<Plus size={16} />}>
+            أضف
+          </Button>
+        </form>
+      </Card>
 
-        <section>
-          <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-            مهام المشاريع ({projTasks.length})
-          </h2>
-          <div className="overflow-hidden rounded-md border border-neutral-800">
-            {projTasks.length === 0 ? (
-              <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                لا توجد مهام مفتوحة عليك.
-              </div>
-            ) : (
-              <ul className="divide-y divide-neutral-800 bg-neutral-950 text-sm">
-                {projTasks.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <div className="flex-1">
-                      <div>{t.title}</div>
-                      <div className="text-xs text-neutral-500">
-                        <Link
-                          href={`/projects/${t.projectId}`}
-                          className="font-mono hover:text-yellow-500"
-                        >
-                          {t.projectCode}
-                        </Link>{' '}
-                        · {t.projectTitleAr ?? t.projectTitle}
-                        {t.dueAt && (
-                          <>
-                            {' '}· due{' '}
-                            <span className="font-mono">
-                              {new Date(t.dueAt).toISOString().slice(0, 10)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <StatusPill tone={PRIORITY_TONE[t.priority ?? 'normal']}>
-                      {t.priority}
-                    </StatusPill>
-                    <StatusToggle source="project" id={t.id} status={t.status} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+      {/* Project tasks */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="مهام المشاريع"
+            subtitle={`${projTasks.length} مهمة من مشاريع`}
+          />
+        </div>
+        {projTasks.length === 0 ? (
+          <EmptyState
+            icon={<CheckCircle2 size={20} />}
+            title="مفيش مهام مفتوحة عليك"
+            description="ممتاز — لا توجد مهام مشاريع مفتوحة."
+          />
+        ) : (
+          <ul className="divide-y divide-[--line]">
+            {projTasks.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-center gap-3 px-6 py-3 hover:bg-[--surface-hover]"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[--text]">{t.title}</p>
+                  <p className="mt-0.5 text-xs text-[--text-muted]">
+                    <Link
+                      href={`/projects/${t.projectId}`}
+                      className="font-mono text-[--text-dim] hover:text-[--accent]"
+                    >
+                      {t.projectCode}
+                    </Link>{' '}
+                    · {t.projectTitleAr ?? t.projectTitle}
+                    {t.dueAt && (
+                      <>
+                        {' '}· due{' '}
+                        <span className="font-mono">
+                          {new Date(t.dueAt).toISOString().slice(0, 10)}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </div>
+                <StatusPill tone={PRIORITY_TONE[t.priority ?? 'normal']}>
+                  {t.priority}
+                </StatusPill>
+                <StatusToggle source="project" id={t.id} status={t.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
-        <section>
-          <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
-            مهام يومية ({dailies.length})
-          </h2>
-          <div className="overflow-hidden rounded-md border border-neutral-800">
-            {dailies.length === 0 ? (
-              <div className="bg-neutral-950 px-3 py-6 text-center text-xs text-neutral-500">
-                لا مهام يومية.
-              </div>
-            ) : (
-              <ul className="divide-y divide-neutral-800 bg-neutral-950 text-sm">
-                {dailies.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <div className="flex-1">
-                      <div>{t.title}</div>
-                      {t.dueAt && (
-                        <div className="text-xs text-neutral-500">
-                          due{' '}
-                          <span className="font-mono">
-                            {new Date(t.dueAt).toISOString().slice(0, 10)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <StatusPill tone={PRIORITY_TONE[t.priority ?? 'normal']}>
-                      {t.priority}
-                    </StatusPill>
-                    <StatusToggle source="daily" id={t.id} status={t.status} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
+      {/* Daily tasks */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="مهام يومية"
+            subtitle={`${dailies.length} مهمة شخصية`}
+          />
+        </div>
+        {dailies.length === 0 ? (
+          <EmptyState
+            icon={<Circle size={20} />}
+            title="لا مهام يومية"
+            description="ضيف مهمة من الفورم اللي فوق."
+          />
+        ) : (
+          <ul className="divide-y divide-[--line]">
+            {dailies.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-center gap-3 px-6 py-3 hover:bg-[--surface-hover]"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[--text]">{t.title}</p>
+                  {t.dueAt && (
+                    <p className="mt-0.5 text-xs text-[--text-muted]">
+                      due{' '}
+                      <span className="font-mono">
+                        {new Date(t.dueAt).toISOString().slice(0, 10)}
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <StatusPill tone={PRIORITY_TONE[t.priority ?? 'normal']}>
+                  {t.priority}
+                </StatusPill>
+                <StatusToggle source="daily" id={t.id} status={t.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Avatar name="" className="hidden" />
     </AppShell>
   );
-
-  // suppress unused-import warnings
-  void or;
-  void isNull;
 }
 
 function StatusToggle({
@@ -269,7 +297,7 @@ function StatusToggle({
           | 'blocked';
         await setTaskStatus(source, id, next);
       }}
-      className="flex items-center gap-1"
+      className="flex items-center gap-1.5"
     >
       <StatusPill tone={STATUS_TONE[status] ?? 'neutral'}>{status}</StatusPill>
       {status !== 'completed' && (
@@ -279,18 +307,20 @@ function StatusToggle({
               type="submit"
               name="next"
               value="in_progress"
-              className="rounded-sm border border-neutral-800 px-2 py-0.5 text-xs hover:border-yellow-500"
+              title="ابدأ"
+              className="grid h-7 w-7 place-items-center rounded-lg border border-[--line] bg-[--surface] text-[--text-muted] hover:border-[--accent] hover:text-[--accent]"
             >
-              ابدأ
+              <Play size={12} />
             </button>
           )}
           <button
             type="submit"
             name="next"
             value="completed"
-            className="rounded-sm border border-neutral-800 px-2 py-0.5 text-xs hover:border-yellow-500"
+            title="إنجاز"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-[--line] bg-[--surface] text-[--text-muted] hover:border-emerald-500 hover:text-emerald-400"
           >
-            ✓
+            <CheckCircle2 size={12} />
           </button>
         </>
       )}
