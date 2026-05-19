@@ -102,24 +102,4 @@ jobs:
           echo "✓ Team roster has 11 people."
 
       - name: Internal markdown links resolve
-        run: |
-          fail=0
-          while IFS= read -r line; do
-            file="$(echo "$line" | cut -d: -f1)"
-            link="$(echo "$line" | grep -oE '\]\([^)]+\)' | head -1 | sed -E 's/^\]\(|\)$//g')"
-            # Skip external (http(s):), anchors only (#…), mailto:
-            case "$link" in
-              http://*|https://*|mailto:*|#*|"") continue ;;
-            esac
-            # Strip any trailing #anchor
-            target="${link%%#*}"
-            # Resolve relative to the file's directory
-            dir="$(dirname "$file")"
-            resolved="$(realpath -m "$dir/$target")"
-            if [ ! -e "$resolved" ]; then
-              echo "❌ Broken link in $file → $link  (resolves to $resolved)"
-              fail=1
-            fi
-          done < <(grep -rnE '\]\([^)]+\)' --include="*.md" .)
-          if [ "$fail" -ne 0 ]; then exit 1; fi
-          echo "✓ All internal markdown links resolve."
+        run: python3 .github/scripts/check_md_links.py
