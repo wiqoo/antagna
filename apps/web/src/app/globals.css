@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind 4 only auto-scans files in the same package by default.
+   These directives tell it to also pull classes from our shared UI workspace. */
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
