@@ -35,7 +35,7 @@ export const dailyBrief = schedules.task({
         prof.display_name AS pm_name,
         (
           SELECT string_agg(
-            ae.event_type || ': ' || COALESCE(ae.summary, '?'),
+            ae.action || ': ' || COALESCE(ae.summary_ar, ae.summary_en, '?'),
             E'\n'
             ORDER BY ae.created_at DESC
           )

@@ -96,14 +96,15 @@ export default async function DashboardPage() {
 
   const recentActivity = (await db.execute<{
     id: string;
-    event_type: string;
-    summary: string | null;
+    action: string;
+    summary_ar: string | null;
+    summary_en: string | null;
     entity_type: string;
-    entity_id: string;
+    entity_id: string | null;
     created_at: Date;
     actor_name: string | null;
   }>(sql`
-    SELECT ae.id::text AS id, ae.event_type, ae.summary,
+    SELECT ae.id::text AS id, ae.action, ae.summary_ar, ae.summary_en,
            ae.entity_type, ae.entity_id::text AS entity_id,
            ae.created_at,
            p.display_name AS actor_name
@@ -113,10 +114,11 @@ export default async function DashboardPage() {
     LIMIT 8
   `)) as unknown as Array<{
     id: string;
-    event_type: string;
-    summary: string | null;
+    action: string;
+    summary_ar: string | null;
+    summary_en: string | null;
     entity_type: string;
-    entity_id: string;
+    entity_id: string | null;
     created_at: Date;
     actor_name: string | null;
   }>;
@@ -291,7 +293,7 @@ export default async function DashboardPage() {
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[--accent]" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-[--text]">
-                        {a.summary ?? a.event_type}
+                        {a.summary_ar ?? a.summary_en ?? a.action}
                       </p>
                       <p className="text-[11px] text-[--text-dim]">
                         {a.actor_name ?? 'النظام'} ·{' '}

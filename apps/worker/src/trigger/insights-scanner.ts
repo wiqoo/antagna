@@ -46,9 +46,9 @@ export const insightsScanner = schedules.task({
         (SELECT count(*)::int FROM project_tasks
            WHERE project_id = p.id AND status = 'blocked') AS blocked_tasks,
         (
-          SELECT string_agg(event_type || ': ' || COALESCE(summary,'?'), E'\n')
+          SELECT string_agg(action || ': ' || COALESCE(summary_ar, summary_en, '?'), E'\n')
           FROM (
-            SELECT event_type, summary, created_at
+            SELECT action, summary_ar, summary_en, created_at
             FROM activity_events
             WHERE entity_type = 'project' AND entity_id = p.id
             ORDER BY created_at DESC LIMIT 5
