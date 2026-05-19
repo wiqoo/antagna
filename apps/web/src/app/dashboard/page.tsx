@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         action={
           <Link
             href="/projects/new"
-            className="magnet inline-flex h-11 items-center gap-2 rounded-md bg-[--accent] px-5 text-[13px] font-semibold text-black hover:bg-[--accent-hover]"
+            className="magnet inline-flex h-11 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-black hover:bg-[var(--accent-hover)]"
           >
             <Plus size={15} />
             مشروع جديد
@@ -200,13 +200,13 @@ export default async function DashboardPage() {
               <p className="section-rule" style={{ minWidth: 120 }}>
                 المشاريع
               </p>
-              <h2 className="mt-3 text-xl font-semibold text-[--text]">
+              <h2 className="mt-3 text-xl font-semibold text-[var(--text)]">
                 نشاط أخير
               </h2>
             </div>
             <Link
               href="/projects"
-              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[--accent] hover:underline"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] hover:underline"
             >
               عرض الكل
               <ArrowUpRight size={11} className="rtl:rotate-180" />
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
                 action={
                   <Link
                     href="/projects/new"
-                    className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[--accent] px-4 text-[12px] font-semibold text-black hover:bg-[--accent-hover]"
+                    className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-black hover:bg-[var(--accent-hover)]"
                   >
                     <Plus size={14} />
                     مشروع جديد
@@ -236,21 +236,21 @@ export default async function DashboardPage() {
                 <li key={p.id}>
                   <Link
                     href={`/projects/${p.id}`}
-                    className="grid grid-cols-[64px,1fr,auto] items-center gap-4 border-b border-[--line] bg-[--bg-elevated]/40 px-5 py-4 hover:bg-[--bg-elevated]/80"
+                    className="grid grid-cols-[64px,1fr,auto] items-center gap-4 border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 px-5 py-4 hover:bg-[var(--bg-elevated)]/80"
                   >
-                    <span className="font-mono text-[11px] text-[--text-dim]">
+                    <span className="font-mono text-[11px] text-[var(--text-dim)]">
                       {p.code}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[14px] font-medium text-[--text]">
+                      <p className="truncate text-[14px] font-medium text-[var(--text)]">
                         {p.title_ar ?? p.title}
                       </p>
-                      <p className="truncate text-[11px] text-[--text-muted]">
+                      <p className="truncate text-[11px] text-[var(--text-muted)]">
                         {p.client_name ?? '—'}
                         {p.pm_name && (
                           <>
                             {' '}·{' '}
-                            <span className="text-[--text]">{p.pm_name}</span>
+                            <span className="text-[var(--text)]">{p.pm_name}</span>
                           </>
                         )}
                       </p>
@@ -277,7 +277,7 @@ export default async function DashboardPage() {
               <p className="section-rule" style={{ minWidth: 140 }}>
                 مجرى النشاط
               </p>
-              <h2 className="mt-3 text-xl font-semibold text-[--text]">
+              <h2 className="mt-3 text-xl font-semibold text-[var(--text)]">
                 آخر التحديثات
               </h2>
             </div>
@@ -300,13 +300,13 @@ export default async function DashboardPage() {
                 return (
                   <li
                     key={a.id}
-                    className="relative border-r-2 border-[--line] px-5 py-3 hover:border-[--accent]"
+                    className="relative border-r-2 border-[var(--line)] px-5 py-3 hover:border-[var(--accent)]"
                   >
-                    <span className="absolute end-[-5px] top-5 h-2 w-2 rounded-full bg-[--accent]" />
-                    <p className="text-[13px] text-[--text]">
+                    <span className="absolute end-[-5px] top-5 h-2 w-2 rounded-full bg-[var(--accent)]" />
+                    <p className="text-[13px] text-[var(--text)]">
                       {a.summary_ar ?? a.summary_en ?? a.action}
                     </p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[--text-dim]">
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-dim)]">
                       {a.actor_name ?? 'النظام'} ·{' '}
                       {minsAgo < 60
                         ? `${minsAgo}د`
@@ -323,16 +323,16 @@ export default async function DashboardPage() {
       </div>
 
       {/* AI hint */}
-      <div className="rounded-lg border border-[--accent]/25 bg-gradient-to-l from-[--accent]/[0.06] to-transparent p-6">
+      <div className="rounded-lg border border-[var(--accent)]/25 bg-gradient-to-l from-[var(--accent)]/[0.06] to-transparent p-6">
         <div className="flex items-start gap-4">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[--accent]/30 text-[--accent]">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--accent)]/30 text-[var(--accent)]">
             <Sparkles size={15} />
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--accent]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
               AI · Insights Scanner
             </p>
-            <p className="text-[14px] text-[--text]">
+            <p className="text-[14px] text-[var(--text)]">
               لما الـ worker يبدأ شغّال، هتلاقي هنا تلخيص لما حصل في الـ24
               ساعة الماضية + توصيات للخطوات التالية لكل مشروع.
             </p>
@@ -340,7 +340,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-[--line] pt-6 text-[10px] uppercase tracking-[0.22em] text-[--text-dim]">
+      <div className="flex items-center justify-between border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
         <span>— Antagna Dashboard</span>
         <span>{new Date().getFullYear()} · Volt Production</span>
       </div>
@@ -365,15 +365,15 @@ function DashStat({
   href?: string;
   tone?: 'default' | 'accent';
 }) {
-  const numColor = tone === 'accent' ? 'text-[--accent]' : 'text-[--text]';
+  const numColor = tone === 'accent' ? 'text-[var(--accent)]' : 'text-[var(--text)]';
   const inner = (
     <>
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
           {label}
         </span>
         {icon && (
-          <span className="text-[--text-dim] group-hover:text-[--accent]">
+          <span className="text-[var(--text-dim)] group-hover:text-[var(--accent)]">
             {icon}
           </span>
         )}
@@ -385,18 +385,18 @@ function DashStat({
           <Counter to={value} />
         </span>
       </div>
-      {sub && <p className="mt-2 text-[11px] text-[--text-muted]">{sub}</p>}
+      {sub && <p className="mt-2 text-[11px] text-[var(--text-muted)]">{sub}</p>}
       {href && (
         <ArrowUpRight
           size={12}
-          className="absolute bottom-5 start-5 text-[--text-dim] opacity-0 transition-opacity group-hover:text-[--accent] group-hover:opacity-100 rtl:rotate-180"
+          className="absolute bottom-5 start-5 text-[var(--text-dim)] opacity-0 transition-opacity group-hover:text-[var(--accent)] group-hover:opacity-100 rtl:rotate-180"
         />
       )}
     </>
   );
   const cls =
-    'group relative overflow-hidden rounded-lg border border-[--line] bg-[--bg-elevated]/60 p-6 backdrop-blur ' +
-    (href ? 'magnet cursor-pointer hover:border-[--line-strong]' : '');
+    'group relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur ' +
+    (href ? 'magnet cursor-pointer hover:border-[var(--line-strong)]' : '');
   if (href) {
     return (
       <a href={href} className={cls}>

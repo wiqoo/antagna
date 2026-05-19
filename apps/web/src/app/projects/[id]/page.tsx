@@ -344,7 +344,7 @@ export default async function ProjectDetailPage({
     <Shell user={{ email: user.email ?? '' }} activePath="/projects">
       <Link
         href="/projects"
-        className="inline-flex items-center gap-1.5 text-sm text-[--text-muted] hover:text-[--accent]"
+        className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--accent)]"
       >
         <ArrowLeft size={14} className="rtl:rotate-180" />
         كل المشاريع
@@ -352,12 +352,12 @@ export default async function ProjectDetailPage({
 
       {/* Hero */}
       <Card className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -end-32 -top-32 h-80 w-80 rounded-full bg-[--accent] opacity-[0.06] blur-3xl" />
+        <div className="pointer-events-none absolute -end-32 -top-32 h-80 w-80 rounded-full bg-[var(--accent)] opacity-[0.06] blur-3xl" />
         <div className="relative">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-[--surface] px-2 py-0.5 font-mono text-[11px] text-[--text-muted]">
+                <span className="rounded-md bg-[var(--surface)] px-2 py-0.5 font-mono text-[11px] text-[var(--text-muted)]">
                   {project.code}
                 </span>
                 <StatusPill tone={stageTone(project.stage)}>
@@ -377,24 +377,24 @@ export default async function ProjectDetailPage({
                   </StatusPill>
                 )}
               </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-[--text]">
+              <h1 className="text-3xl font-semibold tracking-tight text-[var(--text)]">
                 {project.titleAr ?? project.title}
               </h1>
               {project.titleAr && project.title && (
-                <p className="text-sm text-[--text-muted]">{project.title}</p>
+                <p className="text-sm text-[var(--text-muted)]">{project.title}</p>
               )}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[--text-muted]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--text-muted)]">
                 <span>
-                  <span className="text-[--text-dim]">العميل: </span>
-                  <span className="text-[--text]">
+                  <span className="text-[var(--text-dim)]">العميل: </span>
+                  <span className="text-[var(--text)]">
                     {project.clientNameAr}
                   </span>
                 </span>
                 {project.pmName && (
                   <span className="flex items-center gap-1.5">
-                    <span className="text-[--text-dim]">PM:</span>
+                    <span className="text-[var(--text-dim)]">PM:</span>
                     <Avatar name={project.pmName} size="sm" />
-                    <span className="text-[--text]">{project.pmName}</span>
+                    <span className="text-[var(--text)]">{project.pmName}</span>
                   </span>
                 )}
               </div>
@@ -403,7 +403,7 @@ export default async function ProjectDetailPage({
             <div className="flex flex-col items-end gap-3">
               <Link
                 href={`/projects/${id}/edit`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[--line] bg-[--surface] px-3 text-sm text-[--text-muted] hover:border-[--accent] hover:text-[--text]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
               >
                 <Pencil size={14} />
                 تعديل
@@ -417,10 +417,10 @@ export default async function ProjectDetailPage({
                   />
                 )}
                 {project.deliveryDueAt && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[--text-muted]">
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
                     <Calendar size={12} />
                     تسليم:{' '}
-                    <span className="font-mono text-[--text]">
+                    <span className="font-mono text-[var(--text)]">
                       {new Date(project.deliveryDueAt).toISOString().slice(0, 10)}
                     </span>
                   </p>
@@ -430,17 +430,17 @@ export default async function ProjectDetailPage({
           </div>
 
           {project.aiStatusParagraph && (
-            <div className="mt-6 rounded-2xl border border-[--accent]/20 bg-[--accent]/[0.04] p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[--accent]">
+            <div className="mt-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] p-4">
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
                 <Sparkles size={12} />
                 تحليل ذكي
               </div>
-              <p className="text-sm leading-relaxed text-[--text]">
+              <p className="text-sm leading-relaxed text-[var(--text)]">
                 {project.aiStatusParagraph}
               </p>
               {project.aiNextAction && (
-                <p className="mt-2 text-sm text-[--text-muted]">
-                  <span className="text-[--text-dim]">الخطوة التالية: </span>
+                <p className="mt-2 text-sm text-[var(--text-muted)]">
+                  <span className="text-[var(--text-dim)]">الخطوة التالية: </span>
                   {project.aiNextAction}
                 </p>
               )}
@@ -477,7 +477,7 @@ export default async function ProjectDetailPage({
                     name="reason"
                     required
                     placeholder="السبب…"
-                    className="h-9 w-36 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-xs"
+                    className="h-9 w-36 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-xs"
                   />
                 )}
                 <Button
@@ -544,12 +544,12 @@ export default async function ProjectDetailPage({
                 name="title"
                 required
                 placeholder="مهمة جديدة…"
-                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
               />
               <select
                 name="assigneeId"
                 defaultValue=""
-                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="">— assignee —</option>
                 {activeProfiles.map((p) => (
@@ -561,7 +561,7 @@ export default async function ProjectDetailPage({
               <input
                 type="date"
                 name="dueAt"
-                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm font-mono"
+                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
               />
               <Button variant="primary" size="sm" icon={<Plus size={14} />}>
                 إضافة
@@ -575,15 +575,15 @@ export default async function ProjectDetailPage({
               description="أضف مهام من الفورم اللي فوق."
             />
           ) : (
-            <ul className="divide-y divide-[--line]">
+            <ul className="divide-y divide-[var(--line)]">
               {tasks.slice(0, 8).map((t) => (
                 <li
                   key={t.id}
                   className="flex items-start justify-between gap-3 px-6 py-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[--text]">{t.title}</p>
-                    <p className="mt-0.5 text-xs text-[--text-muted]">
+                    <p className="text-sm font-medium text-[var(--text)]">{t.title}</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                       {t.assigneeName ?? '—'}
                       {t.dueAt && (
                         <>
@@ -628,7 +628,7 @@ export default async function ProjectDetailPage({
               <select
                 name="profileId"
                 defaultValue=""
-                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="">— اختر الشخص —</option>
                 {activeProfiles.map((p) => (
@@ -641,7 +641,7 @@ export default async function ProjectDetailPage({
                 name="role"
                 required
                 defaultValue=""
-                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="" disabled>
                   — الدور —
@@ -664,7 +664,7 @@ export default async function ProjectDetailPage({
               description="استخدم الفورم لإضافة أول عضو."
             />
           ) : (
-            <ul className="divide-y divide-[--line]">
+            <ul className="divide-y divide-[var(--line)]">
               {assignments.map((a) => {
                 const name =
                   a.profileName ?? a.freelancerName ?? a.externalName ?? '?';
@@ -672,13 +672,13 @@ export default async function ProjectDetailPage({
                   <li key={a.id} className="flex items-center gap-3 px-6 py-3">
                     <Avatar name={name} size="md" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[--text]">
+                      <p className="text-sm font-medium text-[var(--text)]">
                         {name}
                       </p>
-                      <p className="text-xs text-[--text-muted]">{a.role}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{a.role}</p>
                     </div>
                     {a.rateSar && (
-                      <div className="font-mono text-xs text-[--text-dim]">
+                      <div className="font-mono text-xs text-[var(--text-dim)]">
                         {Number(a.rateSar).toLocaleString('en-US')} / {a.rateUnit}
                       </div>
                     )}
@@ -686,7 +686,7 @@ export default async function ProjectDetailPage({
                       <button
                         type="submit"
                         title="إزالة"
-                        className="grid h-7 w-7 place-items-center rounded-lg text-[--text-dim] hover:bg-red-500/10 hover:text-red-400"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-[var(--text-dim)] hover:bg-red-500/10 hover:text-red-400"
                       >
                         <X size={14} />
                       </button>
@@ -717,7 +717,7 @@ export default async function ProjectDetailPage({
                 name="body"
                 required
                 placeholder="اكتب تعليق…"
-                className="h-10 flex-1 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+                className="h-10 flex-1 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
               />
               <Button variant="primary" size="md">
                 إرسال
@@ -731,23 +731,23 @@ export default async function ProjectDetailPage({
               description="التعليقات هتساعد الفريق يتابع المشروع."
             />
           ) : (
-            <ul className="divide-y divide-[--line] border-t border-[--line]">
+            <ul className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
               {comments.slice(0, 8).map((c) => (
                 <li key={c.id} className="flex items-start gap-3 px-6 py-3">
                   <Avatar name={c.authorName ?? '?'} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 text-xs text-[--text-muted]">
-                      <span className="font-medium text-[--text]">
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                      <span className="font-medium text-[var(--text)]">
                         {c.authorName ?? '?'}
                       </span>
-                      <span className="font-mono text-[--text-dim]">
+                      <span className="font-mono text-[var(--text-dim)]">
                         {new Date(c.createdAt)
                           .toISOString()
                           .slice(0, 16)
                           .replace('T', ' ')}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-[--text]">{c.body}</p>
+                    <p className="mt-1 text-sm text-[var(--text)]">{c.body}</p>
                   </div>
                 </li>
               ))}
@@ -771,20 +771,20 @@ export default async function ProjectDetailPage({
               {stageLog.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between gap-3 border-t border-[--line] px-6 py-3 first:border-t-0"
+                  className="flex items-center justify-between gap-3 border-t border-[var(--line)] px-6 py-3 first:border-t-0"
                 >
                   <div className="flex items-center gap-2 text-sm">
                     <StatusPill tone={stageTone(s.fromStage ?? '')}>
                       {stageLabelAr(s.fromStage)}
                     </StatusPill>
-                    <span className="text-[--text-dim]">→</span>
+                    <span className="text-[var(--text-dim)]">→</span>
                     <StatusPill tone={stageTone(s.toStage)}>
                       {stageLabelAr(s.toStage)}
                     </StatusPill>
                   </div>
-                  <div className="text-end text-xs text-[--text-muted]">
+                  <div className="text-end text-xs text-[var(--text-muted)]">
                     {s.changedByName ?? '?'}
-                    <div className="font-mono text-[10px] text-[--text-dim]">
+                    <div className="font-mono text-[10px] text-[var(--text-dim)]">
                       {new Date(s.changedAt).toISOString().slice(0, 10)}
                     </div>
                   </div>
@@ -811,12 +811,12 @@ export default async function ProjectDetailPage({
               name="nameAr"
               required
               placeholder="اسم المجموعة (مثل: ريلز)"
-              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
             />
             <select
               name="kind"
               defaultValue=""
-              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
             >
               <option value="">— النوع —</option>
               <option value="reels">reels</option>
@@ -838,12 +838,12 @@ export default async function ProjectDetailPage({
             description="أضف مجموعة (مثل ريلز، صور) ثم ضيف العناصر داخلها."
           />
         ) : (
-          <div className="divide-y divide-[--line]">
+          <div className="divide-y divide-[var(--line)]">
             {groupedDeliverables.map((g) => (
               <div key={g.id} className="px-6 py-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-[--text]">
+                    <h3 className="text-sm font-semibold text-[var(--text)]">
                       {g.nameAr}
                     </h3>
                     {g.kind && (
@@ -851,7 +851,7 @@ export default async function ProjectDetailPage({
                         {g.kind}
                       </StatusPill>
                     )}
-                    <span className="text-xs text-[--text-dim]">
+                    <span className="text-xs text-[var(--text-dim)]">
                       {g.items.length} عنصر
                     </span>
                   </div>
@@ -864,24 +864,24 @@ export default async function ProjectDetailPage({
                       type="text"
                       name="itemNumber"
                       placeholder="#"
-                      className="h-8 w-14 rounded-lg border border-[--line] bg-[--bg-elevated] px-2 text-xs font-mono"
+                      className="h-8 w-14 rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-xs font-mono"
                     />
                     <input
                       type="text"
                       name="title"
                       placeholder="عنوان العنصر"
-                      className="h-8 w-48 rounded-lg border border-[--line] bg-[--bg-elevated] px-2 text-xs"
+                      className="h-8 w-48 rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-xs"
                     />
                     <button
                       type="submit"
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-[--line] bg-[--surface] text-[--text-muted] hover:border-[--accent] hover:text-[--accent]"
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
                     >
                       <Plus size={12} />
                     </button>
                   </form>
                 </div>
                 {g.items.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-[--line] px-4 py-3 text-xs text-[--text-dim]">
+                  <p className="rounded-xl border border-dashed border-[var(--line)] px-4 py-3 text-xs text-[var(--text-dim)]">
                     لا عناصر في هذه المجموعة بعد.
                   </p>
                 ) : (
@@ -889,12 +889,12 @@ export default async function ProjectDetailPage({
                     {g.items.map((it) => (
                       <li
                         key={it.id}
-                        className="flex items-center gap-3 rounded-xl border border-[--line] bg-[--bg-elevated]/40 px-3 py-2"
+                        className="flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)]/40 px-3 py-2"
                       >
-                        <span className="font-mono text-xs text-[--text-dim]">
+                        <span className="font-mono text-xs text-[var(--text-dim)]">
                           {it.itemNumber ?? '—'}
                         </span>
-                        <span className="flex-1 text-sm text-[--text]">
+                        <span className="flex-1 text-sm text-[var(--text)]">
                           {it.title ?? '(بدون عنوان)'}
                         </span>
                         <form
@@ -908,7 +908,7 @@ export default async function ProjectDetailPage({
                             name="next"
                             defaultValue={it.status}
                             onChange={undefined}
-                            className="h-7 rounded-lg border border-[--line] bg-[--surface] px-2 text-[11px] font-medium"
+                            className="h-7 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-medium"
                           >
                             <option value="draft">draft</option>
                             <option value="submitted">submitted</option>
@@ -924,7 +924,7 @@ export default async function ProjectDetailPage({
                           </select>
                           <button
                             type="submit"
-                            className="ms-1 inline-flex h-7 items-center rounded-lg border border-[--line] bg-[--surface] px-2 text-[11px] hover:border-[--accent]"
+                            className="ms-1 inline-flex h-7 items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] hover:border-[var(--accent)]"
                           >
                             حفظ
                           </button>
@@ -935,7 +935,7 @@ export default async function ProjectDetailPage({
                           <button
                             type="submit"
                             title="حذف"
-                            className="grid h-7 w-7 place-items-center rounded-lg text-[--text-dim] hover:bg-red-500/10 hover:text-red-400"
+                            className="grid h-7 w-7 place-items-center rounded-lg text-[var(--text-dim)] hover:bg-red-500/10 hover:text-red-400"
                           >
                             <X size={12} />
                           </button>
@@ -964,7 +964,7 @@ export default async function ProjectDetailPage({
             <select
               name="equipmentId"
               defaultValue=""
-              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
             >
               <option value="">— اختار معدة —</option>
               {equipmentList.map((e) => (
@@ -984,13 +984,13 @@ export default async function ProjectDetailPage({
               type="datetime-local"
               name="startsAt"
               required
-              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm font-mono"
+              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
             />
             <input
               type="datetime-local"
               name="endsAt"
               required
-              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm font-mono"
+              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
             />
             <Button variant="primary" size="sm" icon={<Plus size={14} />}>
               احجز
@@ -1005,28 +1005,28 @@ export default async function ProjectDetailPage({
             description="احجز معدات لهذا المشروع لمنع التعارض مع المشاريع الأخرى."
           />
         ) : (
-          <ul className="divide-y divide-[--line]">
+          <ul className="divide-y divide-[var(--line)]">
             {reservations.map((r) => (
               <li
                 key={r.id}
                 className="flex items-center gap-3 px-6 py-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-[--text]">
+                  <p className="text-sm text-[var(--text)]">
                     {r.eqCode ? (
                       <>
-                        <span className="font-mono text-xs text-[--text-dim]">
+                        <span className="font-mono text-xs text-[var(--text-dim)]">
                           {r.eqCode}
                         </span>{' '}
                         {r.eqModel}
                       </>
                     ) : (
-                      <span className="italic text-[--text-muted]">
+                      <span className="italic text-[var(--text-muted)]">
                         مجموعة: {r.groupNameAr ?? '—'}
                       </span>
                     )}
                   </p>
-                  <p className="font-mono text-xs text-[--text-dim]">
+                  <p className="font-mono text-xs text-[var(--text-dim)]">
                     {new Date(r.startsAt).toISOString().slice(0, 16).replace('T', ' ')}
                     {' → '}
                     {new Date(r.endsAt).toISOString().slice(0, 16).replace('T', ' ')}
@@ -1059,16 +1059,16 @@ export default async function ProjectDetailPage({
               subtitle={`${contactList.length} شخص`}
             />
           </div>
-          <ul className="divide-y divide-[--line]">
+          <ul className="divide-y divide-[var(--line)]">
             {contactList.map((c, i) => (
               <li key={i} className="flex items-center gap-3 px-6 py-3">
                 <Avatar name={c.fullName} size="md" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[--text]">
+                  <p className="text-sm font-medium text-[var(--text)]">
                     {c.fullName}
                   </p>
                   {(c.jobTitle || c.roleLabel) && (
-                    <p className="text-xs text-[--text-muted]">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {c.jobTitle ?? ''}
                       {c.roleLabel && c.jobTitle ? ' · ' : ''}
                       {c.roleLabel ?? ''}
@@ -1089,14 +1089,14 @@ export default async function ProjectDetailPage({
               href={project.driveFolderUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-[--accent] hover:underline"
+              className="inline-flex items-center gap-2 text-sm text-[var(--accent)] hover:underline"
             >
               <ExternalLink size={14} />
               Drive folder
             </a>
           )}
           {project.notes && (
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[--text]">
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]">
               {project.notes}
             </p>
           )}
@@ -1124,18 +1124,18 @@ function SimpleStat({
       ? 'bg-red-500/15 text-red-400'
       : tone === 'warning'
         ? 'bg-orange-500/15 text-orange-400'
-        : 'bg-[--surface-hover] text-[--text-muted]';
+        : 'bg-[var(--surface-hover)] text-[var(--text-muted)]';
   return (
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-[--text-dim]">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-dim)]">
             {label}
           </p>
-          <p className="text-2xl font-semibold tracking-tight text-[--text]">
+          <p className="text-2xl font-semibold tracking-tight text-[var(--text)]">
             {value}
           </p>
-          {sub && <p className="text-xs text-[--text-muted]">{sub}</p>}
+          {sub && <p className="text-xs text-[var(--text-muted)]">{sub}</p>}
         </div>
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}

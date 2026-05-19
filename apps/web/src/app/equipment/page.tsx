@@ -134,7 +134,7 @@ export default async function EquipmentPage() {
         action={
           <Link
             href="/equipment/new"
-            className="magnet inline-flex h-11 items-center gap-2 rounded-md bg-[--accent] px-5 text-[13px] font-semibold text-black hover:bg-[--accent-hover]"
+            className="magnet inline-flex h-11 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-black hover:bg-[var(--accent-hover)]"
           >
             <Plus size={15} />
             إضافة معدّة
@@ -176,21 +176,21 @@ export default async function EquipmentPage() {
         />
       </section>
 
-      <div className="flex items-center justify-between border-y border-[--line] py-4">
+      <div className="flex items-center justify-between border-y border-[var(--line)] py-4">
         <div className="flex items-center gap-6">
           <p className="section-rule" style={{ minWidth: 140 }}>
             القيمة المؤمَّن عليها
           </p>
-          <p className="text-2xl font-bold text-[--text] tabular">
+          <p className="text-2xl font-bold text-[var(--text)] tabular">
             <Counter to={totalInsurance} />
-            <span className="ms-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+            <span className="ms-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
               SAR
             </span>
           </p>
         </div>
-        <p className="hidden text-[11px] text-[--text-muted] md:block">
+        <p className="hidden text-[11px] text-[var(--text-muted)] md:block">
           محسوبة من{' '}
-          <span className="text-[--text]">
+          <span className="text-[var(--text)]">
             {items.filter((i) => i.insuranceValueSar).length}
           </span>{' '}
           وحدة لها تأمين مسجَّل
@@ -203,11 +203,11 @@ export default async function EquipmentPage() {
             <p className="section-rule" style={{ minWidth: 160 }}>
               الحجوزات القادمة
             </p>
-            <h2 className="mt-3 text-xl font-semibold text-[--text]">
+            <h2 className="mt-3 text-xl font-semibold text-[var(--text)]">
               الأسبوعين القادمين
             </h2>
           </div>
-          <span className="text-[11px] text-[--text-muted]">
+          <span className="text-[11px] text-[var(--text-muted)]">
             {upcoming.length} حجز
           </span>
         </header>
@@ -229,32 +229,32 @@ export default async function EquipmentPage() {
               return (
                 <div
                   key={r.id}
-                  className="grid grid-cols-[80px,1fr,auto] items-center gap-5 border-b border-[--line] bg-[--bg-elevated]/40 px-5 py-4 hover:bg-[--bg-elevated]/80"
+                  className="grid grid-cols-[80px,1fr,auto] items-center gap-5 border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 px-5 py-4 hover:bg-[var(--bg-elevated)]/80"
                 >
                   <div>
-                    <p className="font-mono text-[11px] text-[--text-dim]">{dateStr}</p>
-                    <p className="font-mono text-[14px] text-[--text]">{timeStr}</p>
+                    <p className="font-mono text-[11px] text-[var(--text-dim)]">{dateStr}</p>
+                    <p className="font-mono text-[14px] text-[var(--text)]">{timeStr}</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[13px] text-[--text]">
+                    <p className="text-[13px] text-[var(--text)]">
                       {r.eqCode ? (
                         <>
-                          <span className="font-mono text-[10px] text-[--text-dim]">
+                          <span className="font-mono text-[10px] text-[var(--text-dim)]">
                             {r.eqCode}
                           </span>{' '}
                           <span>{r.eqModel}</span>
                         </>
                       ) : (
-                        <span className="italic text-[--text-muted]">
+                        <span className="italic text-[var(--text-muted)]">
                           مجموعة: {r.groupNameAr ?? '—'}
                         </span>
                       )}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-[--text-muted]">
+                    <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                       {r.projectId ? (
                         <Link
                           href={`/projects/${r.projectId}`}
-                          className="hover:text-[--accent]"
+                          className="hover:text-[var(--accent)]"
                         >
                           <span className="font-mono">{r.projectCode}</span>{' '}
                           {r.projectTitleAr ?? r.projectTitle}
@@ -265,7 +265,7 @@ export default async function EquipmentPage() {
                       {r.reservedByName && (
                         <>
                           {' '}· بإذن{' '}
-                          <span className="text-[--text]">{r.reservedByName}</span>
+                          <span className="text-[var(--text)]">{r.reservedByName}</span>
                         </>
                       )}
                     </p>
@@ -296,11 +296,11 @@ export default async function EquipmentPage() {
             <p className="section-rule" style={{ minWidth: 100 }}>
               الكتالوج
             </p>
-            <h2 className="mt-3 text-xl font-semibold text-[--text]">
+            <h2 className="mt-3 text-xl font-semibold text-[var(--text)]">
               كل المعدات
             </h2>
           </div>
-          <span className="text-[11px] text-[--text-muted]">
+          <span className="text-[11px] text-[var(--text-muted)]">
             {items.length} وحدة · {Object.keys(byCategory).length} فئة
           </span>
         </header>
@@ -314,7 +314,7 @@ export default async function EquipmentPage() {
               action={
                 <Link
                   href="/equipment/new"
-                  className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[--accent] px-4 text-[12px] font-semibold text-black hover:bg-[--accent-hover]"
+                  className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-black hover:bg-[var(--accent-hover)]"
                 >
                   <Plus size={14} />
                   إضافة معدّة
@@ -326,50 +326,50 @@ export default async function EquipmentPage() {
           Object.entries(byCategory).map(([cat, list]) => (
             <div key={cat} className="space-y-3">
               <div className="flex items-baseline justify-between">
-                <h3 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[--text-muted]">
+                <h3 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                   {cat}
                 </h3>
-                <span className="text-[10px] text-[--text-dim]">
+                <span className="text-[10px] text-[var(--text-dim)]">
                   {list.length} وحدة
                 </span>
               </div>
-              <div className="overflow-hidden rounded-lg border border-[--line]">
+              <div className="overflow-hidden rounded-lg border border-[var(--line)]">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[--line] bg-[--bg-elevated]/60">
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                    <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/60">
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Code
                       </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Model
                       </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Serial
                       </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Location
                       </th>
-                      <th className="px-5 py-3 text-end text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                      <th className="px-5 py-3 text-end text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Insurance
                       </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Status
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[--line]">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {list.map((it) => (
                       <tr
                         key={it.id}
-                        className="bg-[--bg-elevated]/30 hover:bg-[--bg-elevated]/80"
+                        className="bg-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/80"
                       >
-                        <td className="px-5 py-3.5 font-mono text-[11px] text-[--text-dim]">
+                        <td className="px-5 py-3.5 font-mono text-[11px] text-[var(--text-dim)]">
                           {it.code}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="text-[13px] text-[--text]">
+                          <span className="text-[13px] text-[var(--text)]">
                             {it.manufacturer && (
-                              <span className="text-[--text-dim]">
+                              <span className="text-[var(--text-dim)]">
                                 {it.manufacturer}{' '}
                               </span>
                             )}
@@ -378,14 +378,14 @@ export default async function EquipmentPage() {
                           {it.requiresCharging && (
                             <Battery
                               size={11}
-                              className="ms-2 inline text-[--text-dim]"
+                              className="ms-2 inline text-[var(--text-dim)]"
                             />
                           )}
                         </td>
-                        <td className="px-5 py-3.5 font-mono text-[11px] text-[--text-dim]">
+                        <td className="px-5 py-3.5 font-mono text-[11px] text-[var(--text-dim)]">
                           {it.serialNumber ?? '—'}
                         </td>
-                        <td className="px-5 py-3.5 text-[12px] text-[--text-muted]">
+                        <td className="px-5 py-3.5 text-[12px] text-[var(--text-muted)]">
                           {it.currentLocation}
                         </td>
                         <td className="px-5 py-3.5 text-end">
@@ -396,7 +396,7 @@ export default async function EquipmentPage() {
                               className="text-[12px]"
                             />
                           ) : (
-                            <span className="text-[11px] text-[--text-dim]">—</span>
+                            <span className="text-[11px] text-[var(--text-dim)]">—</span>
                           )}
                         </td>
                         <td className="px-5 py-3.5">
@@ -414,7 +414,7 @@ export default async function EquipmentPage() {
         )}
       </section>
 
-      <div className="flex items-center justify-between border-t border-[--line] pt-6 text-[10px] uppercase tracking-[0.22em] text-[--text-dim]">
+      <div className="flex items-center justify-between border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
         <span>— Antagna Equipment</span>
         <span>Volt Production · Jeddah</span>
       </div>
@@ -437,20 +437,20 @@ function StatBox({
 }) {
   const numColor =
     tone === 'success'
-      ? 'text-[--success]'
+      ? 'text-[var(--success)]'
       : tone === 'warning'
-        ? 'text-[--warning]'
+        ? 'text-[var(--warning)]'
         : tone === 'danger'
-          ? 'text-[--danger]'
-          : 'text-[--text]';
+          ? 'text-[var(--danger)]'
+          : 'text-[var(--text)]';
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-[--line] bg-[--bg-elevated]/60 p-6 backdrop-blur">
+    <div className="group relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
           {label}
         </span>
-        {icon && <span className="text-[--text-dim]">{icon}</span>}
+        {icon && <span className="text-[var(--text-dim)]">{icon}</span>}
       </div>
       <div className="mt-5">
         <span
@@ -459,7 +459,7 @@ function StatBox({
           <Counter to={value} />
         </span>
       </div>
-      {sub && <p className="mt-2 text-[11px] text-[--text-muted]">{sub}</p>}
+      {sub && <p className="mt-2 text-[11px] text-[var(--text-muted)]">{sub}</p>}
     </div>
   );
 }

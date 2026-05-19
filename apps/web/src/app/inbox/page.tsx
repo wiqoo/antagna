@@ -132,7 +132,7 @@ export default async function InboxPage() {
             {threads.length} thread · {whatsapps.length} WhatsApp · {drafts.length}{' '}
             draft
             {awaitingReview > 0 && (
-              <span className="ms-2 text-[--accent]">
+              <span className="ms-2 text-[var(--accent)]">
                 · {awaitingReview} في انتظار الموافقة
               </span>
             )}
@@ -150,7 +150,7 @@ export default async function InboxPage() {
             title="البريد الإلكتروني"
             subtitle="آخر 30 thread"
             action={
-              <span className="inline-flex items-center gap-1 text-xs text-[--text-dim]">
+              <span className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)]">
                 <Mail size={12} />
                 {threads.length}
               </span>
@@ -164,23 +164,23 @@ export default async function InboxPage() {
             description="Gmail Pub/Sub watch لسه manual setup. لما يتفعّل هتظهر الـ threads هنا."
           />
         ) : (
-          <ul className="divide-y divide-[--line]">
+          <ul className="divide-y divide-[var(--line)]">
             {threads.map((t) => (
               <li
                 key={t.id}
-                className="flex items-start gap-3 px-6 py-3.5 hover:bg-[--surface-hover]"
+                className="flex items-start gap-3 px-6 py-3.5 hover:bg-[var(--surface-hover)]"
               >
                 <Avatar name={t.clientNameAr ?? t.primaryContactName ?? '?'} size="md" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-[--text]">
+                    <p className="font-medium text-[var(--text)]">
                       {t.subject ?? '(بدون عنوان)'}
                     </p>
                     <StatusPill tone={THREAD_STATUS_TONE[t.status] ?? 'neutral'}>
                       {t.status}
                     </StatusPill>
                   </div>
-                  <p className="mt-0.5 text-xs text-[--text-muted]">
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     {t.clientNameAr ?? '—'}
                     {t.primaryContactName && <> · {t.primaryContactName}</>}
                     {t.projectCode && t.projectId && (
@@ -188,7 +188,7 @@ export default async function InboxPage() {
                         {' '}·{' '}
                         <a
                           href={`/projects/${t.projectId}`}
-                          className="font-mono text-[--accent] hover:underline"
+                          className="font-mono text-[var(--accent)] hover:underline"
                         >
                           {t.projectCode}
                         </a>
@@ -198,10 +198,10 @@ export default async function InboxPage() {
                     · {t.messageCount} msg
                   </p>
                   {t.aiSummary && (
-                    <p className="mt-1 text-xs text-[--text]">{t.aiSummary}</p>
+                    <p className="mt-1 text-xs text-[var(--text)]">{t.aiSummary}</p>
                   )}
                 </div>
-                <div className="font-mono text-[10px] text-[--text-dim]">
+                <div className="font-mono text-[10px] text-[var(--text-dim)]">
                   {t.lastMessageAt
                     ? new Date(t.lastMessageAt)
                         .toISOString()
@@ -221,7 +221,7 @@ export default async function InboxPage() {
             <CardHeader
               title="مسودات الإرسال"
               subtitle="في الـ queue"
-              action={<Send size={12} className="text-[--text-dim]" />}
+              action={<Send size={12} className="text-[var(--text-dim)]" />}
             />
           </div>
           {drafts.length === 0 ? (
@@ -231,17 +231,17 @@ export default async function InboxPage() {
               description="هتظهر هنا لما يبدأ الـ AI يبعت مسودات أو يبعتها أحد المستخدمين."
             />
           ) : (
-            <ul className="divide-y divide-[--line]">
+            <ul className="divide-y divide-[var(--line)]">
               {drafts.map((d) => (
                 <li
                   key={d.id}
-                  className="flex items-start gap-3 px-6 py-3 hover:bg-[--surface-hover]"
+                  className="flex items-start gap-3 px-6 py-3 hover:bg-[var(--surface-hover)]"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[--text]">
+                    <p className="text-sm font-medium text-[var(--text)]">
                       {d.subject}
                     </p>
-                    <p className="mt-0.5 text-xs text-[--text-muted]">
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                       to:{' '}
                       <span className="font-mono">
                         {(d.toEmails ?? []).join(', ')}
@@ -266,7 +266,7 @@ export default async function InboxPage() {
             <CardHeader
               title="WhatsApp"
               subtitle="آخر 10 رسائل"
-              action={<MessageCircle size={12} className="text-[--text-dim]" />}
+              action={<MessageCircle size={12} className="text-[var(--text-dim)]" />}
             />
           </div>
           {whatsapps.length === 0 ? (
@@ -276,9 +276,9 @@ export default async function InboxPage() {
               description="هيشتغل عبر Baileys self-hosted (D-023) بعد إعداد الـ VPS."
             />
           ) : (
-            <ul className="divide-y divide-[--line]">
+            <ul className="divide-y divide-[var(--line)]">
               {whatsapps.map((w) => (
-                <li key={w.id} className="px-6 py-3 hover:bg-[--surface-hover]">
+                <li key={w.id} className="px-6 py-3 hover:bg-[var(--surface-hover)]">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <StatusPill
@@ -286,21 +286,21 @@ export default async function InboxPage() {
                       >
                         {w.direction}
                       </StatusPill>
-                      <span className="font-mono text-xs text-[--text-dim]">
+                      <span className="font-mono text-xs text-[var(--text-dim)]">
                         {w.fromE164}
                       </span>
                       {(w.matchedContactName || w.matchedProfileName) && (
-                        <span className="text-xs text-[--text-muted]">
+                        <span className="text-xs text-[var(--text-muted)]">
                           · {w.matchedContactName ?? w.matchedProfileName}
                         </span>
                       )}
                       {w.projectCode && (
-                        <span className="font-mono text-xs text-[--accent]">
+                        <span className="font-mono text-xs text-[var(--accent)]">
                           {w.projectCode}
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-[10px] text-[--text-dim]">
+                    <span className="font-mono text-[10px] text-[var(--text-dim)]">
                       {new Date(w.receivedAt)
                         .toISOString()
                         .slice(0, 16)
@@ -308,7 +308,7 @@ export default async function InboxPage() {
                     </span>
                   </div>
                   {w.bodyText && (
-                    <p className="mt-1 truncate text-sm text-[--text]">
+                    <p className="mt-1 truncate text-sm text-[var(--text)]">
                       {w.bodyText}
                     </p>
                   )}

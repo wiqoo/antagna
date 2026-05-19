@@ -67,14 +67,14 @@ function SidebarContent({
       <div className="px-5 pb-6 pt-5">
         <a href="/dashboard" className="block">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-[--text]">
+            <span className="text-2xl font-bold tracking-tight text-[var(--text)]">
               Antagna
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-[--accent]">
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
               v2
             </span>
           </div>
-          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[--text-dim]">
+          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-dim)]">
             Volt Production · Jeddah
           </p>
         </a>
@@ -84,7 +84,7 @@ function SidebarContent({
       <nav className="flex-1 overflow-y-auto px-3 pb-6">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mb-7">
-            <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+            <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
               — {group.label}
             </p>
             <ul className="space-y-px">
@@ -93,12 +93,12 @@ function SidebarContent({
                 const itemCls =
                   'group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium ' +
                   (active
-                    ? 'bg-[--surface] text-[--text]'
-                    : 'text-[--text-muted] hover:bg-[--surface]/50 hover:text-[--text]');
+                    ? 'bg-[var(--surface)] text-[var(--text)]'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]');
                 const iconCls =
                   active
-                    ? 'text-[--accent]'
-                    : 'text-[--text-dim] group-hover:text-[--text-muted]';
+                    ? 'text-[var(--accent)]'
+                    : 'text-[var(--text-dim)] group-hover:text-[var(--text-muted)]';
 
                 if (soon) {
                   return (
@@ -109,7 +109,7 @@ function SidebarContent({
                       >
                         <Icon size={15} strokeWidth={1.75} className={iconCls} />
                         <span>{label}</span>
-                        <span className="ms-auto text-[9px] uppercase tracking-wider text-[--text-dim]">
+                        <span className="ms-auto text-[9px] uppercase tracking-wider text-[var(--text-dim)]">
                           soon
                         </span>
                       </span>
@@ -122,7 +122,7 @@ function SidebarContent({
                       <Icon size={15} strokeWidth={1.75} className={iconCls} />
                       <span>{label}</span>
                       {active && (
-                        <span className="ms-auto h-1 w-1 rounded-full bg-[--accent]" />
+                        <span className="ms-auto h-1 w-1 rounded-full bg-[var(--accent)]" />
                       )}
                     </a>
                   </li>
@@ -134,17 +134,17 @@ function SidebarContent({
       </nav>
 
       {/* User */}
-      <div className="border-t border-[--line] p-3">
-        <div className="group flex items-center gap-3 rounded-md p-2 hover:bg-[--surface]/40">
+      <div className="border-t border-[var(--line)] p-3">
+        <div className="group flex items-center gap-3 rounded-md p-2 hover:bg-[var(--surface)]/40">
           <Avatar
             name={user?.displayName ?? user?.email ?? '?'}
             size="md"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-medium text-[--text]">
+            <p className="truncate text-[12px] font-medium text-[var(--text)]">
               {user?.displayName ?? 'Antagna user'}
             </p>
-            <p className="truncate text-[10px] text-[--text-dim]">
+            <p className="truncate text-[10px] text-[var(--text-dim)]">
               {user?.email}
             </p>
           </div>
@@ -152,7 +152,7 @@ function SidebarContent({
             <button
               type="submit"
               title="تسجيل خروج"
-              className="grid h-7 w-7 place-items-center rounded-md text-[--text-dim] hover:bg-[--surface] hover:text-[--danger]"
+              className="grid h-7 w-7 place-items-center rounded-md text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--danger)]"
             >
               <LogOut size={13} />
             </button>
@@ -181,10 +181,10 @@ export function AppShell({
   commandPalette?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-[--bg] text-[--text]">
+    <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)]">
       {/* Sidebar — 232px, right side (RTL) */}
       <aside
-        className="hidden shrink-0 border-l border-[--line] bg-[--bg-elevated]/40 backdrop-blur-2xl md:block"
+        className="hidden shrink-0 border-l border-[var(--line)] bg-[var(--bg-elevated)]/40 backdrop-blur-2xl md:block"
         style={{ width: 232 }}
       >
         <div className="sticky top-0">
@@ -194,7 +194,7 @@ export function AppShell({
 
       <div className="flex flex-1 flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-[--line] bg-[--bg]/80 px-4 backdrop-blur-2xl md:px-8">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--bg)]/80 px-4 backdrop-blur-2xl md:px-8">
           <div className="flex items-center gap-3 md:hidden">
             <MobileNav>
               <SidebarContent user={user} activePath={activePath} />
@@ -203,7 +203,7 @@ export function AppShell({
               <span className="text-base font-bold tracking-tight">
                 Antagna
               </span>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[--accent]">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                 v2
               </span>
             </a>

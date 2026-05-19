@@ -26,11 +26,11 @@ export function StatTile({
     <>
       {/* Editorial label row */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[--text-dim]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
           {label}
         </span>
         {icon && (
-          <span className="text-[--text-dim] group-hover:text-[--accent]">
+          <span className="text-[var(--text-dim)] group-hover:text-[var(--accent)]">
             {icon}
           </span>
         )}
@@ -41,7 +41,7 @@ export function StatTile({
         <span
           className={clsx(
             'text-[44px] font-bold leading-none tracking-tight tabular',
-            tone === 'accent' ? 'text-[--accent]' : 'text-[--text]',
+            tone === 'accent' ? 'text-[var(--accent)]' : 'text-[var(--text)]',
           )}
         >
           {animateTo != null ? <Counter to={animateTo} /> : value}
@@ -50,21 +50,21 @@ export function StatTile({
 
       {/* Sub label */}
       {sub && (
-        <p className="mt-2 text-[11px] text-[--text-muted]">{sub}</p>
+        <p className="mt-2 text-[11px] text-[var(--text-muted)]">{sub}</p>
       )}
 
       {href && (
         <ArrowUpRight
           size={14}
-          className="absolute bottom-5 start-5 text-[--text-dim] opacity-0 transition-opacity group-hover:opacity-100 group-hover:text-[--accent] rtl:rotate-180"
+          className="absolute bottom-5 start-5 text-[var(--text-dim)] opacity-0 transition-opacity group-hover:opacity-100 group-hover:text-[var(--accent)] rtl:rotate-180"
         />
       )}
     </>
   );
 
   const cls = clsx(
-    'group relative overflow-hidden rounded-lg border border-[--line] bg-[--bg-elevated]/60 p-6 backdrop-blur',
-    href && 'magnet cursor-pointer hover:border-[--line-strong]',
+    'group relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur',
+    href && 'magnet cursor-pointer hover:border-[var(--line-strong)]',
   );
 
   if (href) {

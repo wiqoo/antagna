@@ -4,21 +4,21 @@ import type { ReactNode } from 'react';
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'accent';
 
 const DOT: Record<Tone, string> = {
-  neutral: 'bg-[--text-dim]',
-  success: 'bg-[--success]',
-  warning: 'bg-[--warning]',
-  danger: 'bg-[--danger]',
-  info: 'bg-[--info]',
-  accent: 'bg-[--accent]',
+  neutral: 'bg-[var(--text-dim)]',
+  success: 'bg-[var(--success)]',
+  warning: 'bg-[var(--warning)]',
+  danger: 'bg-[var(--danger)]',
+  info: 'bg-[var(--info)]',
+  accent: 'bg-[var(--accent)]',
 };
 
 const TXT: Record<Tone, string> = {
-  neutral: 'text-[--text-muted]',
-  success: 'text-[--success]',
-  warning: 'text-[--warning]',
-  danger: 'text-[--danger]',
-  info: 'text-[--info]',
-  accent: 'text-[--accent]',
+  neutral: 'text-[var(--text-muted)]',
+  success: 'text-[var(--success)]',
+  warning: 'text-[var(--warning)]',
+  danger: 'text-[var(--danger)]',
+  info: 'text-[var(--info)]',
+  accent: 'text-[var(--accent)]',
 };
 
 export function StatusPill({

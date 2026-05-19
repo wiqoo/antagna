@@ -56,7 +56,7 @@ export default async function EditProjectPage({
       <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href={`/projects/${id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-[--text-muted] hover:text-[--accent]"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--accent)]"
         >
           <ArrowLeft size={14} className="rtl:rotate-180" />
           {project.code} · {project.titleAr ?? project.title}
@@ -238,13 +238,13 @@ export default async function EditProjectPage({
               </Field>
             </Section>
 
-            <div className="flex items-center gap-3 border-t border-[--line] pt-6">
+            <div className="flex items-center gap-3 border-t border-[var(--line)] pt-6">
               <Button variant="primary" size="lg" icon={<Save size={16} />}>
                 حفظ التغييرات
               </Button>
               <Link
                 href={`/projects/${id}`}
-                className="inline-flex h-11 items-center rounded-xl px-4 text-sm text-[--text-muted] hover:bg-[--surface]/60 hover:text-[--text]"
+                className="inline-flex h-11 items-center rounded-xl px-4 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
               >
                 إلغاء
               </Link>
@@ -274,7 +274,7 @@ export default async function EditProjectPage({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
         {title}
       </h3>
       {children}
@@ -293,9 +293,9 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-sm font-medium text-[--text]">
+      <span className="block text-sm font-medium text-[var(--text)]">
         {label}
-        {required && <span className="text-[--accent]"> *</span>}
+        {required && <span className="text-[var(--accent)]"> *</span>}
       </span>
       {children}
     </label>

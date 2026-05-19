@@ -91,10 +91,10 @@ export default async function KpisPage() {
         Object.entries(byScope).map(([scope, items]) => (
           <section key={scope} className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[--text]">
+              <h2 className="text-sm font-semibold text-[var(--text)]">
                 {SCOPE_LABEL[scope] ?? scope}
               </h2>
-              <span className="text-xs text-[--text-dim]">{items.length} KPI</span>
+              <span className="text-xs text-[var(--text-dim)]">{items.length} KPI</span>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {items.map((k) => (
@@ -138,27 +138,27 @@ function KpiCard({ k }: { k: KpiRow }) {
     k.unit === 'sar' ? 'ر.س' : k.unit === 'days' ? 'يوم' : k.unit === 'pct' ? '' : '';
 
   return (
-    <Card className="!p-5 relative overflow-hidden group hover:border-[--line-strong] hover:-translate-y-0.5">
-      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-[--accent]/[0.03] to-transparent" />
+    <Card className="!p-5 relative overflow-hidden group hover:border-[var(--line-strong)] hover:-translate-y-0.5">
+      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-[var(--accent)]/[0.03] to-transparent" />
       <div className="relative">
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">
-            <h3 className="text-sm font-medium text-[--text]">{k.nameAr}</h3>
+            <h3 className="text-sm font-medium text-[var(--text)]">{k.nameAr}</h3>
             {k.nameEn && (
-              <p className="text-xs text-[--text-dim]">{k.nameEn}</p>
+              <p className="text-xs text-[var(--text-dim)]">{k.nameEn}</p>
             )}
           </div>
           <StatusPill tone={tone}>{k.refreshFrequency}</StatusPill>
         </div>
         <div className="mt-5 flex items-baseline gap-2">
-          <span className="font-mono text-4xl font-semibold tracking-tight text-[--text]">
+          <span className="font-mono text-4xl font-semibold tracking-tight text-[var(--text)]">
             {formatted}
           </span>
           {unitLabel && (
-            <span className="text-sm text-[--text-dim]">{unitLabel}</span>
+            <span className="text-sm text-[var(--text-dim)]">{unitLabel}</span>
           )}
         </div>
-        <div className="mt-3 flex items-center justify-between text-xs text-[--text-dim]">
+        <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-dim)]">
           <span>{k.scope}</span>
           {k.latestComputedAt ? (
             <span className="font-mono">

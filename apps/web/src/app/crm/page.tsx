@@ -115,7 +115,7 @@ export default async function CrmPage() {
         action={
           <Link
             href="/clients/new"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover] active:scale-[0.98]"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)] active:scale-[0.98]"
           >
             <Plus size={16} />
             عميل جديد
@@ -141,7 +141,7 @@ export default async function CrmPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
                   <th className="px-5 py-3 text-start">code</th>
                   <th className="px-5 py-3 text-start">من</th>
                   <th className="px-5 py-3 text-start">المصدر</th>
@@ -152,35 +152,35 @@ export default async function CrmPage() {
                   <th className="px-5 py-3 text-start">العمر</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[--line]">
+              <tbody className="divide-y divide-[var(--line)]">
                 {leadRows.map((l) => {
                   const ageDays = Math.floor(
                     (Date.now() - new Date(l.receivedAt).getTime()) / 86_400_000,
                   );
                   return (
-                    <tr key={l.id} className="hover:bg-[--surface-hover]">
-                      <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                    <tr key={l.id} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-dim)]">
                         {l.code}
                       </td>
-                      <td className="px-5 py-3.5 text-[--text]">
+                      <td className="px-5 py-3.5 text-[var(--text)]">
                         {l.clientNameAr ??
                           l.unmatchedFromName ??
                           l.unmatchedFromEmail ??
                           '—'}
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-[--text-muted]">
+                      <td className="px-5 py-3.5 text-xs text-[var(--text-muted)]">
                         {l.source ?? '—'}
                       </td>
                       <td className="px-5 py-3.5">
                         {l.temperatureScore != null ? (
                           <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[--surface-hover]">
+                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--surface-hover)]">
                               <div
                                 className="h-full bg-gradient-to-r from-blue-400 via-orange-400 to-red-500"
                                 style={{ width: `${l.temperatureScore}%` }}
                               />
                             </div>
-                            <span className="font-mono text-xs text-[--text-muted]">
+                            <span className="font-mono text-xs text-[var(--text-muted)]">
                               {l.temperatureScore}
                             </span>
                           </div>
@@ -188,7 +188,7 @@ export default async function CrmPage() {
                           '—'
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-end font-mono text-xs text-[--text-muted]">
+                      <td className="px-5 py-3.5 text-end font-mono text-xs text-[var(--text-muted)]">
                         {l.estimatedValue
                           ? `${Number(l.estimatedValue).toLocaleString('en-US')} ر.س`
                           : '—'}
@@ -200,7 +200,7 @@ export default async function CrmPage() {
                             <span className="text-xs">{l.assignedName}</span>
                           </div>
                         ) : (
-                          <span className="text-xs text-[--text-dim]">—</span>
+                          <span className="text-xs text-[var(--text-dim)]">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
@@ -208,7 +208,7 @@ export default async function CrmPage() {
                           {l.status}
                         </StatusPill>
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                      <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-dim)]">
                         {ageDays}d
                       </td>
                     </tr>
@@ -227,7 +227,7 @@ export default async function CrmPage() {
             title="العملاء"
             subtitle="مرتبين حسب آخر مشروع"
             action={
-              <span className="inline-flex items-center gap-1 text-xs text-[--text-dim]">
+              <span className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)]">
                 <Building2 size={12} />
                 {clientRows.length}
               </span>
@@ -244,7 +244,7 @@ export default async function CrmPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
                   <th className="px-5 py-3 text-start">code</th>
                   <th className="px-5 py-3 text-start">العميل</th>
                   <th className="px-5 py-3 text-start">النوع</th>
@@ -255,7 +255,7 @@ export default async function CrmPage() {
                   <th className="px-5 py-3 text-start">آخر مشروع</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[--line]">
+              <tbody className="divide-y divide-[var(--line)]">
                 {clientRows.map((c) => {
                   const lastProj = c.lastProjectAt
                     ? new Date(c.lastProjectAt).toISOString().slice(0, 10)
@@ -263,12 +263,12 @@ export default async function CrmPage() {
                   return (
                     <tr
                       key={c.id}
-                      className="cursor-pointer hover:bg-[--surface-hover]"
+                      className="cursor-pointer hover:bg-[var(--surface-hover)]"
                     >
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/clients/${c.id}`}
-                          className="font-mono text-xs text-[--text-dim] hover:text-[--accent]"
+                          className="font-mono text-xs text-[var(--text-dim)] hover:text-[var(--accent)]"
                         >
                           {c.code}
                         </Link>
@@ -276,15 +276,15 @@ export default async function CrmPage() {
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/clients/${c.id}`}
-                          className="flex items-center gap-3 hover:text-[--accent]"
+                          className="flex items-center gap-3 hover:text-[var(--accent)]"
                         >
                           <Avatar name={c.nameAr} size="sm" />
                           <div>
-                            <div className="font-medium text-[--text]">
+                            <div className="font-medium text-[var(--text)]">
                               {c.nameAr}
                             </div>
                             {c.nameEn && (
-                              <div className="text-xs text-[--text-dim]">
+                              <div className="text-xs text-[var(--text-dim)]">
                                 {c.nameEn}
                               </div>
                             )}
@@ -305,7 +305,7 @@ export default async function CrmPage() {
                             className="text-xs"
                           />
                         ) : (
-                          <span className="text-xs text-[--text-dim]">—</span>
+                          <span className="text-xs text-[var(--text-dim)]">—</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5 font-mono text-xs">
@@ -327,10 +327,10 @@ export default async function CrmPage() {
                             {c.trustScore}
                           </StatusPill>
                         ) : (
-                          <span className="text-xs text-[--text-dim]">—</span>
+                          <span className="text-xs text-[var(--text-dim)]">—</span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                      <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-dim)]">
                         {lastProj}
                       </td>
                     </tr>

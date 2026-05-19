@@ -138,7 +138,7 @@ export default async function TasksPage({
         action={
           <Link
             href={showAll ? '/tasks' : '/tasks?show=all'}
-            className="inline-flex h-9 items-center rounded-xl border border-[--line] bg-[--surface] px-3.5 text-sm text-[--text-muted] hover:border-[--accent] hover:text-[--text]"
+            className="inline-flex h-9 items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3.5 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
           >
             {showAll ? 'المفتوحة فقط' : 'كل المهام'}
           </Link>
@@ -157,17 +157,17 @@ export default async function TasksPage({
             name="title"
             required
             placeholder="ماذا تريد إنجازه اليوم؟"
-            className="h-10 min-w-[240px] flex-1 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm text-[--text] placeholder:text-[--text-dim] focus:border-[--accent] focus:outline-none"
+            className="h-10 min-w-[240px] flex-1 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
           />
           <input
             type="date"
             name="dueAt"
-            className="h-10 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm font-mono"
+            className="h-10 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm font-mono"
           />
           <select
             name="priority"
             defaultValue="normal"
-            className="h-10 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+            className="h-10 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
           >
             <option value="low">low</option>
             <option value="normal">normal</option>
@@ -195,18 +195,18 @@ export default async function TasksPage({
             description="ممتاز — لا توجد مهام مشاريع مفتوحة."
           />
         ) : (
-          <ul className="divide-y divide-[--line]">
+          <ul className="divide-y divide-[var(--line)]">
             {projTasks.map((t) => (
               <li
                 key={t.id}
-                className="flex items-center gap-3 px-6 py-3 hover:bg-[--surface-hover]"
+                className="flex items-center gap-3 px-6 py-3 hover:bg-[var(--surface-hover)]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[--text]">{t.title}</p>
-                  <p className="mt-0.5 text-xs text-[--text-muted]">
+                  <p className="text-sm font-medium text-[var(--text)]">{t.title}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                     <Link
                       href={`/projects/${t.projectId}`}
-                      className="font-mono text-[--text-dim] hover:text-[--accent]"
+                      className="font-mono text-[var(--text-dim)] hover:text-[var(--accent)]"
                     >
                       {t.projectCode}
                     </Link>{' '}
@@ -246,16 +246,16 @@ export default async function TasksPage({
             description="ضيف مهمة من الفورم اللي فوق."
           />
         ) : (
-          <ul className="divide-y divide-[--line]">
+          <ul className="divide-y divide-[var(--line)]">
             {dailies.map((t) => (
               <li
                 key={t.id}
-                className="flex items-center gap-3 px-6 py-3 hover:bg-[--surface-hover]"
+                className="flex items-center gap-3 px-6 py-3 hover:bg-[var(--surface-hover)]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[--text]">{t.title}</p>
+                  <p className="text-sm font-medium text-[var(--text)]">{t.title}</p>
                   {t.dueAt && (
-                    <p className="mt-0.5 text-xs text-[--text-muted]">
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                       due{' '}
                       <span className="font-mono">
                         {new Date(t.dueAt).toISOString().slice(0, 10)}
@@ -309,7 +309,7 @@ function StatusToggle({
               name="next"
               value="in_progress"
               title="ابدأ"
-              className="grid h-7 w-7 place-items-center rounded-lg border border-[--line] bg-[--surface] text-[--text-muted] hover:border-[--accent] hover:text-[--accent]"
+              className="grid h-7 w-7 place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
             >
               <Play size={12} />
             </button>
@@ -319,7 +319,7 @@ function StatusToggle({
             name="next"
             value="completed"
             title="إنجاز"
-            className="grid h-7 w-7 place-items-center rounded-lg border border-[--line] bg-[--surface] text-[--text-muted] hover:border-emerald-500 hover:text-emerald-400"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-emerald-500 hover:text-emerald-400"
           >
             <CheckCircle2 size={12} />
           </button>

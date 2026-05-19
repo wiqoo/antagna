@@ -110,7 +110,7 @@ export default async function AdminPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
                   <th className="px-5 py-3 text-start">الاسم</th>
                   <th className="px-5 py-3 text-start">البريد</th>
                   <th className="px-5 py-3 text-start">الدور</th>
@@ -118,16 +118,16 @@ export default async function AdminPage() {
                   <th className="px-5 py-3 text-start">تاريخ الإنشاء</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[--line]">
+              <tbody className="divide-y divide-[var(--line)]">
                 {people.map((p) => (
-                  <tr key={p.id} className="hover:bg-[--surface-hover]">
+                  <tr key={p.id} className="hover:bg-[var(--surface-hover)]">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <Avatar name={p.displayName} size="sm" />
-                        <span className="text-[--text]">{p.displayName}</span>
+                        <span className="text-[var(--text)]">{p.displayName}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
+                    <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-muted)]">
                       {p.email}
                     </td>
                     <td className="px-5 py-3.5">
@@ -140,7 +140,7 @@ export default async function AdminPage() {
                         {p.status}
                       </StatusPill>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                    <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-dim)]">
                       {new Date(p.createdAt).toISOString().slice(0, 10)}
                     </td>
                   </tr>
@@ -166,7 +166,7 @@ export default async function AdminPage() {
             description="ضيف قواعد من السكيمة لتفعيل التنبيهات."
           />
         ) : (
-          <ul className="divide-y divide-[--line]">
+          <ul className="divide-y divide-[var(--line)]">
             {rules.map((r) => (
               <li
                 key={r.id}
@@ -174,7 +174,7 @@ export default async function AdminPage() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-[--text-dim]">
+                    <span className="font-mono text-xs text-[var(--text-dim)]">
                       {r.key}
                     </span>
                     <StatusPill
@@ -184,14 +184,14 @@ export default async function AdminPage() {
                       {r.active ? 'active' : 'paused'}
                     </StatusPill>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-[--text]">
+                  <p className="mt-1 text-sm font-medium text-[var(--text)]">
                     {r.nameAr}
                   </p>
                   {r.description && (
-                    <p className="text-xs text-[--text-muted]">{r.description}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{r.description}</p>
                   )}
                 </div>
-                <div className="text-end text-xs text-[--text-dim]">
+                <div className="text-end text-xs text-[var(--text-dim)]">
                   <p>{r.triggerType}</p>
                   <p className="font-mono">cooldown {r.cooldownMinutes}m</p>
                 </div>
@@ -219,7 +219,7 @@ export default async function AdminPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
                   <th className="px-5 py-3 text-start">key</th>
                   <th className="px-5 py-3 text-start">الاسم</th>
                   <th className="px-5 py-3 text-start">scope</th>
@@ -227,20 +227,20 @@ export default async function AdminPage() {
                   <th className="px-5 py-3 text-start">refresh</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[--line]">
+              <tbody className="divide-y divide-[var(--line)]">
                 {kpis.map((k) => (
-                  <tr key={k.key} className="hover:bg-[--surface-hover]">
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
+                  <tr key={k.key} className="hover:bg-[var(--surface-hover)]">
+                    <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-dim)]">
                       {k.key}
                     </td>
-                    <td className="px-5 py-3.5 text-[--text]">{k.nameAr}</td>
+                    <td className="px-5 py-3.5 text-[var(--text)]">{k.nameAr}</td>
                     <td className="px-5 py-3.5">
                       <StatusPill tone="info">{k.scope}</StatusPill>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[--text-muted]">
+                    <td className="px-5 py-3.5 text-xs text-[var(--text-muted)]">
                       {k.unit}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[--text-muted]">
+                    <td className="px-5 py-3.5 text-xs text-[var(--text-muted)]">
                       {k.refreshFrequency}
                     </td>
                   </tr>
@@ -253,25 +253,25 @@ export default async function AdminPage() {
 
       <Card>
         <div className="flex items-center gap-3">
-          <Shield className="text-[--accent]" size={20} />
+          <Shield className="text-[var(--accent)]" size={20} />
           <div className="text-sm">
-            <p className="text-[--text]">
+            <p className="text-[var(--text)]">
               صلاحيات أعمق (إضافة users، تعديل alert rules، تعديل KPI defs) لسه read-only.
             </p>
-            <p className="mt-1 text-xs text-[--text-muted]">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               هتُضاف لما تحدد سياسة الـ system_admin role في Pillar 3 الـ UI.
             </p>
           </div>
         </div>
       </Card>
 
-      <Card className="border-[--accent]/30 bg-[--accent]/[0.03]">
+      <Card className="border-[var(--accent)]/30 bg-[var(--accent)]/[0.03]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-[--accent]" size={20} />
+            <Sparkles className="text-[var(--accent)]" size={20} />
             <div>
-              <p className="text-sm font-medium text-[--text]">Demo data</p>
-              <p className="text-xs text-[--text-muted]">
+              <p className="text-sm font-medium text-[var(--text)]">Demo data</p>
+              <p className="text-xs text-[var(--text-muted)]">
                 يضيف 5 عملاء + 9 معدات + 5 مشاريع + 3 leads لاختبار الـ UI.
                 Idempotent — آمن تشغّله أكتر من مرة.
               </p>
@@ -280,7 +280,7 @@ export default async function AdminPage() {
           <form action={seedDevData}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover]"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
             >
               <Sparkles size={14} />
               تشغيل
@@ -309,19 +309,19 @@ function AdminStat({
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-[--text-dim]">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-dim)]">
             {label}
           </p>
-          <p className="text-2xl font-semibold tracking-tight text-[--text]">
+          <p className="text-2xl font-semibold tracking-tight text-[var(--text)]">
             {value}
           </p>
           {activeCount != null && (
-            <p className="text-xs text-[--text-muted]">
+            <p className="text-xs text-[var(--text-muted)]">
               {activeCount} {activeLabel}
             </p>
           )}
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[--surface-hover] text-[--text-muted]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface-hover)] text-[var(--text-muted)]">
           {icon}
         </div>
       </div>

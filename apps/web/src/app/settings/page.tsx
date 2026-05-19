@@ -64,9 +64,9 @@ export default async function SettingsPage() {
                   type="email"
                   disabled
                   value={profile?.email ?? user.email ?? ''}
-                  className="form-input bg-[--surface] !text-[--text-muted]"
+                  className="form-input bg-[var(--surface)] !text-[var(--text-muted)]"
                 />
-                <span className="text-xs text-[--text-dim]">
+                <span className="text-xs text-[var(--text-dim)]">
                   يُغيَّر من Supabase Auth فقط.
                 </span>
               </Field>
@@ -188,7 +188,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-sm font-medium text-[--text]">{label}</span>
+      <span className="block text-sm font-medium text-[var(--text)]">{label}</span>
       {children}
     </label>
   );
@@ -206,16 +206,16 @@ function Toggle({
   defaultChecked: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-[--line] bg-[--bg-elevated] p-3 hover:bg-[--surface-hover]">
+    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] p-3 hover:bg-[var(--surface-hover)]">
       <div>
-        <p className="text-sm font-medium text-[--text]">{label}</p>
-        {hint && <p className="text-xs text-[--text-muted]">{hint}</p>}
+        <p className="text-sm font-medium text-[var(--text)]">{label}</p>
+        {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
       </div>
       <input
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
-        className="mt-1 h-4 w-4 accent-[--accent]"
+        className="mt-1 h-4 w-4 accent-[var(--accent)]"
       />
     </label>
   );

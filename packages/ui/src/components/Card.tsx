@@ -17,9 +17,9 @@ export function Card({
   return (
     <As
       className={clsx(
-        'rounded-lg border border-[--line] bg-[--bg-elevated]/60 backdrop-blur',
+        'rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 backdrop-blur',
         padded && 'p-6',
-        hover && 'magnet cursor-pointer hover:border-[--line-strong] hover:bg-[--bg-elevated]',
+        hover && 'magnet cursor-pointer hover:border-[var(--line-strong)] hover:bg-[var(--bg-elevated)]',
         className,
       )}
     >
@@ -50,9 +50,9 @@ export function CardHeader({
   return (
     <div className={clsx('mb-5 flex items-start justify-between gap-4', className)}>
       <div className="space-y-1">
-        <h2 className={clsx(titleCls, 'text-[--text]')}>{title}</h2>
+        <h2 className={clsx(titleCls, 'text-[var(--text)]')}>{title}</h2>
         {subtitle && (
-          <p className="text-[12px] leading-relaxed text-[--text-muted]">
+          <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
             {subtitle}
           </p>
         )}

@@ -20,7 +20,7 @@ const TYPE_LABEL: Record<CommandResult['type'], string> = {
 };
 
 const TYPE_COLOR: Record<CommandResult['type'], string> = {
-  project: 'text-[--accent]',
+  project: 'text-[var(--accent)]',
   client: 'text-blue-400',
   profile: 'text-purple-400',
   equipment: 'text-emerald-400',
@@ -135,11 +135,11 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-xl border border-[--line] bg-[--surface] px-3 py-1.5 text-xs text-[--text-dim] hover:border-[--line-strong] hover:text-[--text-muted] md:flex"
+        className="hidden items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-dim)] hover:border-[var(--line-strong)] hover:text-[var(--text-muted)] md:flex"
       >
         <Search size={12} />
         <span>بحث…</span>
-        <span className="mx-2 h-3 w-px bg-[--line]" />
+        <span className="mx-2 h-3 w-px bg-[var(--line)]" />
         <Kbd>⌘</Kbd>
         <Kbd>K</Kbd>
       </button>
@@ -150,25 +150,25 @@ export function CommandPalette() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-xl overflow-hidden rounded-2xl border border-[--line] bg-[--bg-elevated]/95 shadow-2xl backdrop-blur-2xl"
+            className="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)]/95 shadow-2xl backdrop-blur-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 border-b border-[--line] px-4">
+            <div className="flex items-center gap-3 border-b border-[var(--line)] px-4">
               {loading ? (
-                <Loader2 size={16} className="animate-spin text-[--text-dim]" />
+                <Loader2 size={16} className="animate-spin text-[var(--text-dim)]" />
               ) : (
-                <Search size={16} className="text-[--text-dim]" />
+                <Search size={16} className="text-[var(--text-dim)]" />
               )}
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="ابحث عن مشروع، عميل، شخص، معدة…"
-                className="flex-1 bg-transparent py-4 text-sm text-[--text] placeholder:text-[--text-dim] focus:outline-none"
+                className="flex-1 bg-transparent py-4 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none"
               />
               <button
                 onClick={() => setOpen(false)}
-                className="grid h-8 w-8 place-items-center rounded-lg text-[--text-dim] hover:bg-[--surface] hover:text-[--text]"
+                className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
               >
                 <X size={14} />
               </button>
@@ -177,18 +177,18 @@ export function CommandPalette() {
             <div className="max-h-[60vh] overflow-y-auto p-2">
               {shown.length === 0 ? (
                 query.trim() ? (
-                  <div className="px-4 py-12 text-center text-sm text-[--text-dim]">
+                  <div className="px-4 py-12 text-center text-sm text-[var(--text-dim)]">
                     {loading ? 'جاري البحث…' : 'لا نتائج'}
                   </div>
                 ) : (
-                  <div className="px-4 py-12 text-center text-sm text-[--text-dim]">
+                  <div className="px-4 py-12 text-center text-sm text-[var(--text-dim)]">
                     ابدأ الكتابة للبحث
                   </div>
                 )
               ) : (
                 <>
                   {!query.trim() && (
-                    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-[--text-dim]">
+                    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
                       اختصارات
                     </p>
                   )}
@@ -201,8 +201,8 @@ export function CommandPalette() {
                           className={
                             'flex items-center gap-3 rounded-xl px-3 py-2.5 ' +
                             (i === activeIdx
-                              ? 'bg-[--surface]'
-                              : 'hover:bg-[--surface]/60')
+                              ? 'bg-[var(--surface)]'
+                              : 'hover:bg-[var(--surface)]/60')
                           }
                         >
                           <span
@@ -214,11 +214,11 @@ export function CommandPalette() {
                             {TYPE_LABEL[r.type]}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm text-[--text]">
+                            <p className="truncate text-sm text-[var(--text)]">
                               {r.label}
                             </p>
                             {r.sublabel && (
-                              <p className="truncate text-xs text-[--text-muted]">
+                              <p className="truncate text-xs text-[var(--text-muted)]">
                                 {r.sublabel}
                               </p>
                             )}
@@ -226,7 +226,7 @@ export function CommandPalette() {
                           {i === activeIdx && (
                             <ArrowRight
                               size={14}
-                              className="text-[--accent] rtl:rotate-180"
+                              className="text-[var(--accent)] rtl:rotate-180"
                             />
                           )}
                         </a>
@@ -237,7 +237,7 @@ export function CommandPalette() {
               )}
             </div>
 
-            <div className="flex items-center justify-between border-t border-[--line] bg-[--bg]/60 px-4 py-2 text-[10px] text-[--text-dim]">
+            <div className="flex items-center justify-between border-t border-[var(--line)] bg-[var(--bg)]/60 px-4 py-2 text-[10px] text-[var(--text-dim)]">
               <div className="flex items-center gap-2">
                 <Kbd>↑</Kbd>
                 <Kbd>↓</Kbd>

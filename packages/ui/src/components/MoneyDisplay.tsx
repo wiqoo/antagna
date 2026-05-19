@@ -8,11 +8,11 @@ export function MoneyDisplay({
   className?: string;
 }) {
   if (amount == null || amount === '') {
-    return <span className={`text-[--text-dim] ${className ?? ''}`}>—</span>;
+    return <span className={`text-[var(--text-dim)] ${className ?? ''}`}>—</span>;
   }
   const n = typeof amount === 'string' ? Number(amount) : amount;
   if (Number.isNaN(n)) {
-    return <span className={`text-[--text-dim] ${className ?? ''}`}>—</span>;
+    return <span className={`text-[var(--text-dim)] ${className ?? ''}`}>—</span>;
   }
   const hasFraction = Math.abs(n) % 1 > 0;
   const formatted = n.toLocaleString('en-US', {
@@ -21,10 +21,10 @@ export function MoneyDisplay({
   });
   return (
     <span className={`tabular ${className ?? ''}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[--text-dim]">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
         {currency}
       </span>{' '}
-      <span className="text-[--text]">{formatted}</span>
+      <span className="text-[var(--text)]">{formatted}</span>
     </span>
   );
 }

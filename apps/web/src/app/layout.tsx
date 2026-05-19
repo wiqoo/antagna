@@ -38,7 +38,7 @@ export default function RootLayout({
       dir="rtl"
       className={`${inter.variable} ${plexArabic.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[--bg] text-[--text]">{children}</body>
+      <body className="min-h-full bg-[var(--bg)] text-[var(--text)]">{children}</body>
     </html>
   );
 }

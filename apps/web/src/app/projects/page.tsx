@@ -119,7 +119,7 @@ export default async function ProjectsListPage({
         action={
           <Link
             href="/projects/new"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover] active:scale-[0.98] shadow-[0_8px_16px_-8px_rgba(245,214,10,0.5)]"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)] active:scale-[0.98] shadow-[0_8px_16px_-8px_rgba(245,214,10,0.5)]"
           >
             <Plus size={16} />
             مشروع جديد
@@ -131,32 +131,32 @@ export default async function ProjectsListPage({
       <Card padded={false} className="overflow-hidden">
         <form className="flex flex-wrap items-end gap-3 p-4">
           <label className="flex-1 min-w-[200px] space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
               بحث
             </span>
             <div className="relative">
               <Search
                 size={14}
-                className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-[--text-dim]"
+                className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]"
               />
               <input
                 type="text"
                 name="q"
                 defaultValue={sp.q ?? ''}
                 placeholder="code، title، أو العميل…"
-                className="h-9 w-full rounded-xl border border-[--line] bg-[--bg-elevated] px-3 pe-9 text-sm text-[--text] placeholder:text-[--text-dim] focus:border-[--accent] focus:outline-none"
+                className="h-9 w-full rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 pe-9 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
           </label>
 
           <label className="space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
               المرحلة
             </span>
             <select
               name="stage"
               defaultValue={sp.stage ?? ''}
-              className="h-9 w-40 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm focus:border-[--accent] focus:outline-none"
+              className="h-9 w-40 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {projectStageEnum.enumValues.map((s) => (
@@ -168,13 +168,13 @@ export default async function ProjectsListPage({
           </label>
 
           <label className="space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
               المدير
             </span>
             <select
               name="pm"
               defaultValue={sp.pm ?? ''}
-              className="h-9 w-48 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm focus:border-[--accent] focus:outline-none"
+              className="h-9 w-48 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {pmList.map((p) => (
@@ -186,13 +186,13 @@ export default async function ProjectsListPage({
           </label>
 
           <label className="space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[--text-dim]">
+            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
               العميل
             </span>
             <select
               name="client"
               defaultValue={sp.client ?? ''}
-              className="h-9 w-48 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm focus:border-[--accent] focus:outline-none"
+              className="h-9 w-48 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {clientList.map((c) => (
@@ -203,15 +203,15 @@ export default async function ProjectsListPage({
             </select>
           </label>
 
-          <label className="flex h-9 items-center gap-2 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm">
+          <label className="flex h-9 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm">
             <input
               type="checkbox"
               name="archived"
               value="1"
               defaultChecked={sp.archived === '1'}
-              className="accent-[--accent]"
+              className="accent-[var(--accent)]"
             />
-            <span className="text-[--text-muted]">أرشيف</span>
+            <span className="text-[var(--text-muted)]">أرشيف</span>
           </label>
 
           <Button type="submit" variant="primary">
@@ -221,7 +221,7 @@ export default async function ProjectsListPage({
           {hasFilters && (
             <Link
               href="/projects"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm text-[--text-muted] hover:bg-[--surface]/80 hover:text-[--text]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/80 hover:text-[var(--text)]"
             >
               <X size={14} />
               مسح
@@ -244,7 +244,7 @@ export default async function ProjectsListPage({
             action={
               <Link
                 href={hasFilters ? '/projects' : '/projects/new'}
-                className="inline-flex h-9 items-center rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover]"
+                className="inline-flex h-9 items-center rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
               >
                 {hasFilters ? 'مسح الفلاتر' : '+ مشروع جديد'}
               </Link>
@@ -254,7 +254,7 @@ export default async function ProjectsListPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[--line] bg-[--bg-elevated]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[--text-dim]">
+                <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
                   <th className="px-5 py-3 font-medium text-start">code</th>
                   <th className="px-5 py-3 font-medium text-start">المشروع</th>
                   <th className="px-5 py-3 font-medium text-start">العميل</th>
@@ -265,31 +265,31 @@ export default async function ProjectsListPage({
                   <th className="px-5 py-3 font-medium text-start">الخطر</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[--line]">
+              <tbody className="divide-y divide-[var(--line)]">
                 {rows.map((r) => (
-                  <tr key={r.id} className="group hover:bg-[--surface-hover]">
+                  <tr key={r.id} className="group hover:bg-[var(--surface-hover)]">
                     <td className="px-5 py-3.5">
                       <Link
                         href={`/projects/${r.id}`}
-                        className="font-mono text-xs text-[--text-dim] group-hover:text-[--accent]"
+                        className="font-mono text-xs text-[var(--text-dim)] group-hover:text-[var(--accent)]"
                       >
                         {r.code}
                       </Link>
                     </td>
                     <td className="px-5 py-3.5">
                       <Link href={`/projects/${r.id}`} className="block">
-                        <div className="font-medium text-[--text]">
+                        <div className="font-medium text-[var(--text)]">
                           {r.titleAr ?? r.title}
                         </div>
                         {r.titleAr && r.title && (
-                          <div className="mt-0.5 text-xs text-[--text-dim]">
+                          <div className="mt-0.5 text-xs text-[var(--text-dim)]">
                             {r.title}
                           </div>
                         )}
                       </Link>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-[--text-muted]">
-                      <span className="font-mono text-[10px] text-[--text-dim]">
+                    <td className="px-5 py-3.5 text-sm text-[var(--text-muted)]">
+                      <span className="font-mono text-[10px] text-[var(--text-dim)]">
                         {r.clientCode}
                       </span>
                       <span className="ms-2">{r.clientNameAr}</span>
@@ -303,20 +303,20 @@ export default async function ProjectsListPage({
                       {r.pmName ? (
                         <div className="flex items-center gap-2">
                           <Avatar name={r.pmName} size="sm" />
-                          <span className="text-sm text-[--text-muted]">
+                          <span className="text-sm text-[var(--text-muted)]">
                             {r.pmName}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-[--text-dim]">—</span>
+                        <span className="text-xs text-[var(--text-dim)]">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[--text-muted]">
+                    <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-muted)]">
                       {r.deliveryDueAt
                         ? new Date(r.deliveryDueAt).toISOString().slice(0, 10)
                         : '—'}
                     </td>
-                    <td className="px-5 py-3.5 text-end font-mono text-xs text-[--text-muted]">
+                    <td className="px-5 py-3.5 text-end font-mono text-xs text-[var(--text-muted)]">
                       {r.contractedValueSar
                         ? `${Number(r.contractedValueSar).toLocaleString('en-US')} ر.س`
                         : '—'}
@@ -335,7 +335,7 @@ export default async function ProjectsListPage({
                           {r.aiRiskLevel}
                         </StatusPill>
                       ) : (
-                        <span className="text-xs text-[--text-dim]">—</span>
+                        <span className="text-xs text-[var(--text-dim)]">—</span>
                       )}
                     </td>
                   </tr>
@@ -351,18 +351,18 @@ export default async function ProjectsListPage({
           {page > 1 && (
             <Link
               href={{ pathname: '/projects', query: { ...sp, page: String(page - 1) } }}
-              className="inline-flex h-8 items-center rounded-xl border border-[--line] bg-[--surface] px-3 hover:border-[--accent]"
+              className="inline-flex h-8 items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 hover:border-[var(--accent)]"
             >
               ← السابق
             </Link>
           )}
-          <span className="font-mono text-[--text-dim]">
+          <span className="font-mono text-[var(--text-dim)]">
             {page} / {totalPages}
           </span>
           {page < totalPages && (
             <Link
               href={{ pathname: '/projects', query: { ...sp, page: String(page + 1) } }}
-              className="inline-flex h-8 items-center rounded-xl border border-[--line] bg-[--surface] px-3 hover:border-[--accent]"
+              className="inline-flex h-8 items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 hover:border-[var(--accent)]"
             >
               التالي →
             </Link>
