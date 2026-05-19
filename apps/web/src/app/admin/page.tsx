@@ -18,8 +18,9 @@ import {
   Avatar,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound } from 'lucide-react';
+import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { seedDevData } from './seed-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -261,6 +262,30 @@ export default async function AdminPage() {
               هتُضاف لما تحدد سياسة الـ system_admin role في Pillar 3 الـ UI.
             </p>
           </div>
+        </div>
+      </Card>
+
+      <Card className="border-[--accent]/30 bg-[--accent]/[0.03]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Sparkles className="text-[--accent]" size={20} />
+            <div>
+              <p className="text-sm font-medium text-[--text]">Demo data</p>
+              <p className="text-xs text-[--text-muted]">
+                يضيف 5 عملاء + 9 معدات + 5 مشاريع + 3 leads لاختبار الـ UI.
+                Idempotent — آمن تشغّله أكتر من مرة.
+              </p>
+            </div>
+          </div>
+          <form action={seedDevData}>
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover]"
+            >
+              <Sparkles size={14} />
+              تشغيل
+            </button>
+          </form>
         </div>
       </Card>
     </Shell>

@@ -1,0 +1,259 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { Search, X, Command, Loader2, ArrowRight } from 'lucide-react';
+import { Kbd } from './Kbd';
+
+export type CommandResult = {
+  type: 'project' | 'client' | 'profile' | 'equipment';
+  id: string;
+  label: string;
+  sublabel?: string | null;
+  href: string;
+};
+
+const TYPE_LABEL: Record<CommandResult['type'], string> = {
+  project: 'مشروع',
+  client: 'عميل',
+  profile: 'شخص',
+  equipment: 'معدة',
+};
+
+const TYPE_COLOR: Record<CommandResult['type'], string> = {
+  project: 'text-[--accent]',
+  client: 'text-blue-400',
+  profile: 'text-purple-400',
+  equipment: 'text-emerald-400',
+};
+
+const QUICK_ACTIONS: CommandResult[] = [
+  { type: 'project', id: '__nav-projects', label: 'كل المشاريع', href: '/projects' },
+  { type: 'project', id: '__new-project', label: 'مشروع جديد', sublabel: 'إنشاء', href: '/projects/new' },
+  { type: 'client', id: '__nav-clients', label: 'كل العملاء', href: '/crm' },
+  { type: 'client', id: '__new-client', label: 'عميل جديد', sublabel: 'إنشاء', href: '/clients/new' },
+  { type: 'equipment', id: '__nav-eq', label: 'كل المعدات', href: '/equipment' },
+  { type: 'equipment', id: '__new-eq', label: 'معدّة جديدة', sublabel: 'إنشاء', href: '/equipment/new' },
+];
+
+export function CommandPalette() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<CommandResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fetchSeqRef = useRef(0);
+
+  // Open on ⌘K / Ctrl+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setOpen((v) => !v);
+      }
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 10);
+      setActiveIdx(0);
+    } else {
+      setQuery('');
+      setResults([]);
+    }
+  }, [open]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+    const seq = ++fetchSeqRef.current;
+    setLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(query)}`,
+          { credentials: 'include' },
+        );
+        if (!res.ok) {
+          if (seq === fetchSeqRef.current) {
+            setResults([]);
+            setLoading(false);
+          }
+          return;
+        }
+        const data = (await res.json()) as { results: CommandResult[] };
+        if (seq === fetchSeqRef.current) {
+          setResults(data.results ?? []);
+          setActiveIdx(0);
+          setLoading(false);
+        }
+      } catch {
+        if (seq === fetchSeqRef.current) {
+          setResults([]);
+          setLoading(false);
+        }
+      }
+    }, 180);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const shown = query.trim()
+    ? results
+    : QUICK_ACTIONS;
+
+  // Keyboard nav
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIdx((i) => Math.min(i + 1, shown.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIdx((i) => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter') {
+        const item = shown[activeIdx];
+        if (item) {
+          window.location.href = item.href;
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, shown, activeIdx]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="hidden items-center gap-2 rounded-xl border border-[--line] bg-[--surface] px-3 py-1.5 text-xs text-[--text-dim] hover:border-[--line-strong] hover:text-[--text-muted] md:flex"
+      >
+        <Search size={12} />
+        <span>بحث…</span>
+        <span className="mx-2 h-3 w-px bg-[--line]" />
+        <Kbd>⌘</Kbd>
+        <Kbd>K</Kbd>
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 backdrop-blur-sm px-4 pt-[10vh]"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl overflow-hidden rounded-2xl border border-[--line] bg-[--bg-elevated]/95 shadow-2xl backdrop-blur-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 border-b border-[--line] px-4">
+              {loading ? (
+                <Loader2 size={16} className="animate-spin text-[--text-dim]" />
+              ) : (
+                <Search size={16} className="text-[--text-dim]" />
+              )}
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ابحث عن مشروع، عميل، شخص، معدة…"
+                className="flex-1 bg-transparent py-4 text-sm text-[--text] placeholder:text-[--text-dim] focus:outline-none"
+              />
+              <button
+                onClick={() => setOpen(false)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-[--text-dim] hover:bg-[--surface] hover:text-[--text]"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-2">
+              {shown.length === 0 ? (
+                query.trim() ? (
+                  <div className="px-4 py-12 text-center text-sm text-[--text-dim]">
+                    {loading ? 'جاري البحث…' : 'لا نتائج'}
+                  </div>
+                ) : (
+                  <div className="px-4 py-12 text-center text-sm text-[--text-dim]">
+                    ابدأ الكتابة للبحث
+                  </div>
+                )
+              ) : (
+                <>
+                  {!query.trim() && (
+                    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-[--text-dim]">
+                      اختصارات
+                    </p>
+                  )}
+                  <ul>
+                    {shown.map((r, i) => (
+                      <li key={r.type + r.id}>
+                        <a
+                          href={r.href}
+                          onMouseEnter={() => setActiveIdx(i)}
+                          className={
+                            'flex items-center gap-3 rounded-xl px-3 py-2.5 ' +
+                            (i === activeIdx
+                              ? 'bg-[--surface]'
+                              : 'hover:bg-[--surface]/60')
+                          }
+                        >
+                          <span
+                            className={
+                              'text-[10px] font-semibold uppercase tracking-wider w-14 ' +
+                              TYPE_COLOR[r.type]
+                            }
+                          >
+                            {TYPE_LABEL[r.type]}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm text-[--text]">
+                              {r.label}
+                            </p>
+                            {r.sublabel && (
+                              <p className="truncate text-xs text-[--text-muted]">
+                                {r.sublabel}
+                              </p>
+                            )}
+                          </div>
+                          {i === activeIdx && (
+                            <ArrowRight
+                              size={14}
+                              className="text-[--accent] rtl:rotate-180"
+                            />
+                          )}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-[--line] bg-[--bg]/60 px-4 py-2 text-[10px] text-[--text-dim]">
+              <div className="flex items-center gap-2">
+                <Kbd>↑</Kbd>
+                <Kbd>↓</Kbd>
+                <span>تنقّل</span>
+                <span className="mx-2">·</span>
+                <Kbd>↵</Kbd>
+                <span>افتح</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Command size={10} />
+                Command Palette
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

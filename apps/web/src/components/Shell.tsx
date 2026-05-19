@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AppShell } from '@antagna/ui';
+import { AppShell, CommandPalette } from '@antagna/ui';
 import { fetchNotifications } from '@/lib/notifications';
 import {
   markAllNotificationsRead,
@@ -23,6 +23,7 @@ export async function Shell({
       notifications={notifications}
       onMarkAllRead={markAllNotificationsRead}
       onMarkOneRead={markNotificationRead}
+      commandPalette={<CommandPalette />}
     >
       {children}
     </AppShell>

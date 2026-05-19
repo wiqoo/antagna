@@ -13,3 +13,5 @@ export {
   NotificationsBell,
   type NotificationItem,
 } from './components/NotificationsBell';
+export { MobileNav } from './components/MobileNav';
+export { CommandPalette } from './components/CommandPalette';
