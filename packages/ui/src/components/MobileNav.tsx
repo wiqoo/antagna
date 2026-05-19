@@ -1,19 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Menu, X } from 'lucide-react';
 
 export function MobileNav({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Close on route change (rough: close on history change)
   useEffect(() => {
-    const handler = () => setOpen(false);
-    window.addEventListener('popstate', handler);
-    return () => window.removeEventListener('popstate', handler);
+    setMounted(true);
   }, []);
 
-  // Lock scroll when open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -25,7 +23,6 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     };
   }, [open]);
 
-  // Close on ESC
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
@@ -40,37 +37,42 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="فتح القائمة"
-        className="md:hidden grid h-10 w-10 place-items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--text)]"
+        className="md:hidden grid h-10 w-10 place-items-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--text)]"
       >
         <Menu size={18} />
       </button>
 
-      {open && (
-        <>
-          <div
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
-            aria-hidden
-          />
-          <aside
-            className="fixed inset-y-0 end-0 z-50 w-72 overflow-y-auto border-s border-[var(--line)] bg-[var(--bg-elevated)] shadow-2xl md:hidden"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex h-14 items-center justify-between border-b border-[var(--line)] px-4">
-              <span className="text-base font-semibold">القائمة</span>
-              <button
-                onClick={() => setOpen(false)}
-                aria-label="إغلاق"
-                className="grid h-9 w-9 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div onClick={() => setOpen(false)}>{children}</div>
-          </aside>
-        </>
-      )}
+      {mounted &&
+        open &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] md:hidden">
+            <div
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              aria-hidden
+            />
+            <aside
+              className="absolute inset-y-0 end-0 w-[280px] max-w-[80vw] overflow-y-auto border-s border-[var(--line)] bg-[var(--bg-elevated)] shadow-[0_0_60px_rgba(0,0,0,0.7)]"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex h-14 items-center justify-between border-b border-[var(--line)] px-4">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
+                  — القائمة
+                </span>
+                <button
+                  onClick={() => setOpen(false)}
+                  aria-label="إغلاق"
+                  className="grid h-9 w-9 place-items-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div onClick={() => setOpen(false)}>{children}</div>
+            </aside>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
