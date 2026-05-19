@@ -90,35 +90,38 @@ function SidebarContent({
             <ul className="space-y-px">
               {group.items.map(({ href, label, icon: Icon, soon }) => {
                 const active = activePath?.startsWith(href);
-                return (
-                  <li key={href}>
-                    <a
-                      href={soon ? '#' : href}
-                      onClick={soon ? (e) => e.preventDefault() : undefined}
-                      className={
-                        'group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium ' +
-                        (active
-                          ? 'bg-[--surface] text-[--text]'
-                          : 'text-[--text-muted] hover:bg-[--surface]/50 hover:text-[--text]') +
-                        (soon ? ' cursor-not-allowed opacity-50' : '')
-                      }
-                    >
-                      <Icon
-                        size={15}
-                        strokeWidth={1.75}
-                        className={
-                          active
-                            ? 'text-[--accent]'
-                            : 'text-[--text-dim] group-hover:text-[--text-muted]'
-                        }
-                      />
-                      <span>{label}</span>
-                      {soon && (
+                const itemCls =
+                  'group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium ' +
+                  (active
+                    ? 'bg-[--surface] text-[--text]'
+                    : 'text-[--text-muted] hover:bg-[--surface]/50 hover:text-[--text]');
+                const iconCls =
+                  active
+                    ? 'text-[--accent]'
+                    : 'text-[--text-dim] group-hover:text-[--text-muted]';
+
+                if (soon) {
+                  return (
+                    <li key={href}>
+                      <span
+                        aria-disabled="true"
+                        className={itemCls + ' cursor-not-allowed opacity-50'}
+                      >
+                        <Icon size={15} strokeWidth={1.75} className={iconCls} />
+                        <span>{label}</span>
                         <span className="ms-auto text-[9px] uppercase tracking-wider text-[--text-dim]">
                           soon
                         </span>
-                      )}
-                      {active && !soon && (
+                      </span>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={href}>
+                    <a href={href} className={itemCls}>
+                      <Icon size={15} strokeWidth={1.75} className={iconCls} />
+                      <span>{label}</span>
+                      {active && (
                         <span className="ms-auto h-1 w-1 rounded-full bg-[--accent]" />
                       )}
                     </a>
