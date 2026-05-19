@@ -18,7 +18,8 @@ import {
   EmptyState,
   Avatar,
 } from '@antagna/ui';
-import { Camera, Calendar } from 'lucide-react';
+import Link from 'next/link';
+import { Camera, Calendar, Plus } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -116,6 +117,15 @@ export default async function EquipmentPage() {
         eyebrow="Equipment"
         title="المعدات"
         subtitle={`${items.length} وحدة · إجمالي قيمة التأمين ${totalInsurance.toLocaleString('en-US')} ر.س`}
+        action={
+          <Link
+            href="/equipment/new"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover]"
+          >
+            <Plus size={16} />
+            معدّة جديدة
+          </Link>
+        }
       />
 
       {/* Status overview */}

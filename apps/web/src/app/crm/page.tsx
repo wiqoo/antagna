@@ -18,7 +18,8 @@ import {
   EmptyState,
   Avatar,
 } from '@antagna/ui';
-import { Users, Flame, Building2 } from 'lucide-react';
+import Link from 'next/link';
+import { Users, Flame, Building2, Plus } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -110,6 +111,15 @@ export default async function CrmPage() {
         eyebrow="CRM"
         title="العملاء و الفرص"
         subtitle={`${clientRows.length} عميل · ${totalActive} مشروع نشط · ${leadRows.length} lead في الـ pipeline`}
+        action={
+          <Link
+            href="/clients/new"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[--accent] px-4 text-sm font-semibold text-black hover:bg-[--accent-hover] active:scale-[0.98]"
+          >
+            <Plus size={16} />
+            عميل جديد
+          </Link>
+        }
       />
 
       {/* Leads */}
@@ -250,12 +260,23 @@ export default async function CrmPage() {
                     ? new Date(c.lastProjectAt).toISOString().slice(0, 10)
                     : '—';
                   return (
-                    <tr key={c.id} className="hover:bg-[--surface-hover]">
-                      <td className="px-5 py-3.5 font-mono text-xs text-[--text-dim]">
-                        {c.code}
+                    <tr
+                      key={c.id}
+                      className="cursor-pointer hover:bg-[--surface-hover]"
+                    >
+                      <td className="px-5 py-3.5">
+                        <Link
+                          href={`/clients/${c.id}`}
+                          className="font-mono text-xs text-[--text-dim] hover:text-[--accent]"
+                        >
+                          {c.code}
+                        </Link>
                       </td>
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
+                        <Link
+                          href={`/clients/${c.id}`}
+                          className="flex items-center gap-3 hover:text-[--accent]"
+                        >
                           <Avatar name={c.nameAr} size="sm" />
                           <div>
                             <div className="font-medium text-[--text]">
@@ -267,7 +288,7 @@ export default async function CrmPage() {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-5 py-3.5">
                         <StatusPill tone="neutral">{c.clientType}</StatusPill>

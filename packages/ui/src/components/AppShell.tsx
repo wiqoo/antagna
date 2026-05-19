@@ -8,6 +8,7 @@ import {
   Inbox,
   BarChart3,
   Settings,
+  Shield,
   Command,
   LogOut,
 } from 'lucide-react';
@@ -40,6 +41,13 @@ const NAV_GROUPS: Array<{
   {
     label: 'القياس',
     items: [{ href: '/kpis', label: 'مؤشرات الأداء', icon: BarChart3 }],
+  },
+  {
+    label: 'النظام',
+    items: [
+      { href: '/admin', label: 'الإدارة', icon: Shield },
+      { href: '/settings', label: 'الإعدادات', icon: Settings },
+    ],
   },
 ];
 

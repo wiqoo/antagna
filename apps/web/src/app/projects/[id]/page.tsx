@@ -13,6 +13,7 @@ import {
   profiles,
   freelancers,
   deliverables,
+  projectAssignmentRoleEnum,
 } from '@antagna/db';
 import {
   AppShell,
@@ -35,10 +36,18 @@ import {
   MessageSquare,
   History,
   Sparkles,
+  Pencil,
+  Plus,
+  X,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { transitionStage, postComment } from './actions';
+import {
+  addAssignment,
+  addProjectTask,
+  removeAssignment,
+} from './edit/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +78,12 @@ export default async function ProjectDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/projects/${id}`);
+
+  const activeProfiles = await db
+    .select({ id: profiles.id, displayName: profiles.displayName })
+    .from(profiles)
+    .where(eq(profiles.status, 'active'))
+    .orderBy(profiles.displayName);
 
   const [project] = await db
     .select({
@@ -263,23 +278,32 @@ export default async function ProjectDetailPage({
               </div>
             </div>
 
-            <div className="text-end">
-              {project.contractedValueSar && (
-                <MoneyDisplay
-                  amount={Number(project.contractedValueSar)}
-                  currency="SAR"
-                  className="text-2xl"
-                />
-              )}
-              {project.deliveryDueAt && (
-                <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[--text-muted]">
-                  <Calendar size={12} />
-                  تسليم:{' '}
-                  <span className="font-mono text-[--text]">
-                    {new Date(project.deliveryDueAt).toISOString().slice(0, 10)}
-                  </span>
-                </p>
-              )}
+            <div className="flex flex-col items-end gap-3">
+              <Link
+                href={`/projects/${id}/edit`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[--line] bg-[--surface] px-3 text-sm text-[--text-muted] hover:border-[--accent] hover:text-[--text]"
+              >
+                <Pencil size={14} />
+                تعديل
+              </Link>
+              <div className="text-end">
+                {project.contractedValueSar && (
+                  <MoneyDisplay
+                    amount={Number(project.contractedValueSar)}
+                    currency="SAR"
+                    className="text-2xl"
+                  />
+                )}
+                {project.deliveryDueAt && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[--text-muted]">
+                    <Calendar size={12} />
+                    تسليم:{' '}
+                    <span className="font-mono text-[--text]">
+                      {new Date(project.deliveryDueAt).toISOString().slice(0, 10)}
+                    </span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -385,13 +409,48 @@ export default async function ProjectDetailPage({
         {/* Tasks */}
         <Card padded={false}>
           <div className="p-6 pb-4">
-            <CardHeader title="المهام" subtitle={`${tasks.length} مهمة في المجموع`} />
+            <CardHeader
+              title="المهام"
+              subtitle={`${tasks.length} مهمة في المجموع`}
+            />
+            <form
+              action={addProjectTask.bind(null, id)}
+              className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,140px,120px,auto]"
+            >
+              <input
+                type="text"
+                name="title"
+                required
+                placeholder="مهمة جديدة…"
+                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+              />
+              <select
+                name="assigneeId"
+                defaultValue=""
+                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+              >
+                <option value="">— assignee —</option>
+                {activeProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.displayName}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                name="dueAt"
+                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm font-mono"
+              />
+              <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+                إضافة
+              </Button>
+            </form>
           </div>
           {tasks.length === 0 ? (
             <EmptyState
               icon={<ListChecks size={20} />}
               title="لا توجد مهام بعد"
-              description="أضف مهام للمشروع لتتبع التقدم."
+              description="أضف مهام من الفورم اللي فوق."
             />
           ) : (
             <ul className="divide-y divide-[--line]">
@@ -440,12 +499,47 @@ export default async function ProjectDetailPage({
               title="الفريق المعيَّن"
               subtitle={`${assignments.length} شخص`}
             />
+            <form
+              action={addAssignment.bind(null, id)}
+              className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,140px,auto]"
+            >
+              <select
+                name="profileId"
+                defaultValue=""
+                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+              >
+                <option value="">— اختر الشخص —</option>
+                {activeProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.displayName}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="role"
+                required
+                defaultValue=""
+                className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+              >
+                <option value="" disabled>
+                  — الدور —
+                </option>
+                {projectAssignmentRoleEnum.enumValues.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+              <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+                إضافة
+              </Button>
+            </form>
           </div>
           {assignments.length === 0 ? (
             <EmptyState
               icon={<Users2 size={20} />}
               title="لم يتم تعيين فريق بعد"
-              description="عيّن أعضاء الفريق لبدء العمل."
+              description="استخدم الفورم لإضافة أول عضو."
             />
           ) : (
             <ul className="divide-y divide-[--line]">
@@ -453,10 +547,7 @@ export default async function ProjectDetailPage({
                 const name =
                   a.profileName ?? a.freelancerName ?? a.externalName ?? '?';
                 return (
-                  <li
-                    key={a.id}
-                    className="flex items-center gap-3 px-6 py-3"
-                  >
+                  <li key={a.id} className="flex items-center gap-3 px-6 py-3">
                     <Avatar name={name} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-[--text]">
@@ -469,6 +560,15 @@ export default async function ProjectDetailPage({
                         {Number(a.rateSar).toLocaleString('en-US')} / {a.rateUnit}
                       </div>
                     )}
+                    <form action={removeAssignment.bind(null, id, a.id)}>
+                      <button
+                        type="submit"
+                        title="إزالة"
+                        className="grid h-7 w-7 place-items-center rounded-lg text-[--text-dim] hover:bg-red-500/10 hover:text-red-400"
+                      >
+                        <X size={14} />
+                      </button>
+                    </form>
                   </li>
                 );
               })}
