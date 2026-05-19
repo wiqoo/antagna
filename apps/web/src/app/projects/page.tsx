@@ -9,7 +9,7 @@ import {
   projectStageEnum,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   StatusPill,
@@ -17,6 +17,7 @@ import {
   Avatar,
   Button,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { Briefcase, Plus, Search, X, ArrowUpRight } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
@@ -110,7 +111,7 @@ export default async function ProjectsListPage({
   const totalPages = Math.max(1, Math.ceil(Number(count) / PAGE_SIZE));
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/projects">
+    <Shell user={{ email: user.email ?? '' }} activePath="/projects">
       <PageHeader
         eyebrow="Projects"
         title="المشاريع"
@@ -373,6 +374,6 @@ export default async function ProjectsListPage({
       <span className="hidden">
         <ArrowUpRight size={1} />
       </span>
-    </AppShell>
+    </Shell>
   );
 }

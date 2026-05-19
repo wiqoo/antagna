@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { asc } from 'drizzle-orm';
 import { db, equipmentGroups } from '@antagna/db';
-import { AppShell, PageHeader, Card, Button } from '@antagna/ui';
+import { PageHeader, Card, Button } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { createEquipment } from '../actions';
@@ -20,7 +21,7 @@ export default async function NewEquipmentPage() {
     .orderBy(asc(equipmentGroups.nameAr));
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/equipment">
+    <Shell user={{ email: user.email ?? '' }} activePath="/equipment">
       <div className="mx-auto max-w-2xl space-y-8">
         <Link
           href="/equipment"
@@ -172,7 +173,7 @@ export default async function NewEquipmentPage() {
         }
         .form-input:focus { outline: none; border-color: var(--accent); }
       `}</style>
-    </AppShell>
+    </Shell>
   );
 }
 

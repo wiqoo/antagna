@@ -9,7 +9,7 @@ import {
   profiles,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -18,6 +18,7 @@ import {
   EmptyState,
   Avatar,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import Link from 'next/link';
 import { Users, Flame, Building2, Plus } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -106,7 +107,7 @@ export default async function CrmPage() {
   );
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/crm">
+    <Shell user={{ email: user.email ?? '' }} activePath="/crm">
       <PageHeader
         eyebrow="CRM"
         title="العملاء و الفرص"
@@ -340,6 +341,6 @@ export default async function CrmPage() {
           </div>
         )}
       </Card>
-    </AppShell>
+    </Shell>
   );
 }

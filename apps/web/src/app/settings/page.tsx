@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
-import { AppShell, PageHeader, Card, CardHeader, Button } from '@antagna/ui';
+import { PageHeader, Card, CardHeader, Button } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { updateSettings } from './actions';
@@ -34,7 +35,7 @@ export default async function SettingsPage() {
   });
 
   return (
-    <AppShell
+    <Shell
       user={{ email: user.email ?? '', displayName: profile?.displayName }}
       activePath="/settings"
     >
@@ -174,7 +175,7 @@ export default async function SettingsPage() {
         .form-input:focus { outline: none; border-color: var(--accent); }
         .form-input:disabled { opacity: 0.7; cursor: not-allowed; }
       `}</style>
-    </AppShell>
+    </Shell>
   );
 }
 

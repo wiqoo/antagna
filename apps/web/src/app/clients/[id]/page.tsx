@@ -9,7 +9,7 @@ import {
   projects,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -18,6 +18,7 @@ import {
   Avatar,
   Button,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import {
   ArrowLeft,
   Mail,
@@ -91,7 +92,7 @@ export default async function ClientDetailPage({
   }, {});
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/crm">
+    <Shell user={{ email: user.email ?? '' }} activePath="/crm">
       <Link
         href="/crm"
         className="inline-flex items-center gap-1.5 text-sm text-[--text-muted] hover:text-[--accent]"
@@ -328,6 +329,6 @@ export default async function ClientDetailPage({
           </p>
         </Card>
       )}
-    </AppShell>
+    </Shell>
   );
 }

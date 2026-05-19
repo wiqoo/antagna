@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   StatTile,
   Card,
@@ -11,6 +11,7 @@ import {
   StatusPill,
   Button,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import {
   Briefcase,
   Users,
@@ -130,7 +131,7 @@ export default async function DashboardPage() {
       : 'مساء الخير';
 
   return (
-    <AppShell
+    <Shell
       user={{ email: user.email ?? '', displayName: user.email?.split('@')[0] }}
       activePath="/dashboard"
     >
@@ -311,6 +312,6 @@ export default async function DashboardPage() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </Shell>
   );
 }

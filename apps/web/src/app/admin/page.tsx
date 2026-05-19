@@ -9,7 +9,7 @@ import {
   roleDefaultPermissions,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -17,6 +17,7 @@ import {
   EmptyState,
   Avatar,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { Shield, Users, Bell, BarChart3, KeyRound } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -56,7 +57,7 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/admin">
+    <Shell user={{ email: user.email ?? '' }} activePath="/admin">
       <PageHeader
         eyebrow="Admin"
         title="الإدارة"
@@ -262,7 +263,7 @@ export default async function AdminPage() {
           </div>
         </div>
       </Card>
-    </AppShell>
+    </Shell>
   );
 }
 

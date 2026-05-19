@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { Kbd } from './Kbd';
+import { NotificationsBell, type NotificationItem } from './NotificationsBell';
 
 const NAV_GROUPS: Array<{
   label: string;
@@ -55,10 +56,16 @@ export function AppShell({
   children,
   user,
   activePath,
+  notifications,
+  onMarkAllRead,
+  onMarkOneRead,
 }: {
   children: ReactNode;
   user?: { email: string; displayName?: string };
   activePath?: string;
+  notifications?: NotificationItem[];
+  onMarkAllRead?: () => Promise<void> | void;
+  onMarkOneRead?: (id: string) => Promise<void> | void;
 }) {
   return (
     <div className="flex min-h-screen bg-[--bg] text-[--text]">
@@ -156,6 +163,13 @@ export function AppShell({
             <span>للبحث السريع</span>
           </div>
           <div className="flex items-center gap-3 ms-auto">
+            {notifications && onMarkAllRead && onMarkOneRead && (
+              <NotificationsBell
+                items={notifications}
+                markAllReadAction={onMarkAllRead}
+                markOneReadAction={onMarkOneRead}
+              />
+            )}
             <span className="hidden text-xs text-[--text-dim] sm:inline">
               {user?.email}
             </span>

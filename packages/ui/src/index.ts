@@ -9,3 +9,7 @@ export { StatTile } from './components/StatTile';
 export { EmptyState } from './components/EmptyState';
 export { Avatar } from './components/Avatar';
 export { Button } from './components/Button';
+export {
+  NotificationsBell,
+  type NotificationItem,
+} from './components/NotificationsBell';

@@ -9,7 +9,7 @@ import {
   profiles,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -18,6 +18,7 @@ import {
   EmptyState,
   Avatar,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import Link from 'next/link';
 import { Camera, Calendar, Plus } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -112,7 +113,7 @@ export default async function EquipmentPage() {
   );
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/equipment">
+    <Shell user={{ email: user.email ?? '' }} activePath="/equipment">
       <PageHeader
         eyebrow="Equipment"
         title="المعدات"
@@ -325,6 +326,6 @@ export default async function EquipmentPage() {
           </div>
         )}
       </Card>
-    </AppShell>
+    </Shell>
   );
 }

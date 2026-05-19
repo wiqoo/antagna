@@ -2,12 +2,13 @@ import { redirect } from 'next/navigation';
 import { sql, eq, asc } from 'drizzle-orm';
 import { db, kpiDefinitions } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   StatusPill,
   EmptyState,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { BarChart3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -71,7 +72,7 @@ export default async function KpisPage() {
   }, {});
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/kpis">
+    <Shell user={{ email: user.email ?? '' }} activePath="/kpis">
       <PageHeader
         eyebrow="KPIs"
         title="مؤشرات الأداء"
@@ -103,7 +104,7 @@ export default async function KpisPage() {
           </section>
         ))
       )}
-    </AppShell>
+    </Shell>
   );
 }
 

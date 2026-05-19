@@ -11,7 +11,7 @@ import {
   projects,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -19,6 +19,7 @@ import {
   EmptyState,
   Avatar,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { Mail, MessageCircle, Send } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -122,7 +123,7 @@ export default async function InboxPage() {
   const failed = queueDepth.find((q) => q.status === 'failed')?.count ?? 0;
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/inbox">
+    <Shell user={{ email: user.email ?? '' }} activePath="/inbox">
       <PageHeader
         eyebrow="Inbox"
         title="الوارد"
@@ -317,6 +318,6 @@ export default async function InboxPage() {
           )}
         </Card>
       </div>
-    </AppShell>
+    </Shell>
   );
 }

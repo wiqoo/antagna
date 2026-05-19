@@ -13,10 +13,14 @@ import {
   profiles,
   freelancers,
   deliverables,
+  deliverableGroups,
+  equipment,
+  equipmentGroups,
+  equipmentReservations,
   projectAssignmentRoleEnum,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -26,6 +30,7 @@ import {
   Avatar,
   Button,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import {
   ArrowLeft,
   ExternalLink,
@@ -48,6 +53,13 @@ import {
   addProjectTask,
   removeAssignment,
 } from './edit/actions';
+import {
+  addDeliverableGroup,
+  addDeliverable,
+  setDeliverableStatus,
+  deleteDeliverable,
+  addReservation,
+} from './deliverables-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,8 +134,18 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound();
 
-  const [stageLog, assignments, tasks, comments, delivStats, contactList] =
-    await Promise.all([
+  const [
+    stageLog,
+    assignments,
+    tasks,
+    comments,
+    delivStats,
+    contactList,
+    groupsAndItems,
+    reservations,
+    equipmentList,
+    equipmentGroupList,
+  ] = await Promise.all([
       db
         .select({
           id: projectStagesLog.id,
@@ -202,7 +224,107 @@ export default async function ProjectDetailPage({
         .from(sql`project_contacts pc`)
         .innerJoin(contacts, sql`${contacts.id} = pc.contact_id`)
         .where(sql`pc.project_id = ${id}::uuid`),
+      db.execute<{
+        group_id: string;
+        group_name_ar: string;
+        group_kind: string | null;
+        group_position: number;
+        d_id: string | null;
+        d_title: string | null;
+        d_item_number: string | null;
+        d_status: string | null;
+        d_position: number | null;
+      }>(sql`
+        SELECT
+          dg.id::text AS group_id,
+          dg.name_ar AS group_name_ar,
+          dg.kind AS group_kind,
+          dg.position AS group_position,
+          d.id::text AS d_id,
+          d.title AS d_title,
+          d.item_number AS d_item_number,
+          d.status::text AS d_status,
+          d.position AS d_position
+        FROM deliverable_groups dg
+        LEFT JOIN deliverables d ON d.group_id = dg.id
+        WHERE dg.project_id = ${id}::uuid
+        ORDER BY dg.position, dg.created_at, d.position, d.created_at
+      `),
+      db
+        .select({
+          id: equipmentReservations.id,
+          startsAt: equipmentReservations.startsAt,
+          endsAt: equipmentReservations.endsAt,
+          status: equipmentReservations.status,
+          notes: equipmentReservations.notes,
+          eqCode: equipment.code,
+          eqModel: equipment.model,
+          groupNameAr: equipmentGroups.nameAr,
+        })
+        .from(equipmentReservations)
+        .leftJoin(equipment, eq(equipment.id, equipmentReservations.equipmentId))
+        .leftJoin(equipmentGroups, eq(equipmentGroups.id, equipmentReservations.groupId))
+        .where(eq(equipmentReservations.projectId, id))
+        .orderBy(desc(equipmentReservations.startsAt)),
+      db
+        .select({
+          id: equipment.id,
+          code: equipment.code,
+          model: equipment.model,
+          status: equipment.status,
+        })
+        .from(equipment)
+        .where(isNull(equipment.archivedAt))
+        .orderBy(equipment.code)
+        .limit(500),
+      db
+        .select({
+          id: equipmentGroups.id,
+          code: equipmentGroups.code,
+          nameAr: equipmentGroups.nameAr,
+        })
+        .from(equipmentGroups)
+        .orderBy(equipmentGroups.nameAr),
     ]);
+
+  // Group deliverables by their group
+  type DGroup = {
+    id: string;
+    nameAr: string;
+    kind: string | null;
+    items: Array<{ id: string; title: string | null; itemNumber: string | null; status: string }>;
+  };
+  const groupedDeliverables: DGroup[] = [];
+  const groupsArr = groupsAndItems as unknown as Array<{
+    group_id: string;
+    group_name_ar: string;
+    group_kind: string | null;
+    group_position: number;
+    d_id: string | null;
+    d_title: string | null;
+    d_item_number: string | null;
+    d_status: string | null;
+  }>;
+  for (const row of groupsArr) {
+    let g = groupedDeliverables.find((x) => x.id === row.group_id);
+    if (!g) {
+      g = {
+        id: row.group_id,
+        nameAr: row.group_name_ar,
+        kind: row.group_kind,
+        items: [],
+      };
+      groupedDeliverables.push(g);
+    }
+    if (row.d_id) {
+      g.items.push({
+        id: row.d_id,
+        title: row.d_title,
+        itemNumber: row.d_item_number,
+        status: row.d_status ?? 'draft',
+      });
+    }
+  }
 
   const totalDeliv = delivStats.reduce((s, r) => s + Number(r.count), 0);
   const deliveredCount = delivStats.find((r) => r.status === 'delivered')?.count ?? 0;
@@ -219,7 +341,7 @@ export default async function ProjectDetailPage({
   const nextStages = STAGE_TRANSITIONS[project.stage] ?? [];
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/projects">
+    <Shell user={{ email: user.email ?? '' }} activePath="/projects">
       <Link
         href="/projects"
         className="inline-flex items-center gap-1.5 text-sm text-[--text-muted] hover:text-[--accent]"
@@ -673,6 +795,262 @@ export default async function ProjectDetailPage({
         </Card>
       </div>
 
+      {/* Deliverables */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="المخرجات"
+            subtitle={`${groupedDeliverables.length} مجموعة · ${groupedDeliverables.reduce((s, g) => s + g.items.length, 0)} عنصر`}
+          />
+          <form
+            action={addDeliverableGroup.bind(null, id)}
+            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,140px,auto]"
+          >
+            <input
+              type="text"
+              name="nameAr"
+              required
+              placeholder="اسم المجموعة (مثل: ريلز)"
+              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-3 text-sm"
+            />
+            <select
+              name="kind"
+              defaultValue=""
+              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+            >
+              <option value="">— النوع —</option>
+              <option value="reels">reels</option>
+              <option value="photos">photos</option>
+              <option value="print_photos">print photos</option>
+              <option value="video">video</option>
+              <option value="other">other</option>
+            </select>
+            <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+              مجموعة
+            </Button>
+          </form>
+        </div>
+
+        {groupedDeliverables.length === 0 ? (
+          <EmptyState
+            icon={<Package2 size={20} />}
+            title="لا توجد مخرجات بعد"
+            description="أضف مجموعة (مثل ريلز، صور) ثم ضيف العناصر داخلها."
+          />
+        ) : (
+          <div className="divide-y divide-[--line]">
+            {groupedDeliverables.map((g) => (
+              <div key={g.id} className="px-6 py-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[--text]">
+                      {g.nameAr}
+                    </h3>
+                    {g.kind && (
+                      <StatusPill tone="neutral" withDot={false}>
+                        {g.kind}
+                      </StatusPill>
+                    )}
+                    <span className="text-xs text-[--text-dim]">
+                      {g.items.length} عنصر
+                    </span>
+                  </div>
+                  <form
+                    action={addDeliverable.bind(null, id)}
+                    className="flex items-center gap-2"
+                  >
+                    <input type="hidden" name="groupId" value={g.id} />
+                    <input
+                      type="text"
+                      name="itemNumber"
+                      placeholder="#"
+                      className="h-8 w-14 rounded-lg border border-[--line] bg-[--bg-elevated] px-2 text-xs font-mono"
+                    />
+                    <input
+                      type="text"
+                      name="title"
+                      placeholder="عنوان العنصر"
+                      className="h-8 w-48 rounded-lg border border-[--line] bg-[--bg-elevated] px-2 text-xs"
+                    />
+                    <button
+                      type="submit"
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-[--line] bg-[--surface] text-[--text-muted] hover:border-[--accent] hover:text-[--accent]"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </form>
+                </div>
+                {g.items.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-[--line] px-4 py-3 text-xs text-[--text-dim]">
+                    لا عناصر في هذه المجموعة بعد.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {g.items.map((it) => (
+                      <li
+                        key={it.id}
+                        className="flex items-center gap-3 rounded-xl border border-[--line] bg-[--bg-elevated]/40 px-3 py-2"
+                      >
+                        <span className="font-mono text-xs text-[--text-dim]">
+                          {it.itemNumber ?? '—'}
+                        </span>
+                        <span className="flex-1 text-sm text-[--text]">
+                          {it.title ?? '(بدون عنوان)'}
+                        </span>
+                        <form
+                          action={async (formData: FormData) => {
+                            'use server';
+                            const next = formData.get('next')?.toString();
+                            if (next) await setDeliverableStatus(id, it.id, next);
+                          }}
+                        >
+                          <select
+                            name="next"
+                            defaultValue={it.status}
+                            onChange={undefined}
+                            className="h-7 rounded-lg border border-[--line] bg-[--surface] px-2 text-[11px] font-medium"
+                          >
+                            <option value="draft">draft</option>
+                            <option value="submitted">submitted</option>
+                            <option value="pending_director">pending director</option>
+                            <option value="pending_am">pending AM</option>
+                            <option value="client_ready">client ready</option>
+                            <option value="in_client_review">in client review</option>
+                            <option value="revisions_director">revisions: director</option>
+                            <option value="revisions_am">revisions: AM</option>
+                            <option value="revisions_client">revisions: client</option>
+                            <option value="delivered">delivered</option>
+                            <option value="cancelled">cancelled</option>
+                          </select>
+                          <button
+                            type="submit"
+                            className="ms-1 inline-flex h-7 items-center rounded-lg border border-[--line] bg-[--surface] px-2 text-[11px] hover:border-[--accent]"
+                          >
+                            حفظ
+                          </button>
+                        </form>
+                        <form
+                          action={deleteDeliverable.bind(null, id, it.id)}
+                        >
+                          <button
+                            type="submit"
+                            title="حذف"
+                            className="grid h-7 w-7 place-items-center rounded-lg text-[--text-dim] hover:bg-red-500/10 hover:text-red-400"
+                          >
+                            <X size={12} />
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Equipment reservations */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="حجز معدات"
+            subtitle={`${reservations.length} حجز`}
+          />
+          <form
+            action={addReservation.bind(null, id)}
+            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,1fr,1fr,auto]"
+          >
+            <select
+              name="equipmentId"
+              defaultValue=""
+              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm"
+            >
+              <option value="">— اختار معدة —</option>
+              {equipmentList.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.code} · {e.model}
+                </option>
+              ))}
+              <optgroup label="—— أو مجموعة ——">
+                {equipmentGroupList.map((g) => (
+                  <option key={`g-${g.id}`} value="" disabled>
+                    استخدم الحقل التالي للمجموعات
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+            <input
+              type="datetime-local"
+              name="startsAt"
+              required
+              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm font-mono"
+            />
+            <input
+              type="datetime-local"
+              name="endsAt"
+              required
+              className="h-9 rounded-xl border border-[--line] bg-[--bg-elevated] px-2 text-sm font-mono"
+            />
+            <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+              احجز
+            </Button>
+          </form>
+        </div>
+
+        {reservations.length === 0 ? (
+          <EmptyState
+            icon={<Package2 size={20} />}
+            title="لا حجوزات بعد"
+            description="احجز معدات لهذا المشروع لمنع التعارض مع المشاريع الأخرى."
+          />
+        ) : (
+          <ul className="divide-y divide-[--line]">
+            {reservations.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center gap-3 px-6 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-[--text]">
+                    {r.eqCode ? (
+                      <>
+                        <span className="font-mono text-xs text-[--text-dim]">
+                          {r.eqCode}
+                        </span>{' '}
+                        {r.eqModel}
+                      </>
+                    ) : (
+                      <span className="italic text-[--text-muted]">
+                        مجموعة: {r.groupNameAr ?? '—'}
+                      </span>
+                    )}
+                  </p>
+                  <p className="font-mono text-xs text-[--text-dim]">
+                    {new Date(r.startsAt).toISOString().slice(0, 16).replace('T', ' ')}
+                    {' → '}
+                    {new Date(r.endsAt).toISOString().slice(0, 16).replace('T', ' ')}
+                  </p>
+                </div>
+                <StatusPill
+                  tone={
+                    r.status === 'checked_out'
+                      ? 'warning'
+                      : r.status === 'returned'
+                        ? 'success'
+                        : r.status === 'cancelled'
+                          ? 'neutral'
+                          : 'info'
+                  }
+                >
+                  {r.status}
+                </StatusPill>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       {contactList.length > 0 && (
         <Card padded={false}>
           <div className="p-6 pb-4">
@@ -724,7 +1102,7 @@ export default async function ProjectDetailPage({
           )}
         </Card>
       )}
-    </AppShell>
+    </Shell>
   );
 }
 

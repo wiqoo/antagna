@@ -8,7 +8,8 @@ import {
   projectTemplates,
   projectTypeEnum,
 } from '@antagna/db';
-import { AppShell, PageHeader, Card, Button } from '@antagna/ui';
+import { PageHeader, Card, Button } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { createProject } from './actions';
@@ -47,7 +48,7 @@ export default async function NewProjectPage() {
   ]);
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/projects">
+    <Shell user={{ email: user.email ?? '' }} activePath="/projects">
       <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href="/projects"
@@ -205,7 +206,7 @@ export default async function NewProjectPage() {
           border-color: var(--accent);
         }
       `}</style>
-    </AppShell>
+    </Shell>
   );
 }
 

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AppShell, PageHeader, Card, Button } from '@antagna/ui';
+import { PageHeader, Card, Button } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { createClient } from '../actions';
@@ -13,7 +14,7 @@ export default async function NewClientPage() {
   if (!user) redirect('/login?next=/clients/new');
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/crm">
+    <Shell user={{ email: user.email ?? '' }} activePath="/crm">
       <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href="/crm"
@@ -168,7 +169,7 @@ export default async function NewClientPage() {
         }
         .form-input:focus { outline: none; border-color: var(--accent); }
       `}</style>
-    </AppShell>
+    </Shell>
   );
 }
 

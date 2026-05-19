@@ -8,7 +8,8 @@ import {
   profiles,
   projectTypeEnum,
 } from '@antagna/db';
-import { AppShell, PageHeader, Card, Button } from '@antagna/ui';
+import { PageHeader, Card, Button } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { updateProject } from './actions';
@@ -51,7 +52,7 @@ export default async function EditProjectPage({
     d ? new Date(d).toISOString().slice(0, 10) : '';
 
   return (
-    <AppShell user={{ email: user.email ?? '' }} activePath="/projects">
+    <Shell user={{ email: user.email ?? '' }} activePath="/projects">
       <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href={`/projects/${id}`}
@@ -266,7 +267,7 @@ export default async function EditProjectPage({
         .form-input:focus { outline: none; border-color: var(--accent); }
         textarea.form-input { resize: vertical; min-height: 80px; }
       `}</style>
-    </AppShell>
+    </Shell>
   );
 }
 

@@ -9,7 +9,7 @@ import {
   projects,
 } from '@antagna/db';
 import {
-  AppShell,
+  
   PageHeader,
   Card,
   CardHeader,
@@ -18,6 +18,7 @@ import {
   Avatar,
   Button,
 } from '@antagna/ui';
+import { Shell } from '@/components/Shell';
 import { ListChecks, Plus, CheckCircle2, Play, Circle } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { setTaskStatus, createDailyTask } from './actions';
@@ -62,7 +63,7 @@ export default async function TasksPage({
 
   if (!actor) {
     return (
-      <AppShell user={{ email: user.email ?? '' }} activePath="/tasks">
+      <Shell user={{ email: user.email ?? '' }} activePath="/tasks">
         <PageHeader title="المهام" />
         <Card>
           <EmptyState
@@ -71,7 +72,7 @@ export default async function TasksPage({
             description="سيُنشأ تلقائياً عند أول استخدام، أو في Pillar 15 migration."
           />
         </Card>
-      </AppShell>
+      </Shell>
     );
   }
 
@@ -126,7 +127,7 @@ export default async function TasksPage({
   ]);
 
   return (
-    <AppShell
+    <Shell
       user={{ email: user.email ?? '', displayName: actor.displayName }}
       activePath="/tasks"
     >
@@ -273,7 +274,7 @@ export default async function TasksPage({
       </Card>
 
       <Avatar name="" className="hidden" />
-    </AppShell>
+    </Shell>
   );
 }
 
