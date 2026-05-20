@@ -166,7 +166,9 @@ export function SideDock() {
 export function BottomDock() {
   return (
     <div className="md:hidden" style={{
-      position: 'fixed', bottom: 16, left: '50%',
+      position: 'fixed',
+      bottom: 'calc(16px + env(safe-area-inset-bottom))',
+      left: '50%',
       transform: 'translateX(-50%)', zIndex: 50,
       background: C.surface, borderRadius: 16, padding: 6,
       border: `1px solid ${C.lineStrong}`,

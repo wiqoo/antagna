@@ -47,8 +47,9 @@ const AI_PRIORITIES = [
 
 export default function MixDashboard() {
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'var(--font-arabic), system-ui' }}>
+    <div dir="rtl" style={{ background: C.bg, color: C.text, fontFamily: 'var(--font-arabic), system-ui' }}>
       <style>{`
+        html, body { background: ${C.bg}; }
         .cards-grid { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
         @media (max-width: 1100px) {
           .cards-grid { grid-template-columns: repeat(6, 1fr); }
@@ -58,7 +59,11 @@ export default function MixDashboard() {
         @media (max-width: 720px) {
           .cards-grid { grid-template-columns: 1fr; }
           .cards-grid > * { grid-column: span 1 !important; }
-          .mix-main { padding: 16px 12px !important; padding-inline-end: 12px !important; }
+          .mix-main {
+            padding: 16px 12px !important;
+            padding-inline-end: 12px !important;
+            padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+          }
           .today-strip { grid-template-columns: 1fr !important; }
           .ai-actions { flex-direction: column !important; align-items: stretch !important; }
           .ai-actions > button { width: 100% !important; }
