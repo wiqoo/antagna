@@ -127,7 +127,7 @@ export default async function ProjectsListPage({
             </Link>
             <Link
               href="/projects/new"
-              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
+              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]"
             >
               <Plus size={16} />
               مشروع جديد
@@ -253,7 +253,7 @@ export default async function ProjectsListPage({
             action={
               <Link
                 href={hasFilters ? '/projects' : '/projects/new'}
-                className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
+                className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]"
               >
                 {hasFilters ? 'مسح الفلاتر' : '+ مشروع جديد'}
               </Link>

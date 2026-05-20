@@ -17,9 +17,9 @@ export function Card({
   return (
     <As
       className={clsx(
-        'rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 backdrop-blur',
-        padded && 'p-6',
-        hover && 'magnet cursor-pointer hover:border-[var(--line-strong)] hover:bg-[var(--bg-elevated)]',
+        'rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]',
+        padded && 'p-5',
+        hover && 'magnet cursor-pointer hover:border-[var(--line-strong)]',
         className,
       )}
     >
@@ -43,13 +43,13 @@ export function CardHeader({
 }) {
   const titleCls =
     size === 'lg'
-      ? 'text-lg font-semibold tracking-tight'
+      ? 'text-[18px] font-semibold tracking-[-0.014em]'
       : size === 'sm'
-        ? 'text-sm font-semibold'
-        : 'text-base font-semibold tracking-tight';
+        ? 'text-[13px] font-semibold'
+        : 'text-[15px] font-semibold tracking-[-0.012em]';
   return (
-    <div className={clsx('mb-5 flex items-start justify-between gap-4', className)}>
-      <div className="space-y-1">
+    <div className={clsx('mb-4 flex items-start justify-between gap-3', className)}>
+      <div className="space-y-0.5">
         <h2 className={clsx(titleCls, 'text-[var(--text)]')}>{title}</h2>
         {subtitle && (
           <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">

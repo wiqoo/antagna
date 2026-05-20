@@ -53,7 +53,7 @@ export function BriefParseForm({
             type="button"
             onClick={handleParse}
             disabled={isPending || !text.trim()}
-            className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-black hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-white hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? (
               <Loader2 size={15} className="animate-spin" />
@@ -237,7 +237,7 @@ export function BriefParseForm({
           <div className="flex items-center gap-3 border-t border-[var(--line)] pt-5">
             <button
               type="submit"
-              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-black hover:bg-[var(--accent-hover)]"
+              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-white hover:bg-[var(--accent-hover)]"
             >
               <Sparkles size={15} />
               إنشاء المشروع

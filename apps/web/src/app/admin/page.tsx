@@ -312,7 +312,7 @@ export default async function AdminPage() {
           <form action={seedDevData}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]"
             >
               <Sparkles size={14} />
               تشغيل

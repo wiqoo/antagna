@@ -1,6 +1,5 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
-import { ArrowUpRight } from 'lucide-react';
 import { Counter } from './Counter';
 
 type Tone = 'default' | 'accent';
@@ -24,46 +23,26 @@ export function StatTile({
 }) {
   const inner = (
     <>
-      {/* Editorial label row */}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-          {label}
-        </span>
-        {icon && (
-          <span className="text-[var(--text-dim)] group-hover:text-[var(--accent)]">
-            {icon}
-          </span>
-        )}
+      <div className="flex items-center justify-between text-[12px] text-[var(--text-muted)]">
+        <span>{label}</span>
+        {icon && <span className="text-[var(--text-dim)]">{icon}</span>}
       </div>
-
-      {/* Big number */}
-      <div className="mt-6 flex items-baseline gap-2">
+      <div className="mt-3">
         <span
           className={clsx(
-            'text-[44px] font-bold leading-none tracking-tight tabular',
+            'text-[28px] font-bold leading-none tracking-[-0.018em] tabular',
             tone === 'accent' ? 'text-[var(--accent)]' : 'text-[var(--text)]',
           )}
         >
           {animateTo != null ? <Counter to={animateTo} /> : value}
         </span>
       </div>
-
-      {/* Sub label */}
-      {sub && (
-        <p className="mt-2 text-[11px] text-[var(--text-muted)]">{sub}</p>
-      )}
-
-      {href && (
-        <ArrowUpRight
-          size={14}
-          className="absolute bottom-5 start-5 text-[var(--text-dim)] opacity-0 transition-opacity group-hover:opacity-100 group-hover:text-[var(--accent)] rtl:rotate-180"
-        />
-      )}
+      {sub && <p className="mt-1 text-[11px] text-[var(--text-dim)]">{sub}</p>}
     </>
   );
 
   const cls = clsx(
-    'group relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur',
+    'block rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4',
     href && 'magnet cursor-pointer hover:border-[var(--line-strong)]',
   );
 

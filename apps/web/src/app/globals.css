@@ -1,165 +1,143 @@
 @import "tailwindcss";
 
-/* Tailwind 4 only auto-scans files in the same package by default.
-   Pull classes from the shared @antagna/ui workspace. */
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
-  /* ── Surface ladder — 5 tiers, near-neutral cool ─────────────────────── */
-  --color-bg:           #08090A;
-  --color-bg-elevated:  #0E0F11;
-  --color-surface:      #141517;
-  --color-surface-hover:#1A1B1E;
-  --color-overlay:      #202125;
+  /* ── Notion/Minimal palette — light cream ─────────────────────────────── */
+  --color-bg:           #FBFAF7;  /* warm off-white, Notion's signature */
+  --color-bg-elevated:  #FFFFFF;  /* pure white for raised cards */
+  --color-surface:      #F4F2EE;  /* faint warm gray */
+  --color-surface-hover:#EEEBE5;
+  --color-overlay:      #FFFFFF;
 
-  /* ── Borders — rgba hairlines ────────────────────────────────────────── */
-  --color-line:        rgba(255, 255, 255, 0.06);
-  --color-line-strong: rgba(255, 255, 255, 0.10);
-  --color-line-bold:   rgba(255, 255, 255, 0.16);
+  --color-line:        rgba(55, 53, 47, 0.09);
+  --color-line-strong: rgba(55, 53, 47, 0.14);
+  --color-line-bold:   rgba(55, 53, 47, 0.22);
 
-  /* ── Text — 4 tiers, never pure white ────────────────────────────────── */
-  --color-text:        #F4F4F5;
-  --color-text-muted:  #A1A1AA;
-  --color-text-dim:    #71717A;
-  --color-text-faded:  #52525B;
+  --color-text:       #37352F;  /* Notion's dark brown-black */
+  --color-text-muted: #787774;
+  --color-text-dim:   #9B9A97;
+  --color-text-faded: #B8B6B3;
 
-  /* ── Accent — Volt orange, used SPARINGLY ────────────────────────────── */
+  /* Volt orange stays — used VERY sparingly on primary CTA only */
   --color-accent:       #FF6B1A;
-  --color-accent-hover: #FF8442;
-  --color-accent-tint:  rgba(255, 107, 26, 0.10);
-  --color-accent-ring:  rgba(255, 107, 26, 0.35);
+  --color-accent-hover: #E55810;
+  --color-accent-tint:  rgba(255, 107, 26, 0.08);
+  --color-accent-ring:  rgba(255, 107, 26, 0.30);
 
-  /* ── Semantic — muted, not Bootstrap-bright ──────────────────────────── */
-  --color-success: #34D399;
-  --color-warning: #FBBF24;
-  --color-danger:  #F87171;
-  --color-info:    #60A5FA;
+  /* Semantic — darker on light bg */
+  --color-success: #0F7B6C;
+  --color-warning: #B7651C;
+  --color-danger:  #B23B3B;
+  --color-info:    #1A6AC0;
 
-  /* ── Fonts ───────────────────────────────────────────────────────────── */
-  --font-sans:    var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono:    var(--font-mono),   ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* ── Radii — small, consistent ───────────────────────────────────────── */
-  --radius-xs:  4px;   /* tags, badges */
-  --radius-sm:  6px;   /* buttons, inputs */
-  --radius-md:  8px;   /* cards */
-  --radius-lg:  12px;  /* modals */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
 }
 
-/* ── Mirror to plain custom props so `var(--bg)` shorthand still works ── */
 :root {
-  --bg:            #08090A;
-  --bg-elevated:   #0E0F11;
-  --surface:       #141517;
-  --surface-hover: #1A1B1E;
-  --overlay:       #202125;
+  --bg:            #FBFAF7;
+  --bg-elevated:   #FFFFFF;
+  --surface:       #F4F2EE;
+  --surface-hover: #EEEBE5;
+  --overlay:       #FFFFFF;
 
-  --line:          rgba(255, 255, 255, 0.06);
-  --line-strong:   rgba(255, 255, 255, 0.10);
-  --line-bold:     rgba(255, 255, 255, 0.16);
+  --line:        rgba(55, 53, 47, 0.09);
+  --line-strong: rgba(55, 53, 47, 0.14);
+  --line-bold:   rgba(55, 53, 47, 0.22);
 
-  --text:          #F4F4F5;
-  --text-muted:    #A1A1AA;
-  --text-dim:      #71717A;
-  --text-faded:    #52525B;
+  --text:       #37352F;
+  --text-muted: #787774;
+  --text-dim:   #9B9A97;
+  --text-faded: #B8B6B3;
 
-  --accent:        #FF6B1A;
-  --accent-hover:  #FF8442;
-  --accent-tint:   rgba(255, 107, 26, 0.10);
-  --accent-ring:   rgba(255, 107, 26, 0.35);
+  --accent:       #FF6B1A;
+  --accent-hover: #E55810;
+  --accent-tint:  rgba(255, 107, 26, 0.08);
+  --accent-ring:  rgba(255, 107, 26, 0.30);
 
-  --success:       #34D399;
-  --warning:       #FBBF24;
-  --danger:        #F87171;
-  --info:          #60A5FA;
+  --success: #0F7B6C;  --success-tint: rgba(15, 123, 108, 0.10);
+  --warning: #B7651C;  --warning-tint: rgba(183, 101, 28, 0.10);
+  --danger:  #B23B3B;  --danger-tint:  rgba(178, 59, 59, 0.10);
+  --info:    #1A6AC0;  --info-tint:    rgba(26, 106, 192, 0.10);
 }
 
 /* ── Base typography ─────────────────────────────────────────────────────
-   - tabular-nums everywhere (money + counts align)
-   - cv11/ss01 = Inter's stylistic alternates (better dotted i, single-storey a)
-   - Arabic locale gets bumped slightly + looser line-height */
+   Generous size + tabular-nums. Notion uses ~14px body with 1.5 line-height.
+   Arabic gets line-height 1.7 (Arabic glyphs need room). */
 html, body {
   font-family: var(--font-sans);
-  font-feature-settings: "cv11", "ss01", "ss03", "calt";
+  font-feature-settings: "cv11", "ss01", "calt";
   font-variant-numeric: tabular-nums;
   background: var(--bg);
   color: var(--text);
-  letter-spacing: -0.005em;     /* Latin default */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Arabic content needs a touch more size + line-height + zero tracking */
-:lang(ar),
-[dir="rtl"] {
-  letter-spacing: 0;
-}
-:lang(ar) p,
-:lang(ar) li,
-:lang(ar) td,
-[dir="rtl"] p,
-[dir="rtl"] li,
-[dir="rtl"] td {
-  line-height: 1.65;
+body { font-size: 15px; line-height: 1.5; }
+
+/* Arabic line-height adjustments */
+:lang(ar) p, :lang(ar) li, :lang(ar) td,
+[dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] td {
+  line-height: 1.7;
 }
 
-/* Display headings — tighter Latin tracking; reset for Arabic */
+/* Headings — big, dark, restrained tracking */
 h1, h2, h3 {
-  letter-spacing: -0.018em;
-  font-weight: 590;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 :lang(ar) h1, :lang(ar) h2, :lang(ar) h3,
 [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 {
   letter-spacing: 0;
+  font-weight: 600;  /* Bold Arabic looks blocky; use semi-bold */
 }
 
-/* ── Editorial selection + scrollbar + focus ─────────────────────────── */
 ::selection {
-  background: var(--accent-ring);
-  color: #fff;
+  background: var(--accent-tint);
+  color: var(--text);
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(55, 53, 47, 0.15);
   border-radius: 999px;
+  border: 2px solid var(--bg);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
+::-webkit-scrollbar-thumb:hover { background: rgba(55, 53, 47, 0.25); }
 
 input, select, textarea, button { font-family: inherit; }
 
 *:focus-visible {
-  outline: 1px solid var(--accent-ring);
+  outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* ── Motion ─────────────────────────────────────────────────────────────
-   - 120ms is the sweet spot for hover; 180ms for state changes
-   - cubic-bezier(0.16, 1, 0.3, 1) for "premium ease-out"
-   - 60ms scale(0.97) for active press */
+/* Motion — minimal. Notion-style is almost no animation. */
 * {
-  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
-  transition-duration: 180ms;
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: 120ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 .no-transition,
 .no-transition * { transition: none !important; }
 
-/* ── Animation keyframes ─────────────────────────────────────────────── */
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .stagger-in > * {
   opacity: 0;
-  animation: rise-in 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: rise-in 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .stagger-in > *:nth-child(1)  { animation-delay: 20ms; }
 .stagger-in > *:nth-child(2)  { animation-delay: 40ms; }
@@ -169,64 +147,45 @@ input, select, textarea, button { font-family: inherit; }
 .stagger-in > *:nth-child(6)  { animation-delay: 120ms; }
 .stagger-in > *:nth-child(7)  { animation-delay: 140ms; }
 .stagger-in > *:nth-child(8)  { animation-delay: 160ms; }
-.stagger-in > *:nth-child(9)  { animation-delay: 180ms; }
-.stagger-in > *:nth-child(10) { animation-delay: 200ms; }
-.stagger-in > *:nth-child(n+11) { animation-delay: 220ms; }
+.stagger-in > *:nth-child(n+9) { animation-delay: 180ms; }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-up {
   opacity: 0;
-  animation: fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-up 380ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-main { animation: fade-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+main { animation: fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* ── Utilities ──────────────────────────────────────────────────────── */
+/* Utilities */
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Linear-style hover lift — 0.5px Y translate, no shadow */
+/* Magnet hover — subtler in light mode */
 .magnet { will-change: transform; }
-.magnet:hover { transform: translateY(-0.5px); }
-.magnet:active { transform: scale(0.97); transition-duration: 60ms; }
+.magnet:hover { background: rgba(55, 53, 47, 0.03); }
+.magnet:active { transform: scale(0.98); transition-duration: 80ms; }
 
-/* Editorial section rule — "— LABEL ────────────" */
+/* Section divider — was decorative; in Notion-style it's just a hairline */
 .section-rule {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
-.section-rule::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
 
-/* Eyebrow primitive — used a lot */
 .eyebrow {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-dim);
-}
-.eyebrow-accent {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text-muted);
 }
 
-/* Form input — single source of truth (was repeated <style> blocks) */
+/* Form input — light mode */
 .form-input {
   width: 100%;
   height: 40px;
@@ -235,11 +194,12 @@ main { animation: fade-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   border: 1px solid var(--line);
   background: var(--bg-elevated);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
 }
 .form-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--text-dim);
+  box-shadow: 0 0 0 3px var(--accent-tint);
 }
 textarea.form-input {
   height: auto;
@@ -248,7 +208,7 @@ textarea.form-input {
   resize: vertical;
 }
 
-/* Hero number scale — single source */
-.num-xl  { font-size: 44px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; }
-.num-lg  { font-size: 32px; line-height: 1; font-weight: 600; letter-spacing: -0.018em; }
-.num-md  { font-size: 20px; line-height: 1; font-weight: 600; letter-spacing: -0.014em; }
+/* Hero number scale — minimal */
+.num-xl  { font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.num-lg  { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.018em; color: var(--text); }
+.num-md  { font-size: 18px; line-height: 1.1; font-weight: 600; letter-spacing: -0.012em; color: var(--text); }

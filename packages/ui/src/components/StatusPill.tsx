@@ -35,7 +35,7 @@ export function StatusPill({
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]',
+        'inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium',
         TXT[tone],
         className,
       )}

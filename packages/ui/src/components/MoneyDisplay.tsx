@@ -21,10 +21,8 @@ export function MoneyDisplay({
   });
   return (
     <span className={`tabular ${className ?? ''}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-        {currency}
-      </span>{' '}
-      <span className="text-[var(--text)]">{formatted}</span>
+      <span className="text-[var(--text)]">{formatted}</span>{' '}
+      <span className="text-[10px] text-[var(--text-dim)]">{currency}</span>
     </span>
   );
 }

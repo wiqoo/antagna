@@ -134,7 +134,7 @@ export default async function EquipmentPage() {
         action={
           <Link
             href="/equipment/new"
-            className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-black hover:bg-[var(--accent-hover)]"
+            className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-white hover:bg-[var(--accent-hover)]"
           >
             <Plus size={15} />
             إضافة معدّة

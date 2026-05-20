@@ -6,13 +6,13 @@ import {
   Inbox,
   Users,
   Camera,
-  Megaphone,
   UserSquare2,
   Calendar,
   BarChart3,
   FileText,
   Shield,
   Settings,
+  Megaphone,
   LogOut,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
@@ -65,42 +65,31 @@ function SidebarContent({
 }) {
   return (
     <div className="flex h-full min-h-screen flex-col">
-      {/* Logo block */}
-      <div className="px-5 pb-6 pt-5">
+      {/* Logo block — small, restrained */}
+      <div className="px-4 pb-5 pt-5">
         <a href="/dashboard" className="block">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-[var(--text)]">
-              Antagna
-            </span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
-              v2
-            </span>
-          </div>
-          <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-dim)]">
-            Volt Production · Jeddah
-          </p>
+          <span className="text-[15px] font-semibold tracking-tight text-[var(--text)]">
+            Antagna
+          </span>
         </a>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 pb-6">
+      {/* Nav — Notion-style: tiny labels, generous spacing */}
+      <nav className="flex-1 overflow-y-auto px-2 pb-6">
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="mb-7">
-            <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-              — {group.label}
+          <div key={group.label} className="mb-5">
+            <p className="px-3 pb-1.5 pt-2 text-[11px] font-medium text-[var(--text-dim)]">
+              {group.label}
             </p>
             <ul className="space-y-px">
               {group.items.map(({ href, label, icon: Icon, soon }) => {
                 const active = activePath?.startsWith(href);
                 const itemCls =
-                  'group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium ' +
+                  'group flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] ' +
                   (active
-                    ? 'bg-[var(--surface)] text-[var(--text)]'
-                    : 'text-[var(--text-muted)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]');
-                const iconCls =
-                  active
-                    ? 'text-[var(--accent)]'
-                    : 'text-[var(--text-dim)] group-hover:text-[var(--text-muted)]';
+                    ? 'bg-[var(--surface)] text-[var(--text)] font-medium'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface)]/70 hover:text-[var(--text)]');
+                const iconCls = 'text-[var(--text-dim)]';
 
                 if (soon) {
                   return (
@@ -109,10 +98,10 @@ function SidebarContent({
                         aria-disabled="true"
                         className={itemCls + ' cursor-not-allowed opacity-50'}
                       >
-                        <Icon size={15} strokeWidth={1.75} className={iconCls} />
+                        <Icon size={14} strokeWidth={1.5} className={iconCls} />
                         <span>{label}</span>
-                        <span className="ms-auto text-[9px] uppercase tracking-wider text-[var(--text-dim)]">
-                          soon
+                        <span className="ms-auto text-[9px] text-[var(--text-dim)]">
+                          قريباً
                         </span>
                       </span>
                     </li>
@@ -121,11 +110,8 @@ function SidebarContent({
                 return (
                   <li key={href}>
                     <a href={href} className={itemCls}>
-                      <Icon size={15} strokeWidth={1.75} className={iconCls} />
+                      <Icon size={14} strokeWidth={1.5} className={iconCls} />
                       <span>{label}</span>
-                      {active && (
-                        <span className="ms-auto h-1 w-1 rounded-full bg-[var(--accent)]" />
-                      )}
                     </a>
                   </li>
                 );
@@ -136,15 +122,15 @@ function SidebarContent({
       </nav>
 
       {/* User */}
-      <div className="border-t border-[var(--line)] p-3">
-        <div className="group flex items-center gap-3 rounded-md p-2 hover:bg-[var(--surface)]/40">
+      <div className="border-t border-[var(--line)] p-2">
+        <div className="group flex items-center gap-2 rounded-md p-2 hover:bg-[var(--surface)]/70">
           <Avatar
             name={user?.displayName ?? user?.email ?? '?'}
-            size="md"
+            size="sm"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-medium text-[var(--text)]">
-              {user?.displayName ?? 'Antagna user'}
+            <p className="truncate text-[12px] text-[var(--text)]">
+              {user?.displayName ?? 'مرحباً'}
             </p>
             <p className="truncate text-[10px] text-[var(--text-dim)]">
               {user?.email}
@@ -156,7 +142,7 @@ function SidebarContent({
               title="تسجيل خروج"
               className="grid h-7 w-7 place-items-center rounded-md text-[var(--text-dim)] hover:bg-[var(--surface)] hover:text-[var(--danger)]"
             >
-              <LogOut size={13} />
+              <LogOut size={12} />
             </button>
           </form>
         </div>
@@ -184,10 +170,10 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      {/* Sidebar — 232px, right side (RTL) */}
+      {/* Sidebar — 240px, right side (RTL) — no glass, just subtle surface */}
       <aside
-        className="hidden shrink-0 border-l border-[var(--line)] bg-[var(--bg-elevated)]/40 backdrop-blur-2xl md:block"
-        style={{ width: 232 }}
+        className="hidden shrink-0 border-l border-[var(--line)] bg-[var(--bg)] md:block"
+        style={{ width: 240 }}
       >
         <div className="sticky top-0">
           <SidebarContent user={user} activePath={activePath} />
@@ -195,25 +181,20 @@ export function AppShell({
       </aside>
 
       <div className="flex flex-1 flex-col">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--bg)]/80 px-4 backdrop-blur-2xl md:px-8">
+        {/* Top bar — minimal, just nav + search */}
+        <header className="sticky top-0 z-30 flex h-12 items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--bg)] px-4 md:px-8">
           <div className="flex items-center gap-3 md:hidden">
             <MobileNav>
               <SidebarContent user={user} activePath={activePath} />
             </MobileNav>
-            <a href="/dashboard" className="flex items-baseline gap-1.5">
-              <span className="text-base font-bold tracking-tight">
-                Antagna
-              </span>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-                v2
-              </span>
+            <a href="/dashboard" className="text-[14px] font-semibold tracking-tight">
+              Antagna
             </a>
           </div>
 
           <div className="hidden md:block">{commandPalette}</div>
 
-          <div className="flex items-center gap-2 ms-auto md:ms-0">
+          <div className="flex items-center gap-1 ms-auto md:ms-0">
             {notifications && onMarkAllRead && onMarkOneRead && (
               <NotificationsBell
                 items={notifications}
@@ -224,8 +205,8 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-8 md:px-12 md:py-12">
-          <div className="mx-auto max-w-[1400px] space-y-10">{children}</div>
+        <main className="flex-1 px-5 py-10 md:px-16 md:py-16">
+          <div className="mx-auto max-w-[860px] space-y-12">{children}</div>
         </main>
       </div>
     </div>
