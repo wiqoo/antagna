@@ -5,10 +5,31 @@ export const dynamic = 'force-static';
 const OPTIONS = [
   {
     slug: 'mix',
-    name: '✓ Mix · المختار',
-    nameAr: 'المختار: Conductor + Critical Path + Cards',
-    desc: 'مزيج الثلاثة: AI Conductor فوق (يوجّه القرارات)، اليوم time-strip في النص، Cards Grid قابلة للتخصيص تحت، Ask Claude في الأسفل. مع side-dock.',
-    cards: ['AI Conductor', 'Today time-strip', 'Cards Grid', 'Ask Claude'],
+    name: '✓ Mix · Layered',
+    nameAr: 'الميكس · ترتيب رأسي',
+    desc: 'Conductor فوق → اليوم time-strip → Cards Grid → Ask Claude. ترتيب رأسي طبيعي.',
+    cards: ['AI Conductor', 'Today strip', 'Cards Grid', 'Ask Claude'],
+  },
+  {
+    slug: 'mix-sidebar',
+    name: '✓ Mix · Sidebar AI',
+    nameAr: 'الميكس · AI ثابت جانبي',
+    desc: 'AI Conductor ثابت على اليمين (full height) + Today + Cards على اليسار. Claude متاح دائماً.',
+    cards: ['Sticky AI rail', 'Today strip', 'Cards Grid'],
+  },
+  {
+    slug: 'mix-today',
+    name: '✓ Mix · Today-first',
+    nameAr: 'الميكس · التايملاين أولاً',
+    desc: 'Timeline أفقي full-width يعرض اليوم بصرياً بالساعات، ثم Cards + AI سايد-باي-سايد.',
+    cards: ['Hourly timeline', 'Cards', 'AI panel'],
+  },
+  {
+    slug: 'mix-dense',
+    name: '✓ Mix · Dense (power)',
+    nameAr: 'الميكس · مكثّف',
+    desc: '3 أعمدة (اليوم / AI / Cards)، كل شيء يبان في شاشة واحدة. للـ power users على شاشة كبيرة.',
+    cards: ['3-col layout', 'Single screen', 'Power user'],
   },
   {
     slug: 'cards',
