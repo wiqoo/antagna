@@ -824,6 +824,105 @@ export default async function ProjectDetailPage({
         </Card>
       </div>
 
+      {/* Frame.io-style 2-stage approval pipeline */}
+      {groupedDeliverables.reduce((s, g) => s + g.items.length, 0) > 0 && (
+        <Card>
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
+                — Approval Pipeline · Frame.io style
+              </p>
+              <h2 className="mt-2 text-base font-semibold text-[var(--text)]">
+                حالة المراجعة عبر المراحل
+              </h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Internal QC column */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
+                مراجعة داخلية
+              </p>
+              <PipelineStage
+                label="مسودة"
+                tone="neutral"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'draft').length,
+                  0,
+                )}
+              />
+              <PipelineStage
+                label="بانتظار المدير"
+                tone="warning"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'pending_director').length,
+                  0,
+                )}
+              />
+              <PipelineStage
+                label="بانتظار AM"
+                tone="warning"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'pending_am').length,
+                  0,
+                )}
+              />
+              <PipelineStage
+                label="تعديلات داخلية"
+                tone="danger"
+                count={groupedDeliverables.reduce(
+                  (s, g) =>
+                    s +
+                    g.items.filter(
+                      (i) => i.status === 'revisions_director' || i.status === 'revisions_am',
+                    ).length,
+                  0,
+                )}
+              />
+            </div>
+
+            {/* Client column */}
+            <div className="space-y-2 border-s border-[var(--line)] ps-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                مراجعة العميل
+              </p>
+              <PipelineStage
+                label="جاهز للعميل"
+                tone="accent"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'client_ready').length,
+                  0,
+                )}
+              />
+              <PipelineStage
+                label="لدى العميل"
+                tone="info"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'in_client_review').length,
+                  0,
+                )}
+              />
+              <PipelineStage
+                label="تعديلات العميل"
+                tone="danger"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'revisions_client').length,
+                  0,
+                )}
+              />
+              <PipelineStage
+                label="مُسلَّم"
+                tone="success"
+                count={groupedDeliverables.reduce(
+                  (s, g) => s + g.items.filter((i) => i.status === 'delivered').length,
+                  0,
+                )}
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Deliverables */}
       <Card padded={false}>
         <div className="p-6 pb-4">
@@ -1320,3 +1419,33 @@ const STATUS_LABEL_AR: Record<string, string> = {
   delivered: 'مُسلَّم',
   cancelled: 'مُلغى',
 };
+
+function PipelineStage({
+  label,
+  count,
+  tone,
+}: {
+  label: string;
+  count: number;
+  tone: 'neutral' | 'warning' | 'danger' | 'success' | 'info' | 'accent';
+}) {
+  const TONE: Record<string, string> = {
+    neutral: 'border-[var(--line)] text-[var(--text-muted)]',
+    warning: 'border-[var(--warning)]/40 bg-[var(--warning)]/[0.04] text-[var(--warning)]',
+    danger:  'border-[var(--danger)]/40 bg-[var(--danger)]/[0.04] text-[var(--danger)]',
+    success: 'border-[var(--success)]/40 bg-[var(--success)]/[0.04] text-[var(--success)]',
+    info:    'border-[var(--info)]/40 bg-[var(--info)]/[0.04] text-[var(--info)]',
+    accent:  'border-[var(--accent)]/40 bg-[var(--accent)]/[0.04] text-[var(--accent)]',
+  };
+  return (
+    <div
+      className={
+        'flex items-center justify-between rounded-md border px-3 py-2 ' +
+        (count === 0 ? 'border-[var(--line)]/50 opacity-50' : TONE[tone] ?? TONE.neutral)
+      }
+    >
+      <span className="text-[12px]">{label}</span>
+      <span className="font-mono text-[16px] font-bold tabular">{count}</span>
+    </div>
+  );
+}
