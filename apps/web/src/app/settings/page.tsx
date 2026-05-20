@@ -125,7 +125,7 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader
               title="الإشعارات"
-              subtitle="اختار ايه اللي تتلقى عنه إشعار"
+              subtitle="اختارما الذي تتلقى عنه إشعار"
             />
             <div className="space-y-3">
               <Toggle

@@ -41,8 +41,8 @@ export function BriefParseForm({
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={10}
-          placeholder="ألصق هنا الإيميل / الـ WhatsApp / النص اللي وصلك من العميل…
-الـ AI هيقرأه ويستخرج التفاصيل تلقائياً."
+          placeholder="ألصق هنا البريد / الـ WhatsApp / النص الذي وصلك من العميل…
+الذكاء الاصطناعي هيقرأه ويستخرج التفاصيل تلقائياً."
           className="w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-4 text-[14px] leading-relaxed text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
         />
         <div className="flex items-center justify-between">

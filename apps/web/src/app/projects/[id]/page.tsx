@@ -21,6 +21,8 @@ import {
 } from '@antagna/db';
 import {
   PageHeader,
+  AIHints,
+  type AIHint,
   Card,
   CardHeader,
   StatusPill,
@@ -367,6 +369,75 @@ export default async function ProjectDetailPage({
 
   const nextStages = STAGE_TRANSITIONS[project.stage] ?? [];
 
+  // ── Page-level AI hints (derived from data already loaded) ────────────────
+  const now = new Date();
+  const overdueDays = project.deliveryDueAt
+    ? Math.floor((now.getTime() - new Date(project.deliveryDueAt).getTime()) / 86_400_000)
+    : null;
+  const closeDeadline = overdueDays != null && overdueDays >= -3 && overdueDays < 0;
+  const isOverdue = overdueDays != null && overdueDays > 0;
+  const overdueTasks = openTasks.filter(
+    (t) => t.dueAt && new Date(t.dueAt) < now,
+  );
+  const pendingReview = delivStats.find((s) => s.status === 'pending_director')?.count ?? 0;
+  const inClientReview = delivStats.find((s) => s.status === 'in_client_review')?.count ?? 0;
+  const lastUpdate = comments[0]?.createdAt
+    ? Math.floor((now.getTime() - new Date(comments[0].createdAt).getTime()) / 86_400_000)
+    : null;
+
+  const pageHints: AIHint[] = [];
+  if (isOverdue) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `موعد التسليم متأخر بـ ${overdueDays} يوم`,
+      insight: 'فاوض العميل على موعد جديد أو سرّع الـ deliverables.',
+      urgent: true,
+    });
+  } else if (closeDeadline) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `${Math.abs(overdueDays!)} أيام فقط حتى التسليم`,
+      insight: 'تحقق من تقدّم المهام و الـ deliverables المتبقية.',
+      urgent: true,
+    });
+  }
+  if (blockedTasks.length > 0) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `${blockedTasks.length} مهمة موقوفة (blocked)`,
+      insight: 'حدد السبب أو وزّعها على شخص قادر على إكمالها.',
+      urgent: true,
+    });
+  }
+  if (overdueTasks.length > 0 && pageHints.length < 3) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `${overdueTasks.length} مهمة تأخر موعدها`,
+      insight: 'حدّث الحالة أو غيّر التاريخ.',
+    });
+  }
+  if (pendingReview > 0 && pageHints.length < 3) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `${pendingReview} مخرج بانتظار مراجعتك`,
+      insight: 'راجع و وافق أو اطلب تعديلات قبل أن يتأخر العميل.',
+    });
+  }
+  if (inClientReview > 0 && pageHints.length < 3) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `${inClientReview} مخرج عند العميل للمراجعة`,
+      insight: 'تابع العميل إذا تجاوز ٤٨ ساعة بدون رد.',
+    });
+  }
+  if (lastUpdate != null && lastUpdate >= 5 && pageHints.length < 3) {
+    pageHints.push({
+      index: String(pageHints.length + 1).padStart(2, '0'),
+      text: `لا حركة على المشروع منذ ${lastUpdate} يوم`,
+      insight: 'تواصل مع المسؤول أو حدّث الحالة لتجنّب التوقف.',
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/projects">
       <Link
@@ -376,6 +447,15 @@ export default async function ProjectDetailPage({
         <ArrowLeft size={14} className="rtl:rotate-180" />
         كل المشاريع
       </Link>
+
+      {pageHints.length > 0 && (
+        <AIHints
+          context={`Antagna AI · ${project.code}`}
+          headline={`${pageHints.length} ${pageHints.length === 1 ? 'تنبيه' : 'تنبيهات'} على هذا المشروع`}
+          hints={pageHints}
+          compact
+        />
+      )}
 
       {/* Hero */}
       <Card className="relative overflow-hidden">
@@ -509,7 +589,7 @@ export default async function ProjectDetailPage({
         <Card>
           <CardHeader
             title="نقل المرحلة"
-            subtitle="انتقل بالمشروع إلى المرحلة التالية في الـ pipeline"
+            subtitle="انتقل بالمشروع إلى المرحلة التالية في المسار"
           />
           <div className="flex flex-wrap items-center gap-2">
             {nextStages.map((s) => (
@@ -627,7 +707,7 @@ export default async function ProjectDetailPage({
             <EmptyState
               icon={<ListChecks size={20} />}
               title="لا توجد مهام بعد"
-              description="أضف مهام من الفورم اللي فوق."
+              description="أضف مهام من النموذج الذي فوق."
             />
           ) : (
             <ul className="divide-y divide-[var(--line)]">
@@ -716,7 +796,7 @@ export default async function ProjectDetailPage({
             <EmptyState
               icon={<Users2 size={20} />}
               title="لم يتم تعيين فريق بعد"
-              description="استخدم الفورم لإضافة أول عضو."
+              description="استخدم النموذج لإضافة أول عضو."
             />
           ) : (
             <ul className="divide-y divide-[var(--line)]">
@@ -963,7 +1043,7 @@ export default async function ProjectDetailPage({
           <EmptyState
             icon={<Package2 size={20} />}
             title="لا توجد مخرجات بعد"
-            description="أضف مجموعة (مثل ريلز، صور) ثم ضيف العناصر داخلها."
+            description="أضف مجموعة (مثل ريلز، صور) ثم أضف العناصر داخلها."
           />
         ) : (
           <div className="divide-y divide-[var(--line)]">

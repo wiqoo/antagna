@@ -109,7 +109,7 @@ export default async function TeamPage() {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${overloaded.length} عضو على ٤+ مشاريع نشطة`,
-      insight: 'اقترح تحويل مهام لأعضاء أقل ضغطاً قبل ما يتأخر التسليم.',
+      insight: 'اقترح تحويل مهام لأعضاء أقل ضغطاً قبل أن يتأخر التسليم.',
       urgent: true,
       actions: [{ label: 'اعرض الأعباء', href: '#team-list', primary: true }],
     });
@@ -119,7 +119,7 @@ export default async function TeamPage() {
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${idle.length} عضو نشط بدون مشاريع`,
       insight: 'فرصة لتوزيع جديد، تدريب، أو دعم زملاء على الـ load الزائد.',
-      actions: [{ label: 'اعرض الفاضي', href: '#team-list' }],
+      actions: [{ label: 'اعرض الفارغ', href: '#team-list' }],
     });
   }
   if (noCaps.length > 0 && hints.length < 3) {
@@ -149,7 +149,7 @@ export default async function TeamPage() {
 
       <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-4">
         <StatBox label="إجمالي" value={peopleArr.length} sub="عضو في الفريق" />
-        <StatBox label="نشط" value={active} sub="مفعّل دلوقتي" tone="success" />
+        <StatBox label="نشط" value={active} sub="مفعّل الآن" tone="success" />
         <StatBox label="أقسام" value={depts.length} sub="قسم منظّم" />
         <StatBox label="مهام مشاريع" value={totalProjects} sub="إجمالي assignments" />
       </section>

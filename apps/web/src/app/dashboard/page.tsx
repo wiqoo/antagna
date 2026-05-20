@@ -484,7 +484,7 @@ export default async function DashboardPage() {
           {/* الموافقات */}
           <DashCard span={4} title="قائمة الموافقات" badge={String(deliverablesQueue.length)}>
             {deliverablesQueue.length === 0 ? (
-              <p className="py-2 text-[11px] text-[var(--text-muted)]">الـ pipeline فاضي ✓</p>
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">المسار فارغ ✓</p>
             ) : (
               <ul className="divide-y divide-[var(--line)]">
                 {deliverablesQueue.slice(0, 4).map((d) => (
@@ -511,7 +511,7 @@ export default async function DashboardPage() {
           {/* تعارضات معدات */}
           <DashCard span={4} title="تعارضات معدات" badge={String(conflicts.length)} tone={conflicts.length > 0 ? 'warning' : undefined}>
             {conflicts.length === 0 ? (
-              <p className="py-2 text-[11px] text-[var(--text-muted)]">مفيش تعارضات.</p>
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">لا يوجد تعارضات.</p>
             ) : (
               <ul className="divide-y divide-[var(--line)]">
                 {conflicts.slice(0, 4).map((c) => (
@@ -727,7 +727,7 @@ export default async function DashboardPage() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-4 rounded-sm bg-[var(--danger)]/70" />
-                عبء زائد
+                حمل زائد
               </span>
             </div>
           </Card>
@@ -783,7 +783,7 @@ export default async function DashboardPage() {
               <EmptyState
                 icon={<ListChecks size={18} />}
                 title="لا توجد مخرجات بانتظار المراجعة"
-                description="ممتاز — الـ pipeline فاضي."
+                description="ممتاز — المسار فارغ."
               />
             </Card>
           ) : (
@@ -846,7 +846,7 @@ export default async function DashboardPage() {
               <EmptyState
                 icon={<TrendingUp size={18} />}
                 title="لا تسليمات قريبة"
-                description="مفيش deadlines في الـ14 يوم القادمة."
+                description="لا يوجد deadlines في الـ14 يوم القادمة."
               />
             </Card>
           ) : (

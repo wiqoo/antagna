@@ -177,7 +177,7 @@ export default async function EquipmentPage() {
       <PageHeader
         eyebrow="Equipment Inventory"
         title="المعدات"
-        subtitle="كاميرات، عدسات، إضاءة، صوت — كل ما يحرّك إنتاج Volt."
+        subtitle="كاميرات، عدسات، إضاءة، صوت — كل ما يدير إنتاج Volt."
         action={
           <Link
             href="/equipment/new"
@@ -356,8 +356,8 @@ export default async function EquipmentPage() {
           <Card>
             <EmptyState
               icon={<Camera size={18} />}
-              title="الكتالوج فاضي"
-              description="هتُستورَد المعدات من legacy DB في Pillar 15، أو ضيف معدّة الآن."
+              title="الكتالوج فارغ"
+              description="هتُستورَد المعدات من legacy DB في Pillar 15، أو أضف معدّة الآن."
               action={
                 <Link
                   href="/equipment/new"

@@ -118,7 +118,7 @@ export function BriefingCard({
             {greeting} محمد — <span className="gradient-text">{briefing.headline}</span>
           </>
         }
-        summary={`Claude راجع كل أنشطة Volt. أنت تقرر، هو ينبّه.`}
+        summary={`Claude راجع كل أنشطة Volt. أنت من يقرر، وهو ينبّه.`}
         hints={hints}
         updatedAt={updatedAt}
       />

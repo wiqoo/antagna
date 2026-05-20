@@ -105,7 +105,7 @@ export default async function KpisPage() {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${stale.length} مؤشر قديم بأكثر من ٤٨ ساعة`,
-      insight: 'الـ refresh schedule ممكن واقف أو زمنه طويل.',
+      insight: 'الـ refresh schedule ممكن واقف أو أو زمنه طويل جداً.',
     });
   }
 

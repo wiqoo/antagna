@@ -154,7 +154,7 @@ export default async function InboxPage() {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${oldOpen.length} thread مفتوح بدون رد ٣+ أيام`,
-      insight: 'follow-up أو قفل الـ thread.',
+      insight: 'متابعة أو أغلق المحادثة.',
       actions: [{ label: 'افتح القديمة', href: '#threads' }],
     });
   }
@@ -206,7 +206,7 @@ export default async function InboxPage() {
           <EmptyState
             icon={<Mail size={20} />}
             title="لا threads بعد"
-            description="Gmail Pub/Sub watch لسه manual setup. لما يتفعّل هتظهر الـ threads هنا."
+            description="Gmail Pub/Sub watch لا يزال manual setup. عند تفعيله ستظهر الـ threads هنا."
           />
         ) : (
           <ul className="divide-y divide-[var(--line)]">
@@ -273,7 +273,7 @@ export default async function InboxPage() {
             <EmptyState
               icon={<Send size={20} />}
               title="لا مسودات"
-              description="هتظهر هنا لما يبدأ الـ AI يبعت مسودات أو يبعتها أحد المستخدمين."
+              description="ستظهر هنا عندما يبدأ الذكاء الاصطناعي يرسل مسودات أو يرسلها أحد المستخدمين."
             />
           ) : (
             <ul className="divide-y divide-[var(--line)]">
@@ -317,7 +317,7 @@ export default async function InboxPage() {
           {whatsapps.length === 0 ? (
             <EmptyState
               icon={<MessageCircle size={20} />}
-              title="WhatsApp لسه manual setup"
+              title="WhatsApp لا يزال manual setup"
               description="هيشتغل عبر Baileys self-hosted (D-023) بعد إعداد الـ VPS."
             />
           ) : (

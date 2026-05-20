@@ -9,7 +9,7 @@ import {
   projects,
 } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   CardHeader,
@@ -17,6 +17,8 @@ import {
   EmptyState,
   Avatar,
   Button,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import {
@@ -91,6 +93,47 @@ export default async function ClientDetailPage({
     return acc;
   }, {});
 
+  // AI hints based on client + projects
+  const now = new Date();
+  const activeProjects = projectList.filter(
+    (p) => !['delivered', 'archived', 'lost', 'cancelled'].includes(p.stage),
+  );
+  const daysSinceLastProject = null as number | null;
+  const noContacts = contactList.length === 0;
+  const overdueProjects = activeProjects.filter(
+    (p) => p.deliveryDueAt && new Date(p.deliveryDueAt) < now,
+  );
+
+  const hints: AIHint[] = [];
+  if (overdueProjects.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${overdueProjects.length} مشروع متأخر مع هذا العميل`,
+      insight: 'تواصل مع العميل بشأن مواعيد التسليم الجديدة.',
+      urgent: true,
+    });
+  }
+  if (noContacts) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `لا توجد جهة اتصال مسجّلة`,
+      insight: 'أضف جهة اتصال واحدة على الأقل لتسهيل التواصل والتنبيهات.',
+    });
+  } else if (daysSinceLastProject != null && daysSinceLastProject >= 90 && activeProjects.length === 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `لا مشاريع نشطة منذ ${daysSinceLastProject} يوم`,
+      insight: 'فرصة لتجديد العلاقة برسالة متابعة أو استطلاع.',
+    });
+  }
+  if (client.averagePaymentDays && Number(client.averagePaymentDays) > 60) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `متوسط السداد ${client.averagePaymentDays} يوم`,
+      insight: 'فترة سداد طويلة — راجع شروط الدفع للمشاريع القادمة.',
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
       <Link
@@ -100,6 +143,15 @@ export default async function ClientDetailPage({
         <ArrowLeft size={14} className="rtl:rotate-180" />
         كل العملاء
       </Link>
+
+      {hints.length > 0 && (
+        <AIHints
+          context={`Antagna AI · ${client.nameAr}`}
+          headline={`${projectList.length} مشروع · ${activeProjects.length} نشط`}
+          hints={hints}
+          compact
+        />
+      )}
 
       <Card className="relative overflow-hidden">
         <div className="pointer-events-none absolute -end-32 -top-32 h-72 w-72 rounded-full bg-blue-500 opacity-[0.05] blur-3xl" />

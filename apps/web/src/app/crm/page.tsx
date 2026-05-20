@@ -136,7 +136,7 @@ export default async function CrmPage() {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${coldLeads.length} lead بارد ٥+ أيام`,
-      insight: 'follow-up واحد ممكن يرجّعه؛ بعدها سجّله ghosted.',
+      insight: 'متابعة واحد ممكن يرجّعه؛ بعدها سجّله ghosted.',
       actions: [{ label: 'اعرض الباردة', href: '#leads' }],
     });
   }
@@ -162,7 +162,7 @@ export default async function CrmPage() {
       <PageHeader
         eyebrow="CRM"
         title="العملاء و الفرص"
-        subtitle={`${clientRows.length} عميل · ${totalActive} مشروع نشط · ${leadRows.length} lead في الـ pipeline`}
+        subtitle={`${clientRows.length} عميل · ${totalActive} مشروع نشط · ${leadRows.length} lead في المسار`}
         action={
           <Link
             href="/clients/new"
@@ -186,7 +186,7 @@ export default async function CrmPage() {
           <EmptyState
             icon={<Flame size={20} />}
             title="لا توجد leads مفتوحة"
-            description="الـ leads هتظهر تلقائياً لما الـ inbound email routing يبدأ شغل (Pillar 8)."
+            description="الـ leads ستظهر تلقائياً لما الـ inbound email routing يبدأ بالعمل (Pillar 8)."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -289,7 +289,7 @@ export default async function CrmPage() {
           <EmptyState
             icon={<Users size={20} />}
             title="لا توجد عملاء بعد"
-            description="هيتم استيراد العملاء من legacy DB في Pillar 15."
+            description="سيتم استيراد العملاء من legacy DB في Pillar 15."
           />
         ) : (
           <div className="overflow-x-auto">

@@ -9,13 +9,15 @@ import {
   roleDefaultPermissions,
 } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   CardHeader,
   StatusPill,
   EmptyState,
   Avatar,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power } from 'lucide-react';
@@ -58,8 +60,43 @@ export default async function AdminPage() {
       .from(roleDefaultPermissions),
   ]);
 
+  const inactiveUsers = people.filter((p) => p.status !== 'active').length;
+  const disabledRules = rules.filter((r) => !r.active).length;
+  const inactiveKpis = kpis.filter((k) => !k.active).length;
+
+  const hints: AIHint[] = [];
+  if (disabledRules > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${disabledRules} قاعدة تنبيه معطّلة`,
+      insight: 'تأكد من تفعيل القواعد المهمة لتلقي الإشعارات في الوقت المناسب.',
+    });
+  }
+  if (inactiveKpis > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${inactiveKpis} مؤشر أداء غير نشط`,
+      insight: 'فعّل المؤشرات المطلوبة أو احذف القديمة.',
+    });
+  }
+  if (inactiveUsers > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${inactiveUsers} مستخدم بحالة غير نشطة`,
+      insight: 'راجع المستخدمين المعلّقين — تفعيل أو حذف.',
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/admin">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · الإدارة"
+          headline={`${people.length} مستخدم · ${rules.length} تنبيه · ${kpis.length} مؤشر`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Admin"
         title="الإدارة"

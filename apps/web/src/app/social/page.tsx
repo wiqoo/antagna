@@ -217,7 +217,7 @@ export default async function SocialPage() {
             <EmptyState
               icon={<Megaphone size={18} />}
               title="لا يوجد محتوى مسجّل"
-              description="هيظهر هنا كل post بمجرد إنشاء record."
+              description="سيظهر هنا كل منشور بمجرد إنشاء record."
             />
           </Card>
         ) : (

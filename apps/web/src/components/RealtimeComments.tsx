@@ -127,7 +127,7 @@ export function RealtimeComments({
 
       {comments.length === 0 ? (
         <p className="px-6 pb-6 text-center text-[12px] text-[var(--text-dim)]">
-          ابدأ المحادثة — التعليقات الجديدة من زملائك هتظهر هنا تلقائياً.
+          ابدأ المحادثة — التعليقات الجديدة من زملائك ستظهر هنا تلقائياً.
         </p>
       ) : (
         <ul className="divide-y divide-[var(--line)] border-t border-[var(--line)]">

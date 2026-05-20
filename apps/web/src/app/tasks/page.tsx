@@ -139,7 +139,7 @@ export default async function TasksPage({
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${overdueTasks.length} مهمة متأخرة عن الـ due date`,
-      insight: 'حدّث الحالة أو غيّر الموعد قبل ما تتراكم.',
+      insight: 'حدّث الحالة أو غيّر الموعد قبل أن تتراكم.',
       urgent: true,
       actions: [{ label: 'انزل للمهام', href: '#proj-tasks', primary: true }],
     });
@@ -148,7 +148,7 @@ export default async function TasksPage({
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${blockedTasks.length} مهمة blocked`,
-      insight: 'حدّد السبب وحلّ الـ blocker، أو حوّل المهمة لشخص يقدر يحلّه.',
+      insight: 'حدّد السبب وحلّ العائق، أو حوّل المهمة إلى شخص قادر على حلّه.',
       urgent: blockedTasks.length >= 3,
       actions: [{ label: 'اعرض blocked', href: '#proj-tasks' }],
     });
@@ -157,7 +157,7 @@ export default async function TasksPage({
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${urgentTasks.length} مهمة urgent`,
-      insight: 'الأولوية القصوى عليك دلوقتي.',
+      insight: 'الأولوية القصوى عليك الآن.',
       actions: [{ label: 'افتح الـ urgent', href: '#proj-tasks' }],
     });
   }
@@ -193,7 +193,7 @@ export default async function TasksPage({
       <Card>
         <CardHeader
           title="مهمة يومية سريعة"
-          subtitle="مهام شخصية مش مرتبطة بمشروع"
+          subtitle="مهام شخصية غير مرتبطة بمشروع"
         />
         <form action={createDailyTask} className="flex flex-wrap gap-2">
           <input
@@ -235,7 +235,7 @@ export default async function TasksPage({
         {projTasks.length === 0 ? (
           <EmptyState
             icon={<CheckCircle2 size={20} />}
-            title="مفيش مهام مفتوحة عليك"
+            title="لا يوجد مهام مفتوحة عليك"
             description="ممتاز — لا توجد مهام مشاريع مفتوحة."
           />
         ) : (
@@ -287,7 +287,7 @@ export default async function TasksPage({
           <EmptyState
             icon={<Circle size={20} />}
             title="لا مهام يومية"
-            description="ضيف مهمة من الفورم اللي فوق."
+            description="ضيف مهمة من النموذج الذي فوق."
           />
         ) : (
           <ul className="divide-y divide-[var(--line)]">

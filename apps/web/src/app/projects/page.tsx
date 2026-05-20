@@ -165,7 +165,7 @@ export default async function ProjectsListPage({
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${signals.stalled} مشروع متوقف ٥+ أيام`,
-      insight: 'مرحلة pre/brief والـ updated_at قديم — يحتاج follow-up.',
+      insight: 'مرحلة pre/brief والـ updated_at قديم — يحتاج متابعة.',
       urgent: false,
       actions: [{ label: 'اعرض المتوقفة', href: '/projects?stage=brief' }],
     });

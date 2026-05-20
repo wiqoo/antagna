@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { PageHeader, Card, StatusPill, EmptyState, Counter } from '@antagna/ui';
+import { PageHeader, Card, StatusPill, EmptyState, Counter, AIHints, type AIHint } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { FileText, TrendingUp, Briefcase } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -132,8 +132,73 @@ export default async function ReportsPage() {
     1,
   );
 
+  // AI hints from data
+  const monthly = [...revenueArr].sort((a, b) => a.month.localeCompare(b.month));
+  const lastTwo = monthly.slice(-2);
+  const trend =
+    lastTwo.length === 2 && Number(lastTwo[0]!.delivered_value) > 0
+      ? Math.round(
+          ((Number(lastTwo[1]!.delivered_value) - Number(lastTwo[0]!.delivered_value)) /
+            Number(lastTwo[0]!.delivered_value)) *
+            100,
+        )
+      : null;
+  const topClient = clientArr[0];
+  const topClientShare =
+    topClient && totalRevenue12mo > 0
+      ? Math.round((Number(topClient.delivered_value) / totalRevenue12mo) * 100)
+      : 0;
+  const overloaded = teamArr.filter((p) => Number(p.active_assignments) >= 4).length;
+  const utilizationPct = Math.round(utilized * 100);
+
+  const hints: AIHint[] = [];
+  if (trend != null && trend < -15) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `الإيرادات انخفضت ${Math.abs(trend)}٪ مقارنة بالشهر السابق`,
+      insight: 'راجع المشاريع المتأخرة و الفرص المعلّقة.',
+      urgent: true,
+    });
+  } else if (trend != null && trend > 15) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `الإيرادات ارتفعت ${trend}٪ هذا الشهر`,
+      insight: 'استمر على نفس النمط أو وثّق ما نجح.',
+    });
+  }
+  if (topClientShare >= 40 && topClient) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `العميل ${topClient.name_ar} يمثّل ${topClientShare}٪ من الإيرادات`,
+      insight: 'تركّز عالٍ في عميل واحد — وسّع قاعدة العملاء.',
+      urgent: topClientShare >= 60,
+    });
+  }
+  if (overloaded > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${overloaded} عضو فوق ٤ مشاريع نشطة`,
+      insight: 'احتمال تأخير التسليم — أعد توزيع الأحمال.',
+    });
+  }
+  if (utilizationPct < 20 && totalEqUnits > 5) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `استخدام المعدات منخفض (${utilizationPct}٪)`,
+      insight: 'فرصة لإيجار خارجي أو مراجعة كميات الشراء.',
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/reports">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · التقارير"
+          headline={`نظرة على أداء آخر ١٢ شهراً — ${hints.length} ملاحظة`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Reports"
         title="التقارير"
@@ -179,7 +244,7 @@ export default async function ReportsPage() {
             <EmptyState
               icon={<FileText size={18} />}
               title="لا توجد مشاريع مُسلَّمة بعد"
-              description="هتظهر الإيرادات الشهرية هنا أول ما يتم تسليم أول مشروع."
+              description="ستظهر الإيرادات الشهرية هنا أول ما يتم تسليم أول مشروع."
             />
           </Card>
         ) : (
