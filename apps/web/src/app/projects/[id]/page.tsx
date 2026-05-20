@@ -20,7 +20,6 @@ import {
   projectAssignmentRoleEnum,
 } from '@antagna/db';
 import {
-  
   PageHeader,
   Card,
   CardHeader,
@@ -29,6 +28,7 @@ import {
   EmptyState,
   Avatar,
   Button,
+  FileUpload,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import {
@@ -150,6 +150,7 @@ export default async function ProjectDetailPage({
     reservations,
     equipmentList,
     equipmentGroupList,
+    attachmentList,
   ] = await Promise.all([
       db
         .select({
@@ -290,6 +291,17 @@ export default async function ProjectDetailPage({
         })
         .from(equipmentGroups)
         .orderBy(equipmentGroups.nameAr),
+      db.execute<{
+        id: string;
+        filename: string;
+        mime_type: string;
+        size_bytes: number;
+      }>(sql`
+        SELECT id::text AS id, filename, mime_type, size_bytes::bigint::int AS size_bytes
+        FROM attachments
+        WHERE entity_type = 'project' AND entity_id = ${id}::uuid
+        ORDER BY created_at DESC
+      `),
     ]);
 
   // Group deliverables by their group
@@ -1005,6 +1017,29 @@ export default async function ProjectDetailPage({
             ))}
           </ul>
         )}
+      </Card>
+
+      {/* Attachments */}
+      <Card>
+        <CardHeader
+          title="الملفات المرفقة"
+          subtitle={`${(attachmentList as unknown as unknown[]).length} ملف`}
+        />
+        <FileUpload
+          entityType="project"
+          entityId={id}
+          initial={(attachmentList as unknown as Array<{
+            id: string;
+            filename: string;
+            mime_type: string;
+            size_bytes: number;
+          }>).map((a) => ({
+            id: a.id,
+            filename: a.filename,
+            mimeType: a.mime_type,
+            sizeBytes: Number(a.size_bytes),
+          }))}
+        />
       </Card>
 
       {contactList.length > 0 && (

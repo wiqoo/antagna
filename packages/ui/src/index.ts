@@ -16,3 +16,4 @@ export {
 export { MobileNav } from './components/MobileNav';
 export { CommandPalette } from './components/CommandPalette';
 export { Counter } from './components/Counter';
+export { FileUpload } from './components/FileUpload';
