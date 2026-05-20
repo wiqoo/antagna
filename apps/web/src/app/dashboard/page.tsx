@@ -464,7 +464,7 @@ export default async function DashboardPage() {
         <Kpi
           label="إيراد الشهر"
           value={mtdRevenue}
-          format={(n) => `${(n / 1000).toFixed(0)}K`}
+          format="k"
           icon={<TrendingUp size={14} />}
           tone="accent"
         />
@@ -784,7 +784,7 @@ function Kpi({
 }: {
   label: string;
   value: number;
-  format?: (n: number) => string;
+  format?: 'plain' | 'k' | 'sar' | 'pct';
   icon?: React.ReactNode;
   href?: string;
   tone?: 'default' | 'accent' | 'warning';

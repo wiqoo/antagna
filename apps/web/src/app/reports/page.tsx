@@ -144,7 +144,7 @@ export default async function ReportsPage() {
         <StatBox
           label="إيراد 12 شهر"
           value={totalRevenue12mo}
-          format={(n) => `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} ر.س`}
+          format="sar"
           icon={<TrendingUp size={16} />}
           tone="accent"
         />
@@ -156,7 +156,7 @@ export default async function ReportsPage() {
         <StatBox
           label="توظيف معدات"
           value={Math.round(utilized * 100)}
-          format={(n) => `${n}%`}
+          format="pct"
           tone="warning"
           icon={<TrendingUp size={16} />}
         />
@@ -392,7 +392,7 @@ function StatBox({
 }: {
   label: string;
   value: number;
-  format?: (n: number) => string;
+  format?: 'plain' | 'k' | 'sar' | 'pct';
   icon: React.ReactNode;
   tone?: 'default' | 'accent' | 'warning';
 }) {

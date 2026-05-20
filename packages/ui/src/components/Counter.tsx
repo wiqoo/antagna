@@ -2,20 +2,35 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+type FormatKey = 'plain' | 'k' | 'sar' | 'pct' | 'days';
+
 type Props = {
   to: number;
   durationMs?: number;
-  decimals?: number;
-  format?: (n: number) => string;
+  format?: FormatKey;
   className?: string;
 };
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
+function formatValue(n: number, key: FormatKey | undefined): string {
+  switch (key) {
+    case 'k':
+      return n >= 1000 ? `${(n / 1000).toFixed(0)}K` : n.toLocaleString('en-US');
+    case 'sar':
+      return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    case 'pct':
+      return `${Math.round(n)}%`;
+    case 'days':
+      return `${n.toFixed(1)}`;
+    default:
+      return n.toLocaleString('en-US');
+  }
+}
+
 export function Counter({
   to,
   durationMs = 900,
-  decimals = 0,
   format,
   className,
 }: Props) {
@@ -35,12 +50,5 @@ export function Counter({
     return () => cancelAnimationFrame(frame);
   }, [to, durationMs]);
 
-  const display = format
-    ? format(val)
-    : val.toLocaleString('en-US', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      });
-
-  return <span className={className}>{display}</span>;
+  return <span className={className}>{formatValue(val, format)}</span>;
 }
