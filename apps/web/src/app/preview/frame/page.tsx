@@ -14,12 +14,12 @@ const C = {
   dim: '#6B6B78',
   line: 'rgba(255,255,255,0.08)',
   lineStrong: 'rgba(255,255,255,0.16)',
-  accent: '#FF4D6D',
-  accent2: '#7C5CFF',
-  gradient: 'linear-gradient(135deg, #FF4D6D 0%, #7C5CFF 100%)',
+  accent: '#FF6B1A',
+  accent2: '#FF8442',
+  gradient: 'linear-gradient(135deg, #FF6B1A 0%, #FF8442 100%)',
 };
 
-const THUMB_COLORS = ['#FF4D6D', '#7C5CFF', '#34D399', '#FBBF24', '#60A5FA', '#FB923C'];
+const THUMB_COLORS = ['#FF6B1A', '#FF8442', '#FBBF24', '#60A5FA', '#34D399', '#FB923C'];
 
 export default function FramePreview() {
   return (
@@ -132,8 +132,8 @@ export default function FramePreview() {
                 <span style={{
                   position: 'absolute', top: 14, insetInlineEnd: 14,
                   padding: '4px 10px', borderRadius: 6,
-                  background: 'rgba(251,191,36,0.2)',
-                  color: '#FBBF24',
+                  background: C.accent + '30',
+                  color: C.accent,
                   fontSize: 11, fontWeight: 600,
                   letterSpacing: '0.04em', textTransform: 'uppercase',
                 }}>
@@ -149,7 +149,7 @@ export default function FramePreview() {
                   {['M', 'A', 'K'].map((n, i) => (
                     <div key={i} style={{
                       width: 28, height: 28, borderRadius: '50%',
-                      background: i === 0 ? '#34D399' : i === 1 ? '#FBBF24' : C.surface2,
+                      background: i === 0 ? '#34D399' : i === 1 ? C.accent : C.surface2,
                       color: '#fff', fontSize: 10, fontWeight: 600,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: `2px solid ${C.surface}`,
@@ -168,7 +168,7 @@ export default function FramePreview() {
                   background: C.surface2,
                   fontSize: 12, color: C.muted,
                 }}>
-                  <span style={{ color: '#FBBF24', fontFamily: 'var(--font-mono)' }}>0:14</span>
+                  <span style={{ color: C.accent, fontFamily: 'var(--font-mono)' }}>0:14</span>
                   {' · '}
                   <span style={{ color: C.text }}>Ahmed:</span> اللوجو يهتز شوية في الـ outro
                 </div>

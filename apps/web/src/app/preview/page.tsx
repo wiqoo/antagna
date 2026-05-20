@@ -26,10 +26,10 @@ const STYLES = [
   },
   {
     slug: 'frame',
-    name: 'Frame.io · Studio',
-    nameAr: 'إستوديو إبداعي',
-    desc: 'داكن، فيديو-أولاً، magazine layout، grids كبيرة. مثل Frame.io / Behance.',
-    palette: ['#0F0F12', '#1A1A1F', '#FFFFFF', '#FF4D6D'],
+    name: 'Frame.io · Studio · ✓ المختار',
+    nameAr: 'إستوديو إبداعي (orange)',
+    desc: 'داكن، فيديو-أولاً، magazine layout، grids كبيرة. الاتجاه المعتمد — orange accent.',
+    palette: ['#0F0F12', '#17171C', '#FFFFFF', '#FF6B1A'],
   },
 ];
 
@@ -118,6 +118,35 @@ export default function PreviewIndex() {
               </p>
             </Link>
           ))}
+        </div>
+
+        <div style={{ marginTop: 48 }}>
+          <Link
+            href="/preview/nav"
+            style={{
+              display: 'block',
+              background: 'linear-gradient(135deg, #FF6B1A10, transparent)',
+              border: '1px solid #FF6B1A40',
+              borderRadius: 12,
+              padding: 24,
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+          >
+            <p style={{ fontSize: 11, color: '#FF6B1A', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>
+              Nav Patterns · 5 options
+            </p>
+            <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+              معاينات أسلوب القائمة
+            </h2>
+            <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.6 }}>
+              ٥ معماريات تنقل مختلفة — icon-only، expanded، hover-expand، top، bottom dock —
+              جميعها مع Frame.io content.
+            </p>
+            <p style={{ marginTop: 12, fontSize: 13, color: '#FF6B1A', fontWeight: 500 }}>
+              افتح ←
+            </p>
+          </Link>
         </div>
 
         <p
