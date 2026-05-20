@@ -47,7 +47,7 @@ const NAV_GROUPS: Array<{
     label: 'الأرشيف',
     items: [
       { href: '/kpis', label: 'مؤشرات الأداء', icon: BarChart3 },
-      { href: '/reports', label: 'التقارير', icon: FileText, soon: true },
+      { href: '/reports', label: 'التقارير', icon: FileText },
       { href: '/admin', label: 'الإدارة', icon: Shield },
       { href: '/settings', label: 'الإعدادات', icon: Settings },
     ],

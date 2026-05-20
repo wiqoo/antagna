@@ -31,6 +31,7 @@ import {
   FileUpload,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
+import { RealtimeComments } from '@/components/RealtimeComments';
 import {
   ArrowLeft,
   ExternalLink,
@@ -101,6 +102,14 @@ export default async function ProjectDetailPage({
     .from(profiles)
     .where(eq(profiles.status, 'active'))
     .orderBy(profiles.displayName);
+
+  // Current actor's profile id (for highlighting their own comments)
+  const [currentProfile] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.authUserId, user.id))
+    .limit(1);
+  const currentProfileId = currentProfile?.id ?? null;
 
   const [project] = await db
     .select({
@@ -718,58 +727,32 @@ export default async function ProjectDetailPage({
         {/* Comments */}
         <Card padded={false}>
           <div className="p-6 pb-4">
-            <CardHeader title="التعليقات" subtitle={`${comments.length} تعليق`} />
-          </div>
-          <div className="px-6 pb-4">
-            <form
-              action={async (formData: FormData) => {
-                'use server';
-                const body = formData.get('body')?.toString() ?? '';
-                await postComment(id, body);
-              }}
-              className="flex gap-2"
-            >
-              <input
-                type="text"
-                name="body"
-                required
-                placeholder="اكتب تعليق…"
-                className="h-10 flex-1 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
-              />
-              <Button variant="primary" size="md">
-                إرسال
-              </Button>
-            </form>
-          </div>
-          {comments.length === 0 ? (
-            <EmptyState
-              icon={<MessageSquare size={20} />}
-              title="ابدأ المحادثة"
-              description="التعليقات هتساعد الفريق يتابع المشروع."
+            <CardHeader
+              title="التعليقات"
+              subtitle={
+                <>
+                  {comments.length} تعليق ·{' '}
+                  <span className="text-[var(--success)]">●</span> تحديث مباشر
+                </>
+              }
             />
-          ) : (
-            <ul className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
-              {comments.slice(0, 8).map((c) => (
-                <li key={c.id} className="flex items-start gap-3 px-6 py-3">
-                  <Avatar name={c.authorName ?? '?'} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-                      <span className="font-medium text-[var(--text)]">
-                        {c.authorName ?? '?'}
-                      </span>
-                      <span className="font-mono text-[var(--text-dim)]">
-                        {new Date(c.createdAt)
-                          .toISOString()
-                          .slice(0, 16)
-                          .replace('T', ' ')}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-[var(--text)]">{c.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          </div>
+          <RealtimeComments
+            projectId={id}
+            currentProfileId={currentProfileId}
+            postAction={async (formData: FormData) => {
+              'use server';
+              const body = formData.get('body')?.toString() ?? '';
+              await postComment(id, body);
+            }}
+            initialComments={comments.map((c) => ({
+              id: c.id,
+              body: c.body,
+              createdAt: new Date(c.createdAt).toISOString(),
+              authorName: c.authorName,
+              authorId: null,
+            }))}
+          />
         </Card>
 
         {/* Stage log */}
