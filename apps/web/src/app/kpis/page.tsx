@@ -2,11 +2,13 @@ import { redirect } from 'next/navigation';
 import { sql, eq, asc } from 'drizzle-orm';
 import { db, kpiDefinitions } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   StatusPill,
   EmptyState,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { BarChart3 } from 'lucide-react';
@@ -71,8 +73,52 @@ export default async function KpisPage() {
     return acc;
   }, {});
 
+  const stale = rows.filter(
+    (r) =>
+      r.latestComputedAt &&
+      Date.now() - new Date(r.latestComputedAt).getTime() > 48 * 3_600_000,
+  );
+  const missing = rows.filter((r) => r.latestValue == null);
+  const inAmber = rows.filter((r) => {
+    if (!r.latestValue || !r.thresholdAmber) return false;
+    return Number(r.latestValue) < Number(r.thresholdAmber);
+  });
+
+  const hints: AIHint[] = [];
+  if (inAmber.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${inAmber.length} مؤشر تحت العتبة الصفراء`,
+      insight: 'احتمالية تدهور — راجع البيانات الخام واتخذ قرار.',
+      urgent: true,
+    });
+  }
+  if (missing.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${missing.length} مؤشر بدون قيمة محسوبة`,
+      insight: 'تأكد إن المهام المسؤولة شغّالة على Trigger.dev.',
+      actions: [{ label: 'افتح Trigger', href: '/admin' }],
+    });
+  }
+  if (stale.length > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${stale.length} مؤشر قديم بأكثر من ٤٨ ساعة`,
+      insight: 'الـ refresh schedule ممكن واقف أو زمنه طويل.',
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/kpis">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · KPIs"
+          headline={`${rows.length} مؤشر — ${hints.length} يحتاج مراجعة`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="KPIs"
         title="مؤشرات الأداء"

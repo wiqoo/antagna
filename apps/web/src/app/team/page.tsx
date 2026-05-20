@@ -7,6 +7,8 @@ import {
   StatusPill,
   EmptyState,
   Avatar,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { UserSquare2, Briefcase } from 'lucide-react';
@@ -94,8 +96,51 @@ export default async function TeamPage() {
     (byDept[key] ??= []).push(p);
   }
 
+  const overloaded = peopleArr.filter((p) => Number(p.active_projects) >= 4);
+  const idle = peopleArr.filter(
+    (p) => p.status === 'active' && Number(p.active_projects) === 0,
+  );
+  const noCaps = peopleArr.filter(
+    (p) => p.status === 'active' && Number(p.capability_count) === 0,
+  );
+
+  const hints: AIHint[] = [];
+  if (overloaded.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${overloaded.length} عضو على ٤+ مشاريع نشطة`,
+      insight: 'اقترح تحويل مهام لأعضاء أقل ضغطاً قبل ما يتأخر التسليم.',
+      urgent: true,
+      actions: [{ label: 'اعرض الأعباء', href: '#team-list', primary: true }],
+    });
+  }
+  if (idle.length > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${idle.length} عضو نشط بدون مشاريع`,
+      insight: 'فرصة لتوزيع جديد، تدريب، أو دعم زملاء على الـ load الزائد.',
+      actions: [{ label: 'اعرض الفاضي', href: '#team-list' }],
+    });
+  }
+  if (noCaps.length > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${noCaps.length} عضو بدون مهارات مسجّلة`,
+      insight: 'سجّل المهارات لتحسين توزيع المشاريع المستقبلية.',
+      actions: [{ label: 'تحديث الملفات', href: '#team-list' }],
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/team">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · الفريق"
+          headline={`${active} عضو نشط · ${totalProjects} توزيعة على المشاريع`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Team"
         title="الفريق"

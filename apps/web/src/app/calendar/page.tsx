@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { PageHeader, Card, StatusPill, EmptyState } from '@antagna/ui';
+import { PageHeader, Card, StatusPill, EmptyState, AIHints, type AIHint } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
 import { Calendar, CalendarClock, Truck, Camera } from 'lucide-react';
@@ -258,8 +258,63 @@ export default async function CalendarPage({
 
   const otherRanges = [7, 14, 30];
 
+  // AI hints
+  const todayKey = startISO;
+  const todayDay = dayMap.get(todayKey);
+  const shootsToday = todayDay?.shoots.length ?? 0;
+  const deliveriesToday = todayDay?.deliveries.length ?? 0;
+  const eqByDay = new Map<string, Map<string, number>>();
+  for (const [dateKey, d] of dayMap) {
+    const m = new Map<string, number>();
+    for (const r of d.reservations) {
+      if (!r.eq_code) continue;
+      m.set(r.eq_code, (m.get(r.eq_code) ?? 0) + 1);
+    }
+    eqByDay.set(dateKey, m);
+  }
+  let conflictDays = 0;
+  for (const [, m] of eqByDay) {
+    for (const [, n] of m) if (n > 1) { conflictDays++; break; }
+  }
+
+  const hints: AIHint[] = [];
+  if (shootsToday > 0 || deliveriesToday > 0) {
+    hints.push({
+      index: '01',
+      text: `اليوم: ${shootsToday} shoot${deliveriesToday > 0 ? ` · ${deliveriesToday} تسليم` : ''}`,
+      insight: 'تحقق من الجاهزية قبل ساعتين من وقت كل بند.',
+      urgent: shootsToday > 0,
+      actions: [{ label: 'افتح يوم اليوم', href: `#day-${todayKey}`, primary: true }],
+    });
+  }
+  if (conflictDays > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${conflictDays} يوم فيه تعارض حجز معدّة`,
+      insight: 'نفس المعدّة محجوزة لمشروعين في نفس اليوم — قرّر الأولوية.',
+      urgent: true,
+      actions: [{ label: 'افحص المعدات', href: '/equipment', primary: true }],
+    });
+  }
+  if (totalDeliveries >= 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${totalDeliveries} تسليم خلال ${days} يوم`,
+      insight: 'كثافة عالية — وزّع الجداول بحيث ما يتراكم اليوم الأخير.',
+      actions: [{ label: 'اعرض المشاريع', href: '/projects' }],
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/calendar">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · التقويم"
+          headline={`${totalShoots} shoot · ${totalDeliveries} تسليم · ${totalReservations} حجز`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Calendar"
         title="التقويم"
