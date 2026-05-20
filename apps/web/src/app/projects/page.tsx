@@ -9,13 +9,15 @@ import {
   projectStageEnum,
 } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   StatusPill,
   EmptyState,
   Avatar,
   Button,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles } from 'lucide-react';
@@ -69,7 +71,7 @@ export default async function ProjectsListPage({
   const where = filters.length ? and(...filters) : undefined;
   const hasFilters = !!(sp.q || sp.stage || sp.pm || sp.client || sp.archived === '1');
 
-  const [rows, countRows, pmList, clientList] = await Promise.all([
+  const [rows, countRows, pmList, clientList, signalsRows] = await Promise.all([
     db
       .select({
         id: projects.id,
@@ -105,13 +107,88 @@ export default async function ProjectsListPage({
       .from(clients)
       .where(isNull(clients.archivedAt))
       .orderBy(clients.nameAr),
+    db.execute<{
+      overdue: number;
+      due_soon: number;
+      stalled: number;
+      high_risk: number;
+      total_active: number;
+    }>(sql`
+      SELECT
+        (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
+          AND delivery_due_at IS NOT NULL AND delivery_due_at < now()
+          AND stage NOT IN ('delivered','archived','lost','cancelled')) AS overdue,
+        (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
+          AND delivery_due_at IS NOT NULL
+          AND delivery_due_at BETWEEN now() AND now() + interval '3 days'
+          AND stage NOT IN ('delivered','archived','lost','cancelled')) AS due_soon,
+        (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
+          AND updated_at < now() - interval '5 days'
+          AND stage IN ('brief','pre_production','planning')) AS stalled,
+        (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
+          AND ai_risk_level = 'high'
+          AND stage NOT IN ('delivered','archived','lost','cancelled')) AS high_risk,
+        (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
+          AND stage NOT IN ('delivered','archived','lost','cancelled')) AS total_active
+    `),
   ]);
 
   const count = countRows[0]?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(Number(count) / PAGE_SIZE));
 
+  const signals = (signalsRows as unknown as Array<{
+    overdue: number; due_soon: number; stalled: number; high_risk: number; total_active: number;
+  }>)[0] ?? { overdue: 0, due_soon: 0, stalled: 0, high_risk: 0, total_active: 0 };
+
+  const hints: AIHint[] = [];
+  if (signals.overdue > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${signals.overdue} مشروع متأخر عن التسليم`,
+      insight: 'تحرّك في الـ delivery أو حدّث التاريخ مع العميل.',
+      urgent: true,
+      actions: [
+        { label: 'اعرض المتأخرة', href: '/projects?stage=editing', primary: true },
+      ],
+    });
+  }
+  if (signals.due_soon > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${signals.due_soon} مشروع تسليمه خلال ٣ أيام`,
+      insight: 'راجع حالة المهام والـ deliverables قبل الـ deadline.',
+      urgent: signals.due_soon >= 3,
+      actions: [{ label: 'افحص الجدول', href: '/calendar', primary: true }],
+    });
+  }
+  if (signals.stalled > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${signals.stalled} مشروع متوقف ٥+ أيام`,
+      insight: 'مرحلة pre/brief والـ updated_at قديم — يحتاج follow-up.',
+      urgent: false,
+      actions: [{ label: 'اعرض المتوقفة', href: '/projects?stage=brief' }],
+    });
+  }
+  if (signals.high_risk > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${signals.high_risk} مشروع بمستوى مخاطر مرتفع`,
+      insight: 'حدّد سبب المخاطرة في كل واحد قبل أن يتفاقم.',
+      actions: [{ label: 'اعرض الكل', href: '/projects' }],
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/projects">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · المشاريع"
+          headline={`${signals.total_active} مشروع نشط — ${hints.length} بحاجة لانتباهك`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Projects"
         title="المشاريع"

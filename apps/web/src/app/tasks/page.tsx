@@ -9,7 +9,7 @@ import {
   projects,
 } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   CardHeader,
@@ -17,6 +17,8 @@ import {
   EmptyState,
   Avatar,
   Button,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ListChecks, Plus, CheckCircle2, Play, Circle } from 'lucide-react';
@@ -126,11 +128,53 @@ export default async function TasksPage({
       .orderBy(asc(dailyTasks.status), asc(dailyTasks.dueAt), desc(dailyTasks.createdAt)),
   ]);
 
+  const now = new Date();
+  const overdueTasks = projTasks.filter(
+    (t) => t.dueAt && new Date(t.dueAt) < now && t.status !== 'completed' && t.status !== 'cancelled',
+  );
+  const urgentTasks = projTasks.filter((t) => t.priority === 'urgent' && t.status !== 'completed');
+  const blockedTasks = projTasks.filter((t) => t.status === 'blocked');
+  const hints: AIHint[] = [];
+  if (overdueTasks.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${overdueTasks.length} مهمة متأخرة عن الـ due date`,
+      insight: 'حدّث الحالة أو غيّر الموعد قبل ما تتراكم.',
+      urgent: true,
+      actions: [{ label: 'انزل للمهام', href: '#proj-tasks', primary: true }],
+    });
+  }
+  if (blockedTasks.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${blockedTasks.length} مهمة blocked`,
+      insight: 'حدّد السبب وحلّ الـ blocker، أو حوّل المهمة لشخص يقدر يحلّه.',
+      urgent: blockedTasks.length >= 3,
+      actions: [{ label: 'اعرض blocked', href: '#proj-tasks' }],
+    });
+  }
+  if (urgentTasks.length > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${urgentTasks.length} مهمة urgent`,
+      insight: 'الأولوية القصوى عليك دلوقتي.',
+      actions: [{ label: 'افتح الـ urgent', href: '#proj-tasks' }],
+    });
+  }
+
   return (
     <Shell
       user={{ email: user.email ?? '', displayName: actor.displayName }}
       activePath="/tasks"
     >
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · مهامك"
+          headline={`${projTasks.length + dailies.length} مهمة على لوحك`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow={`مرحباً ${actor.displayName}`}
         title="مهامك"
@@ -181,8 +225,8 @@ export default async function TasksPage({
       </Card>
 
       {/* Project tasks */}
-      <Card padded={false}>
-        <div className="p-6 pb-4">
+      <Card padded={false} as="section">
+        <div id="proj-tasks" className="p-6 pb-4">
           <CardHeader
             title="مهام المشاريع"
             subtitle={`${projTasks.length} مهمة من مشاريع`}

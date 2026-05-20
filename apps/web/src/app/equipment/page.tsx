@@ -15,6 +15,8 @@ import {
   EmptyState,
   Counter,
   MoneyDisplay,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
@@ -125,8 +127,53 @@ export default async function EquipmentPage() {
     return acc;
   }, {});
 
+  // ── AI hints from real data ────────────────────────────────────────────
+  const reservationsByEq = new Map<string, number>();
+  for (const r of upcoming) {
+    if (!r.eqCode) continue;
+    reservationsByEq.set(r.eqCode, (reservationsByEq.get(r.eqCode) ?? 0) + 1);
+  }
+  const conflicts = Array.from(reservationsByEq.entries()).filter(([, n]) => n > 1);
+  const lowBattery = items.filter((i) => i.requiresCharging && i.status === 'available').length;
+
+  const hints: AIHint[] = [];
+  if (conflicts.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${conflicts.length} معدّة عليها حجوزات متداخلة`,
+      insight: 'راجع الحجز الأقدم أولاً، أو اقترح بديلاً من نفس المجموعة.',
+      urgent: true,
+      actions: [{ label: 'افتح الحجوزات', href: '#reservations', primary: true }],
+    });
+  }
+  if (repairCount > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${repairCount} معدّة في الصيانة`,
+      insight: 'تحقق من ETA الإصلاح قبل الحجز القادم.',
+      urgent: repairCount >= 3,
+      actions: [{ label: 'اعرض في الصيانة', href: '#in-repair' }],
+    });
+  }
+  if (lowBattery > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${lowBattery} معدّة تحتاج شحن قبل التصوير القادم`,
+      insight: 'تحقّق من البطاريات/الذاكرة في كل واحدة منها.',
+      actions: [{ label: 'افتح الجاهزة', href: '#available' }],
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/equipment">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · المعدات"
+          headline={`${totalCount} معدّة · ${availableCount} متاح · ${checkedOutCount} في الموقع`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Equipment Inventory"
         title="المعدات"

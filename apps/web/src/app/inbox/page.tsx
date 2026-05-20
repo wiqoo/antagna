@@ -11,13 +11,15 @@ import {
   projects,
 } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   CardHeader,
   StatusPill,
   EmptyState,
   Avatar,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Mail, MessageCircle, Send } from 'lucide-react';
@@ -122,8 +124,51 @@ export default async function InboxPage() {
     queueDepth.find((q) => q.status === 'awaiting_review')?.count ?? 0;
   const failed = queueDepth.find((q) => q.status === 'failed')?.count ?? 0;
 
+  const openThreads = threads.filter((t) => t.status === 'open');
+  const waitingClientThreads = threads.filter((t) => t.status === 'waiting_client').length;
+  const oldOpen = openThreads.filter((t) => {
+    if (!t.lastMessageAt) return false;
+    return Date.now() - new Date(t.lastMessageAt).getTime() > 3 * 86_400_000;
+  });
+
+  const hints: AIHint[] = [];
+  if (awaitingReview > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${awaitingReview} draft في انتظار موافقتك للإرسال`,
+      insight: 'Claude اقترح صياغات — راجعها وأرسل أو عدّل.',
+      urgent: true,
+      actions: [{ label: 'افتح الـ drafts', href: '#drafts', primary: true }],
+    });
+  }
+  if (failed > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${failed} رسالة فشل إرسالها`,
+      insight: 'تحقق من السبب وأعد المحاولة.',
+      urgent: true,
+      actions: [{ label: 'اعرض الفاشلة', href: '#drafts', primary: true }],
+    });
+  }
+  if (oldOpen.length > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${oldOpen.length} thread مفتوح بدون رد ٣+ أيام`,
+      insight: 'follow-up أو قفل الـ thread.',
+      actions: [{ label: 'افتح القديمة', href: '#threads' }],
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/inbox">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · الوارد"
+          headline={`${threads.length} thread · ${waitingClientThreads} في انتظار العميل`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="Inbox"
         title="الوارد"

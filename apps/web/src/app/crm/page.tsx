@@ -9,7 +9,7 @@ import {
   profiles,
 } from '@antagna/db';
 import {
-  
+
   PageHeader,
   Card,
   CardHeader,
@@ -17,6 +17,8 @@ import {
   MoneyDisplay,
   EmptyState,
   Avatar,
+  AIHints,
+  type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
@@ -106,8 +108,57 @@ export default async function CrmPage() {
     0,
   );
 
+  // Derive hints from data
+  const coldLeads = leadRows.filter((l) => {
+    const ageDays = Math.floor((Date.now() - new Date(l.receivedAt).getTime()) / 86_400_000);
+    return ageDays >= 5 && (l.status === 'new' || l.status === 'qualified' || l.status === 'nurturing');
+  });
+  const hotLeads = leadRows.filter(
+    (l) => (l.temperatureScore ?? 0) >= 70 && (l.status === 'new' || l.status === 'qualified'),
+  );
+  const inactiveClients = clientRows.filter((c) => {
+    if (!c.lastProjectAt || Number(c.activeProjects ?? 0) > 0) return false;
+    const days = Math.floor((Date.now() - new Date(c.lastProjectAt).getTime()) / 86_400_000);
+    return days >= 60;
+  });
+
+  const hints: AIHint[] = [];
+  if (hotLeads.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${hotLeads.length} lead بحرارة ٧٠+ بدون تحرك`,
+      insight: 'الـ leads الساخنة بتبرد بسرعة — proposal سريع موصى به.',
+      urgent: true,
+      actions: [{ label: 'افتح الساخنة', href: '#leads', primary: true }],
+    });
+  }
+  if (coldLeads.length > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${coldLeads.length} lead بارد ٥+ أيام`,
+      insight: 'follow-up واحد ممكن يرجّعه؛ بعدها سجّله ghosted.',
+      actions: [{ label: 'اعرض الباردة', href: '#leads' }],
+    });
+  }
+  if (inactiveClients.length > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${inactiveClients.length} عميل بدون مشروع نشط ٦٠+ يوم`,
+      insight: 'فرصة لتجديد العلاقة — رسالة تذكير أو استطلاع.',
+      actions: [{ label: 'افتح القائمة', href: '#clients' }],
+    });
+  }
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
+      {hints.length > 0 && (
+        <AIHints
+          context="Antagna AI · CRM"
+          headline={`${clientRows.length} عميل · ${leadRows.length} lead — ${hints.length} يحتاج تحرك`}
+          hints={hints}
+          compact
+        />
+      )}
       <PageHeader
         eyebrow="CRM"
         title="العملاء و الفرص"
