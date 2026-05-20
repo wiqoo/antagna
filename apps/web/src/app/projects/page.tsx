@@ -153,7 +153,7 @@ export default async function ProjectsListPage({
                 name="q"
                 defaultValue={sp.q ?? ''}
                 placeholder="code، title، أو العميل…"
-                className="h-9 w-full rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 pe-9 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
+                className="h-9 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 pe-9 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
           </label>
@@ -165,7 +165,7 @@ export default async function ProjectsListPage({
             <select
               name="stage"
               defaultValue={sp.stage ?? ''}
-              className="h-9 w-40 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
+              className="h-9 w-40 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {projectStageEnum.enumValues.map((s) => (
@@ -183,7 +183,7 @@ export default async function ProjectsListPage({
             <select
               name="pm"
               defaultValue={sp.pm ?? ''}
-              className="h-9 w-48 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
+              className="h-9 w-48 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {pmList.map((p) => (
@@ -201,7 +201,7 @@ export default async function ProjectsListPage({
             <select
               name="client"
               defaultValue={sp.client ?? ''}
-              className="h-9 w-48 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
+              className="h-9 w-48 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="">— الكل —</option>
               {clientList.map((c) => (
@@ -212,7 +212,7 @@ export default async function ProjectsListPage({
             </select>
           </label>
 
-          <label className="flex h-9 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm">
+          <label className="flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm">
             <input
               type="checkbox"
               name="archived"
@@ -230,7 +230,7 @@ export default async function ProjectsListPage({
           {hasFilters && (
             <Link
               href="/projects"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/80 hover:text-[var(--text)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/80 hover:text-[var(--text)]"
             >
               <X size={14} />
               مسح
@@ -253,7 +253,7 @@ export default async function ProjectsListPage({
             action={
               <Link
                 href={hasFilters ? '/projects' : '/projects/new'}
-                className="inline-flex h-9 items-center rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
+                className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
               >
                 {hasFilters ? 'مسح الفلاتر' : '+ مشروع جديد'}
               </Link>
@@ -360,7 +360,7 @@ export default async function ProjectsListPage({
           {page > 1 && (
             <Link
               href={{ pathname: '/projects', query: { ...sp, page: String(page - 1) } }}
-              className="inline-flex h-8 items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 hover:border-[var(--accent)]"
+              className="inline-flex h-8 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 hover:border-[var(--accent)]"
             >
               ← السابق
             </Link>
@@ -371,7 +371,7 @@ export default async function ProjectsListPage({
           {page < totalPages && (
             <Link
               href={{ pathname: '/projects', query: { ...sp, page: String(page + 1) } }}
-              className="inline-flex h-8 items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 hover:border-[var(--accent)]"
+              className="inline-flex h-8 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 hover:border-[var(--accent)]"
             >
               التالي →
             </Link>

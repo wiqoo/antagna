@@ -138,7 +138,7 @@ export default async function TasksPage({
         action={
           <Link
             href={showAll ? '/tasks' : '/tasks?show=all'}
-            className="inline-flex h-9 items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3.5 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+            className="inline-flex h-9 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3.5 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
           >
             {showAll ? 'المفتوحة فقط' : 'كل المهام'}
           </Link>
@@ -157,17 +157,17 @@ export default async function TasksPage({
             name="title"
             required
             placeholder="ماذا تريد إنجازه اليوم؟"
-            className="h-10 min-w-[240px] flex-1 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
+            className="h-10 min-w-[240px] flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
           />
           <input
             type="date"
             name="dueAt"
-            className="h-10 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm font-mono"
+            className="h-10 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm font-mono"
           />
           <select
             name="priority"
             defaultValue="normal"
-            className="h-10 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
+            className="h-10 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
           >
             <option value="low">low</option>
             <option value="normal">normal</option>

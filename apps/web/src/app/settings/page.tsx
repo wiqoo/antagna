@@ -206,7 +206,7 @@ function Toggle({
   defaultChecked: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] p-3 hover:bg-[var(--surface-hover)]">
+    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-3 hover:bg-[var(--surface-hover)]">
       <div>
         <p className="text-sm font-medium text-[var(--text)]">{label}</p>
         {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}

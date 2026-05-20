@@ -139,7 +139,7 @@ function KpiCard({ k }: { k: KpiRow }) {
 
   return (
     <Card className="!p-5 relative overflow-hidden group hover:border-[var(--line-strong)] hover:-translate-y-0.5">
-      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-[var(--accent)]/[0.03] to-transparent" />
+      <div className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br from-[var(--accent)]/[0.03] to-transparent" />
       <div className="relative">
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">

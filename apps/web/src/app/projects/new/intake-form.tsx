@@ -599,14 +599,14 @@ export function IntakeForm({
       <div className="flex items-center gap-3 border-t border-[var(--line)] pt-6">
         <button
           type="submit"
-          className="magnet inline-flex h-12 items-center gap-2 rounded-md bg-[var(--accent)] px-6 text-[14px] font-semibold text-black hover:bg-[var(--accent-hover)]"
+          className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-6 text-[14px] font-semibold text-black hover:bg-[var(--accent-hover)]"
         >
           <Sparkles size={16} />
           إنشاء المشروع
         </button>
         <a
           href="/projects"
-          className="inline-flex h-12 items-center rounded-md px-4 text-[13px] text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
+          className="inline-flex h-10 items-center rounded-md px-4 text-[13px] text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
         >
           إلغاء
         </a>

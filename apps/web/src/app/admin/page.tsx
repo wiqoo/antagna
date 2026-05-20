@@ -312,7 +312,7 @@ export default async function AdminPage() {
           <form action={seedDevData}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)]"
             >
               <Sparkles size={14} />
               تشغيل
@@ -353,7 +353,7 @@ function AdminStat({
             </p>
           )}
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface-hover)] text-[var(--text-muted)]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--surface-hover)] text-[var(--text-muted)]">
           {icon}
         </div>
       </div>

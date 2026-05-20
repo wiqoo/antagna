@@ -35,7 +35,7 @@ export function NotificationsBell({
 
   return (
     <details className="relative">
-      <summary className="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)] [&::-webkit-details-marker]:hidden">
+      <summary className="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)] [&::-webkit-details-marker]:hidden">
         <Bell size={14} />
         {unreadCount > 0 && (
           <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-black">
@@ -43,7 +43,7 @@ export function NotificationsBell({
           </span>
         )}
       </summary>
-      <div className="absolute end-0 top-12 z-50 w-[360px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)]/95 backdrop-blur-2xl shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]">
+      <div className="absolute end-0 top-12 z-50 w-[360px] overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/95 backdrop-blur-2xl shadow-[0_24px_48px_-16px_rgba(0,0,0,0.6)]">
         <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
           <p className="text-sm font-semibold text-[var(--text)]">الإشعارات</p>
           {unreadCount > 0 && (

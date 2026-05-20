@@ -430,7 +430,7 @@ export default async function ProjectDetailPage({
             <div className="flex flex-col items-end gap-3">
               <Link
                 href={`/projects/${id}/edit`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
               >
                 <Pencil size={14} />
                 تعديل
@@ -456,7 +456,7 @@ export default async function ProjectDetailPage({
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] p-4">
+          <div className="mt-6 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
                 <Sparkles size={12} />
@@ -532,7 +532,7 @@ export default async function ProjectDetailPage({
                     name="reason"
                     required
                     placeholder="السبب…"
-                    className="h-9 w-36 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-xs"
+                    className="h-9 w-36 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-xs"
                   />
                 )}
                 <Button
@@ -599,12 +599,12 @@ export default async function ProjectDetailPage({
                 name="title"
                 required
                 placeholder="مهمة جديدة…"
-                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
               />
               <select
                 name="assigneeId"
                 defaultValue=""
-                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="">— assignee —</option>
                 {activeProfiles.map((p) => (
@@ -616,7 +616,7 @@ export default async function ProjectDetailPage({
               <input
                 type="date"
                 name="dueAt"
-                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
               />
               <Button variant="primary" size="sm" icon={<Plus size={14} />}>
                 إضافة
@@ -683,7 +683,7 @@ export default async function ProjectDetailPage({
               <select
                 name="profileId"
                 defaultValue=""
-                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="">— اختر الشخص —</option>
                 {activeProfiles.map((p) => (
@@ -696,7 +696,7 @@ export default async function ProjectDetailPage({
                 name="role"
                 required
                 defaultValue=""
-                className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="" disabled>
                   — الدور —
@@ -939,12 +939,12 @@ export default async function ProjectDetailPage({
               name="nameAr"
               required
               placeholder="اسم المجموعة (مثل: ريلز)"
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
             />
             <select
               name="kind"
               defaultValue=""
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
             >
               <option value="">— النوع —</option>
               <option value="reels">reels</option>
@@ -1009,7 +1009,7 @@ export default async function ProjectDetailPage({
                   </form>
                 </div>
                 {g.items.length === 0 ? (
-                  <p className="rounded-xl border border-dashed border-[var(--line)] px-4 py-3 text-xs text-[var(--text-dim)]">
+                  <p className="rounded-md border border-dashed border-[var(--line)] px-4 py-3 text-xs text-[var(--text-dim)]">
                     لا عناصر في هذه المجموعة بعد.
                   </p>
                 ) : (
@@ -1043,7 +1043,7 @@ export default async function ProjectDetailPage({
             <select
               name="equipmentId"
               defaultValue=""
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
             >
               <option value="">— اختار معدة —</option>
               {equipmentList.map((e) => (
@@ -1063,13 +1063,13 @@ export default async function ProjectDetailPage({
               type="datetime-local"
               name="startsAt"
               required
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
             />
             <input
               type="datetime-local"
               name="endsAt"
               required
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm font-mono"
             />
             <Button variant="primary" size="sm" icon={<Plus size={14} />}>
               احجز
@@ -1240,7 +1240,7 @@ function SimpleStat({
           {sub && <p className="text-xs text-[var(--text-muted)]">{sub}</p>}
         </div>
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
+          className={`flex h-10 w-10 items-center justify-center rounded-md ${iconBg}`}
         >
           {icon}
         </div>

@@ -135,7 +135,7 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-dim)] hover:border-[var(--line-strong)] hover:text-[var(--text-muted)] md:flex"
+        className="hidden items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-dim)] hover:border-[var(--line-strong)] hover:text-[var(--text-muted)] md:flex"
       >
         <Search size={12} />
         <span>بحث…</span>
@@ -150,7 +150,7 @@ export function CommandPalette() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)]/95 shadow-2xl backdrop-blur-2xl"
+            className="w-full max-w-xl overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/95 shadow-2xl backdrop-blur-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 border-b border-[var(--line)] px-4">
@@ -199,7 +199,7 @@ export function CommandPalette() {
                           href={r.href}
                           onMouseEnter={() => setActiveIdx(i)}
                           className={
-                            'flex items-center gap-3 rounded-xl px-3 py-2.5 ' +
+                            'flex items-center gap-3 rounded-md px-3 py-2.5 ' +
                             (i === activeIdx
                               ? 'bg-[var(--surface)]'
                               : 'hover:bg-[var(--surface)]/60')

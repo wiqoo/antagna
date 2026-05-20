@@ -145,7 +145,7 @@ export default async function ClientDetailPage({
           </div>
           <Link
             href={`/clients/${id}/edit`}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm hover:border-[var(--accent)]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-sm hover:border-[var(--accent)]"
           >
             <Pencil size={14} />
             تعديل
@@ -191,19 +191,19 @@ export default async function ClientDetailPage({
               name="fullName"
               required
               placeholder="الاسم الكامل *"
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
             />
             <input
               type="text"
               name="jobTitle"
               placeholder="المنصب"
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
             />
             <input
               type="email"
               name="email"
               placeholder="email"
-              className="h-9 rounded-xl border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm font-mono"
+              className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm font-mono"
             />
             <Button variant="primary" size="sm" icon={<Plus size={14} />}>
               إضافة

@@ -1,161 +1,205 @@
 @import "tailwindcss";
 
+/* Tailwind 4 only auto-scans files in the same package by default.
+   Pull classes from the shared @antagna/ui workspace. */
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
-  --color-bg: #0E0E0D;
-  --color-bg-elevated: #131312;
-  --color-surface: #1C1C1A;
-  --color-surface-hover: #232321;
-  --color-line: #2A2A27;
-  --color-line-strong: #3A3A36;
-  --color-text: #F2EFE8;
-  --color-text-muted: #88847A;
-  --color-text-dim: #5A5852;
-  --color-accent: #FF6B1A;
-  --color-accent-hover: #FF8540;
-  --color-accent-dim: #5A2A0A;
-  --color-success: #7EB36B;
-  --color-warning: #E8A547;
-  --color-danger: #D44C4C;
-  --color-info: #6B98D4;
+  /* ── Surface ladder — 5 tiers, near-neutral cool ─────────────────────── */
+  --color-bg:           #08090A;
+  --color-bg-elevated:  #0E0F11;
+  --color-surface:      #141517;
+  --color-surface-hover:#1A1B1E;
+  --color-overlay:      #202125;
 
-  --font-sans: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-numeric: var(--font-sans), ui-sans-serif, system-ui;
-  --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* ── Borders — rgba hairlines ────────────────────────────────────────── */
+  --color-line:        rgba(255, 255, 255, 0.06);
+  --color-line-strong: rgba(255, 255, 255, 0.10);
+  --color-line-bold:   rgba(255, 255, 255, 0.16);
 
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  /* ── Text — 4 tiers, never pure white ────────────────────────────────── */
+  --color-text:        #F4F4F5;
+  --color-text-muted:  #A1A1AA;
+  --color-text-dim:    #71717A;
+  --color-text-faded:  #52525B;
+
+  /* ── Accent — Volt orange, used SPARINGLY ────────────────────────────── */
+  --color-accent:       #FF6B1A;
+  --color-accent-hover: #FF8442;
+  --color-accent-tint:  rgba(255, 107, 26, 0.10);
+  --color-accent-ring:  rgba(255, 107, 26, 0.35);
+
+  /* ── Semantic — muted, not Bootstrap-bright ──────────────────────────── */
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger:  #F87171;
+  --color-info:    #60A5FA;
+
+  /* ── Fonts ───────────────────────────────────────────────────────────── */
+  --font-sans:    var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:    var(--font-mono),   ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ── Radii — small, consistent ───────────────────────────────────────── */
+  --radius-xs:  4px;   /* tags, badges */
+  --radius-sm:  6px;   /* buttons, inputs */
+  --radius-md:  8px;   /* cards */
+  --radius-lg:  12px;  /* modals */
 }
 
+/* ── Mirror to plain custom props so `var(--bg)` shorthand still works ── */
 :root {
-  --bg: #0E0E0D;
-  --bg-elevated: #131312;
-  --surface: #1C1C1A;
-  --surface-hover: #232321;
-  --line: #2A2A27;
-  --line-strong: #3A3A36;
-  --text: #F2EFE8;
-  --text-muted: #88847A;
-  --text-dim: #5A5852;
-  --accent: #FF6B1A;
-  --accent-hover: #FF8540;
-  --accent-dim: #5A2A0A;
+  --bg:            #08090A;
+  --bg-elevated:   #0E0F11;
+  --surface:       #141517;
+  --surface-hover: #1A1B1E;
+  --overlay:       #202125;
+
+  --line:          rgba(255, 255, 255, 0.06);
+  --line-strong:   rgba(255, 255, 255, 0.10);
+  --line-bold:     rgba(255, 255, 255, 0.16);
+
+  --text:          #F4F4F5;
+  --text-muted:    #A1A1AA;
+  --text-dim:      #71717A;
+  --text-faded:    #52525B;
+
+  --accent:        #FF6B1A;
+  --accent-hover:  #FF8442;
+  --accent-tint:   rgba(255, 107, 26, 0.10);
+  --accent-ring:   rgba(255, 107, 26, 0.35);
+
+  --success:       #34D399;
+  --warning:       #FBBF24;
+  --danger:        #F87171;
+  --info:          #60A5FA;
 }
 
+/* ── Base typography ─────────────────────────────────────────────────────
+   - tabular-nums everywhere (money + counts align)
+   - cv11/ss01 = Inter's stylistic alternates (better dotted i, single-storey a)
+   - Arabic locale gets bumped slightly + looser line-height */
 html, body {
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
+  font-feature-settings: "cv11", "ss01", "ss03", "calt";
+  font-variant-numeric: tabular-nums;
   background: var(--bg);
   color: var(--text);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.005em;     /* Latin default */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hero glow — radial accent on top-left (right in RTL) */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(900px 560px at 95% -10%, rgba(255, 107, 26, 0.06), transparent 55%),
-    radial-gradient(700px 400px at 5% 100%, rgba(255, 107, 26, 0.025), transparent 60%);
+/* Arabic content needs a touch more size + line-height + zero tracking */
+:lang(ar),
+[dir="rtl"] {
+  letter-spacing: 0;
+}
+:lang(ar) p,
+:lang(ar) li,
+:lang(ar) td,
+[dir="rtl"] p,
+[dir="rtl"] li,
+[dir="rtl"] td {
+  line-height: 1.65;
 }
 
+/* Display headings — tighter Latin tracking; reset for Arabic */
+h1, h2, h3 {
+  letter-spacing: -0.018em;
+  font-weight: 590;
+}
+:lang(ar) h1, :lang(ar) h2, :lang(ar) h3,
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 {
+  letter-spacing: 0;
+}
+
+/* ── Editorial selection + scrollbar + focus ─────────────────────────── */
 ::selection {
-  background: rgba(255, 107, 26, 0.28);
+  background: var(--accent-ring);
   color: #fff;
 }
 
-/* Editorial scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--line);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
-
-input, select, textarea, button {
-  font-family: inherit;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
-/* Editorial focus */
+input, select, textarea, button { font-family: inherit; }
+
 *:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 1px solid var(--accent-ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Cubic-bezier for everything interactive */
+/* ── Motion ─────────────────────────────────────────────────────────────
+   - 120ms is the sweet spot for hover; 180ms for state changes
+   - cubic-bezier(0.16, 1, 0.3, 1) for "premium ease-out"
+   - 60ms scale(0.97) for active press */
 * {
   transition-property: color, background-color, border-color, opacity, transform, box-shadow;
-  transition-duration: 220ms;
+  transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
-
 .no-transition,
 .no-transition * { transition: none !important; }
 
-/* Stagger animation — apply class `stagger-in` to a list parent */
+/* ── Animation keyframes ─────────────────────────────────────────────── */
 @keyframes rise-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 .stagger-in > * {
   opacity: 0;
-  animation: rise-in 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: rise-in 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.stagger-in > *:nth-child(1)  { animation-delay: 40ms; }
-.stagger-in > *:nth-child(2)  { animation-delay: 90ms; }
-.stagger-in > *:nth-child(3)  { animation-delay: 140ms; }
-.stagger-in > *:nth-child(4)  { animation-delay: 190ms; }
-.stagger-in > *:nth-child(5)  { animation-delay: 240ms; }
-.stagger-in > *:nth-child(6)  { animation-delay: 290ms; }
-.stagger-in > *:nth-child(7)  { animation-delay: 340ms; }
-.stagger-in > *:nth-child(8)  { animation-delay: 390ms; }
-.stagger-in > *:nth-child(9)  { animation-delay: 440ms; }
-.stagger-in > *:nth-child(10) { animation-delay: 490ms; }
-.stagger-in > *:nth-child(n+11) { animation-delay: 540ms; }
+.stagger-in > *:nth-child(1)  { animation-delay: 20ms; }
+.stagger-in > *:nth-child(2)  { animation-delay: 40ms; }
+.stagger-in > *:nth-child(3)  { animation-delay: 60ms; }
+.stagger-in > *:nth-child(4)  { animation-delay: 80ms; }
+.stagger-in > *:nth-child(5)  { animation-delay: 100ms; }
+.stagger-in > *:nth-child(6)  { animation-delay: 120ms; }
+.stagger-in > *:nth-child(7)  { animation-delay: 140ms; }
+.stagger-in > *:nth-child(8)  { animation-delay: 160ms; }
+.stagger-in > *:nth-child(9)  { animation-delay: 180ms; }
+.stagger-in > *:nth-child(10) { animation-delay: 200ms; }
+.stagger-in > *:nth-child(n+11) { animation-delay: 220ms; }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-up {
   opacity: 0;
-  animation: fade-up 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Page enter */
-main {
-  animation: fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+main { animation: fade-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* Editorial number style */
+/* ── Utilities ──────────────────────────────────────────────────────── */
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Magnetic-style hover */
-.magnet:hover {
-  transform: translateY(-1px);
-}
+/* Linear-style hover lift — 0.5px Y translate, no shadow */
+.magnet { will-change: transform; }
+.magnet:hover { transform: translateY(-0.5px); }
+.magnet:active { transform: scale(0.97); transition-duration: 60ms; }
 
-/* Decorative divider with label */
+/* Editorial section rule — "— LABEL ────────────" */
 .section-rule {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
@@ -165,3 +209,46 @@ main {
   height: 1px;
   background: var(--line);
 }
+
+/* Eyebrow primitive — used a lot */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.eyebrow-accent {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Form input — single source of truth (was repeated <style> blocks) */
+.form-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 13px;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea.form-input {
+  height: auto;
+  min-height: 80px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+/* Hero number scale — single source */
+.num-xl  { font-size: 44px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; }
+.num-lg  { font-size: 32px; line-height: 1; font-weight: 600; letter-spacing: -0.018em; }
+.num-md  { font-size: 20px; line-height: 1; font-weight: 600; letter-spacing: -0.014em; }

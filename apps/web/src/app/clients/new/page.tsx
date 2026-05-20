@@ -147,7 +147,7 @@ export default async function NewClientPage() {
               </Button>
               <Link
                 href="/crm"
-                className="inline-flex h-11 items-center rounded-xl px-4 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
+                className="inline-flex h-10 items-center rounded-md px-4 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
               >
                 إلغاء
               </Link>

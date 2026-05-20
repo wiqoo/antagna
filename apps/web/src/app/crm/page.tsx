@@ -115,7 +115,7 @@ export default async function CrmPage() {
         action={
           <Link
             href="/clients/new"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)] active:scale-[0.98]"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-black hover:bg-[var(--accent-hover)] active:scale-[0.98]"
           >
             <Plus size={16} />
             عميل جديد
