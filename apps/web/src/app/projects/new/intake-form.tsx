@@ -90,6 +90,7 @@ export function IntakeForm({
   const [briefText, setBriefText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedBrief | null>(null);
+  const [step, setStep] = useState(0);
 
   // form state — pre-filled from parsed, but always editable
   const [clientId, setClientId] = useState('');
@@ -147,8 +148,30 @@ export function IntakeForm({
       setLocations(p.locations || []);
       setDeliverables(p.deliverables || []);
       setShowAdvanced(true);
+      // Auto-advance to first data step after a successful parse
+      setStep(1);
     });
   }
+
+  const STEPS: Array<{ key: number; label: string; short: string }> = [
+    { key: 0, label: 'استخراج بـ AI', short: 'AI' },
+    { key: 1, label: 'العميل والمالية', short: 'العميل' },
+    { key: 2, label: 'الإبداعي والمخرجات', short: 'الإبداع' },
+    { key: 3, label: 'لوجستيات الإنتاج', short: 'اللوجستيات' },
+    { key: 4, label: 'الفريق والملكية', short: 'الفريق' },
+  ];
+
+  function canAdvance(): boolean {
+    if (step === 1) return clientId !== '' && titleEn.trim() !== '';
+    return true;
+  }
+  function next() {
+    if (step < STEPS.length - 1 && canAdvance()) setStep(step + 1);
+  }
+  function prev() {
+    if (step > 0) setStep(step - 1);
+  }
+  const isLast = step === STEPS.length - 1;
 
   function addDeliverable() {
     setDeliverables((arr) => [
@@ -192,15 +215,50 @@ export function IntakeForm({
   }
 
   return (
-    <form action={commitAction} className="space-y-10">
-      {/* AI hidden fields */}
+    <form action={commitAction} className="space-y-6">
+      {/* AI hidden fields — always submitted regardless of step */}
       <input type="hidden" name="sourceText" value={briefText} />
       <input type="hidden" name="parsedSummary" value={parsed?.objective ?? ''} />
       <input type="hidden" name="completeness" value={parsed?.completeness_score ?? 0} />
       <input type="hidden" name="missingFields" value={(parsed?.missing_fields ?? []).join(',')} />
 
+      {/* Stepper */}
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)]/60 p-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          {STEPS.map((s, i) => {
+            const isActive = s.key === step;
+            const isDone = s.key < step;
+            const accessible = i === 0 || canAdvance() || s.key <= step;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                disabled={!accessible}
+                onClick={() => accessible && setStep(s.key)}
+                className={
+                  'inline-flex h-8 items-center gap-2 rounded-md px-3 text-[11px] font-semibold whitespace-nowrap transition ' +
+                  (isActive
+                    ? 'text-white'
+                    : isDone
+                      ? 'border border-[var(--success)]/40 bg-[var(--success)]/10 text-[var(--success)]'
+                      : 'border border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--line-strong)]')
+                }
+                style={isActive ? { background: 'var(--accent-gradient)' } : undefined}
+              >
+                <span className="font-mono text-[10px]">{isDone ? '✓' : i + 1}</span>
+                <span className="hidden md:inline">{s.label}</span>
+                <span className="md:hidden">{s.short}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10px] text-[var(--text-dim)]">
+          الخطوة {step + 1} من {STEPS.length}: {STEPS[step]?.label}
+        </p>
+      </div>
+
       {/* Section 0: AI Intake */}
-      <section className="rounded-lg border border-[var(--accent)]/25 bg-[var(--accent)]/[0.03] p-6 space-y-4">
+      <section className={'rounded-lg border border-[var(--accent)]/25 bg-[var(--accent)]/[0.03] p-6 space-y-4 ' + (step !== 0 ? 'hidden' : '')}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
@@ -251,7 +309,7 @@ export function IntakeForm({
       </section>
 
       {/* Section 1: Client & Commercial */}
-      <Section eyebrow="٢. العميل والمالية" icon={<Building2 size={14} />}>
+      <Section eyebrow="٢. العميل والمالية" icon={<Building2 size={14} />} hidden={step !== 1}>
         <Row label="القالب (Template)" hint="اختياري — يولّد deliverables + tasks تلقائياً">
           <select name="templateId" value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="form-input">
             <option value="">— بدون template —</option>
@@ -295,7 +353,7 @@ export function IntakeForm({
       </Section>
 
       {/* Section 2: Creative */}
-      <Section eyebrow="٣. الإبداعي والمخرجات" icon={<Film size={14} />}>
+      <Section eyebrow="٣. الإبداعي والمخرجات" icon={<Film size={14} />} hidden={step !== 2}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Row label="العنوان (عربي)">
             <input
@@ -418,7 +476,7 @@ export function IntakeForm({
       </Section>
 
       {/* Section 3: Logistics */}
-      <Section eyebrow="٤. لوجستيات الإنتاج" icon={<MapPin size={14} />}>
+      <Section eyebrow="٤. لوجستيات الإنتاج" icon={<MapPin size={14} />} hidden={step !== 3}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Row label="بداية التصوير">
             <input type="date" name="shootStartsAt" value={shootStartsAt} onChange={(e) => setShootStartsAt(e.target.value)} className="form-input font-mono" />
@@ -543,7 +601,7 @@ export function IntakeForm({
       </Section>
 
       {/* Section 4: Ownership & Crew */}
-      <Section eyebrow="٥. الفريق والملكية" icon={<Users size={14} />}>
+      <Section eyebrow="٥. الفريق والملكية" icon={<Users size={14} />} hidden={step !== 4}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Row label="Account Manager">
             <select name="amId" value={amId} onChange={(e) => setAmId(e.target.value)} className="form-input">
@@ -595,21 +653,52 @@ export function IntakeForm({
         </div>
       </Section>
 
-      {/* Submit */}
-      <div className="flex items-center gap-3 border-t border-[var(--line)] pt-6">
-        <button
-          type="submit"
-          className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-6 text-[14px] font-semibold text-black hover:bg-[var(--accent-hover)]"
-        >
-          <Sparkles size={16} />
-          إنشاء المشروع
-        </button>
-        <a
-          href="/projects"
-          className="inline-flex h-10 items-center rounded-md px-4 text-[13px] text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
-        >
-          إلغاء
-        </a>
+      {/* Wizard nav */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={step === 0}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ← السابق
+          </button>
+          {!isLast && (
+            <button
+              type="button"
+              onClick={next}
+              disabled={!canAdvance()}
+              className="inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ background: 'var(--accent-gradient)' }}
+            >
+              التالي →
+            </button>
+          )}
+          {isLast && (
+            <button
+              type="submit"
+              className="magnet inline-flex h-10 items-center gap-2 rounded-md px-5 text-[13px] font-semibold text-white"
+              style={{ background: 'var(--accent-gradient)' }}
+            >
+              <Sparkles size={15} />
+              إنشاء المشروع
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {step === 1 && !canAdvance() && (
+            <span className="text-[11px] text-[var(--warning)]">
+              يجب اختيار عميل وإدخال عنوان إنجليزي للمتابعة
+            </span>
+          )}
+          <a
+            href="/projects"
+            className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)]"
+          >
+            إلغاء
+          </a>
+        </div>
       </div>
 
       <style>{`
@@ -636,12 +725,18 @@ export function IntakeForm({
 function Section({
   eyebrow,
   icon,
+  hidden,
   children,
 }: {
   eyebrow: string;
   icon: React.ReactNode;
+  hidden?: boolean;
   children: React.ReactNode;
 }) {
+  if (hidden) {
+    // Keep DOM mounted so form values aren't lost, but visually hidden
+    return <div className="hidden">{children}</div>;
+  }
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">

@@ -18,6 +18,8 @@ import {
   Button,
   AIHints,
   type AIHint,
+  MiniStat,
+  CardsGrid,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles } from 'lucide-react';
@@ -197,99 +199,105 @@ export default async function ProjectsListPage({
           <div className="flex items-center gap-2">
             <Link
               href="/briefs/new"
-              className="magnet inline-flex h-10 items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+              className="magnet hidden md:inline-flex h-9 items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
             >
-              <Sparkles size={14} />
+              <Sparkles size={13} />
               برِيف بالـ AI
             </Link>
             <Link
               href="/projects/new"
-              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]"
+              className="magnet inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[12px] font-semibold text-white"
+              style={{ background: 'var(--accent-gradient)' }}
             >
-              <Plus size={16} />
+              <Plus size={14} />
               مشروع جديد
             </Link>
           </div>
         }
       />
 
-      {/* Filters bar */}
-      <Card padded={false} className="overflow-hidden">
-        <form className="flex flex-wrap items-end gap-3 p-4">
-          <label className="flex-1 min-w-[200px] space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
-              بحث
-            </span>
-            <div className="relative">
-              <Search
-                size={14}
-                className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]"
-              />
-              <input
-                type="text"
-                name="q"
-                defaultValue={sp.q ?? ''}
-                placeholder="code، title، أو العميل…"
-                className="h-9 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 pe-9 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
-              />
-            </div>
-          </label>
+      {/* Stat tiles */}
+      <CardsGrid>
+        <MiniStat
+          span={3}
+          label="نشطة"
+          value={signals.total_active}
+          href="/projects"
+          tone="accent"
+        />
+        <MiniStat
+          span={3}
+          label="متأخرة"
+          value={signals.overdue}
+          tone={signals.overdue > 0 ? 'danger' : 'default'}
+          sub={signals.overdue > 0 ? 'تجاوزت موعد التسليم' : 'كل المواعيد محترمة'}
+        />
+        <MiniStat
+          span={3}
+          label="قريبة من التسليم"
+          value={signals.due_soon}
+          tone={signals.due_soon > 0 ? 'warning' : 'default'}
+          sub="خلال ٣ أيام"
+        />
+        <MiniStat
+          span={3}
+          label="متوقفة"
+          value={signals.stalled}
+          tone={signals.stalled > 0 ? 'warning' : 'default'}
+          sub="٥+ أيام بدون تحديث"
+        />
+      </CardsGrid>
 
-          <label className="space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
-              المرحلة
-            </span>
-            <select
-              name="stage"
-              defaultValue={sp.stage ?? ''}
-              className="h-9 w-40 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
-            >
-              <option value="">— الكل —</option>
-              {projectStageEnum.enumValues.map((s) => (
-                <option key={s} value={s}>
-                  {stageLabelAr(s)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
-              المدير
-            </span>
-            <select
-              name="pm"
-              defaultValue={sp.pm ?? ''}
-              className="h-9 w-48 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
-            >
-              <option value="">— الكل —</option>
-              {pmList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
-              العميل
-            </span>
-            <select
-              name="client"
-              defaultValue={sp.client ?? ''}
-              className="h-9 w-48 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm focus:border-[var(--accent)] focus:outline-none"
-            >
-              <option value="">— الكل —</option>
-              {clientList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nameAr}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm">
+      {/* Compact filters — single-line scrollable bar */}
+      <form className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search
+              size={13}
+              className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]"
+            />
+            <input
+              type="text"
+              name="q"
+              defaultValue={sp.q ?? ''}
+              placeholder="ابحث في الـ code، العنوان، أو العميل…"
+              className="h-9 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 pe-9 text-[12px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent)] focus:outline-none"
+            />
+          </div>
+          <select
+            name="stage"
+            defaultValue={sp.stage ?? ''}
+            className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-[12px] focus:border-[var(--accent)] focus:outline-none"
+            aria-label="المرحلة"
+          >
+            <option value="">المرحلة: الكل</option>
+            {projectStageEnum.enumValues.map((s) => (
+              <option key={s} value={s}>{stageLabelAr(s)}</option>
+            ))}
+          </select>
+          <select
+            name="pm"
+            defaultValue={sp.pm ?? ''}
+            className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-[12px] focus:border-[var(--accent)] focus:outline-none"
+            aria-label="المدير"
+          >
+            <option value="">المدير: الكل</option>
+            {pmList.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName}</option>
+            ))}
+          </select>
+          <select
+            name="client"
+            defaultValue={sp.client ?? ''}
+            className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-[12px] focus:border-[var(--accent)] focus:outline-none"
+            aria-label="العميل"
+          >
+            <option value="">العميل: الكل</option>
+            {clientList.map((c) => (
+              <option key={c.id} value={c.id}>{c.nameAr}</option>
+            ))}
+          </select>
+          <label className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2.5 text-[12px] cursor-pointer">
             <input
               type="checkbox"
               name="archived"
@@ -299,22 +307,20 @@ export default async function ProjectsListPage({
             />
             <span className="text-[var(--text-muted)]">أرشيف</span>
           </label>
-
           <Button type="submit" variant="primary">
             تطبيق
           </Button>
-
           {hasFilters && (
             <Link
               href="/projects"
-              className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/80 hover:text-[var(--text)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] px-2.5 text-[12px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)]"
             >
-              <X size={14} />
+              <X size={13} />
               مسح
             </Link>
           )}
-        </form>
-      </Card>
+        </div>
+      </form>
 
       {/* Table */}
       <Card padded={false} className="overflow-hidden">

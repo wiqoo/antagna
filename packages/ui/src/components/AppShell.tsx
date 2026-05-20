@@ -248,11 +248,12 @@ export function AppShell({
 
       {/* BOTTOM DOCK — mobile */}
       <nav
-        className="fixed start-1/2 z-30 -translate-x-1/2 flex gap-1 rounded-2xl border border-[var(--line-strong)] bg-[var(--surface)]/95 p-1.5 backdrop-blur md:hidden"
+        className="fixed z-30 flex gap-1 rounded-2xl border border-[var(--line-strong)] bg-[var(--surface)]/95 p-1.5 backdrop-blur md:hidden"
         style={{
+          left: '50%',
+          transform: 'translateX(-50%)',
           bottom: 'calc(12px + env(safe-area-inset-bottom))',
           boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6)',
-          transform: 'translateX(50%)',
         }}
         aria-label="الملاحة السفلية"
       >
