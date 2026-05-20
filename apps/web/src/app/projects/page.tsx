@@ -124,7 +124,7 @@ export default async function ProjectsListPage({
           AND stage NOT IN ('delivered','archived','lost','cancelled')) AS due_soon,
         (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
           AND updated_at < now() - interval '5 days'
-          AND stage IN ('brief','pre_production','planning')) AS stalled,
+          AND stage IN ('lead','brief','quoted','planning')) AS stalled,
         (SELECT count(*)::int FROM projects WHERE archived_at IS NULL
           AND ai_risk_level = 'high'
           AND stage NOT IN ('delivered','archived','lost','cancelled')) AS high_risk,

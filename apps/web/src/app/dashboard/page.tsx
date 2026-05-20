@@ -334,46 +334,40 @@ export default async function DashboardPage() {
         dateStr={dateStr}
       />
 
-      {/* Critical alerts row */}
-      {(stats.overdue_count > 0 || conflicts.length > 0) && (
-        <section className="grid grid-cols-1 gap-3 stagger-in md:grid-cols-2">
-          {stats.overdue_count > 0 && (
-            <AlertCard
-              tone="danger"
-              icon={<AlertTriangle size={16} />}
-              label="مشاريع متأخرة عن التسليم"
-              value={stats.overdue_count}
-              href="/projects?stage=editing"
-            />
-          )}
-          {conflicts.length > 0 && (
-            <AlertCard
-              tone="warning"
-              icon={<Package2 size={16} />}
-              label="تعارضات في حجوزات المعدات"
-              value={conflicts.length}
-              href="/equipment"
-            />
-          )}
-        </section>
-      )}
+      <style>{`
+        .dash-cards { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
+        .dash-cards > [data-span="4"] { grid-column: span 4; }
+        .dash-cards > [data-span="6"] { grid-column: span 6; }
+        .dash-cards > [data-span="3"] { grid-column: span 3; }
+        .dash-cards > [data-span="12"] { grid-column: span 12; }
+        @media (max-width: 1100px) {
+          .dash-cards { grid-template-columns: repeat(6, 1fr); }
+          .dash-cards > [data-span="6"] { grid-column: span 6; }
+          .dash-cards > [data-span="4"] { grid-column: span 3; }
+          .dash-cards > [data-span="3"] { grid-column: span 3; }
+        }
+        @media (max-width: 720px) {
+          .dash-cards { grid-template-columns: 1fr; }
+          .dash-cards > * { grid-column: span 1 !important; }
+          .today-strip { grid-template-columns: 1fr !important; }
+        }
+        .today-strip { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      `}</style>
 
-      {/* Today + this week shoots */}
-      <section className="space-y-4">
-        <header className="flex items-end justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-              — تصوير هذا الأسبوع
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">
-              {shoots.length === 0 ? 'لا shoots مجدولة' : `${shoots.length} shoot`}
-            </h2>
-          </div>
+      {/* اليوم — Today time-strip */}
+      <section>
+        <header className="mb-3 flex items-baseline gap-3">
+          <h2 className="text-[18px] font-bold tracking-[-0.018em]" style={{ fontFamily: 'var(--font-display)' }}>
+            اليوم وهذا الأسبوع
+          </h2>
+          <span className="text-[10px] text-[var(--text-dim)]">
+            {shoots.length} shoot · {budgetBurn.length} تسليم قريب
+          </span>
           <Link
             href="/calendar"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] hover:underline"
+            className="ms-auto inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] hover:underline"
           >
-            التقويم <ArrowUpRight size={11} className="rtl:rotate-180" />
+            التقويم الكامل <ArrowUpRight size={11} className="rtl:rotate-180" />
           </Link>
         </header>
 
@@ -386,50 +380,53 @@ export default async function DashboardPage() {
             />
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-3 stagger-in md:grid-cols-2 lg:grid-cols-3">
+          <div className="today-strip">
             {shoots.map((s) => {
               const dateObj = new Date(s.starts_at);
-              const dayNum = dateObj.getUTCDate();
-              const weekday = WEEKDAYS_AR[dateObj.getUTCDay()];
               const time = dateObj.toISOString().slice(11, 16);
               const daysFromNow = Math.floor(
                 (dateObj.getTime() - Date.now()) / 86_400_000,
               );
+              const isToday = daysFromNow === 0;
               return (
                 <Link
                   key={s.id}
                   href={`/projects/${s.id}`}
-                  className="magnet grid grid-cols-[60px,1fr] gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-4 hover:border-[var(--line-strong)]"
+                  className={
+                    'magnet block rounded-[10px] border p-3 ' +
+                    (isToday
+                      ? 'border-[var(--accent)]/40 bg-[var(--accent)]/[0.04]'
+                      : 'border-[var(--line)] bg-[var(--surface)]')
+                  }
                 >
-                  <div className="text-center">
-                    <p className="text-[9px] uppercase tracking-wider text-[var(--text-dim)]">
-                      {weekday}
-                    </p>
-                    <p className="font-mono text-[28px] font-bold leading-none text-[var(--accent)]">
-                      {dayNum}
-                    </p>
-                    <p className="font-mono text-[10px] text-[var(--text-muted)]">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span
+                      className="grid h-6 w-6 place-items-center rounded-md text-[12px]"
+                      style={{ background: 'rgba(251,191,36,0.20)', color: '#FBBF24' }}
+                    >◰</span>
+                    <span
+                      className={
+                        'font-mono text-[13px] font-semibold ' +
+                        (isToday ? 'text-[var(--accent)]' : 'text-[var(--text)]')
+                      }
+                    >
                       {time}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
+                    </span>
+                    <span className="ms-auto text-[9px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
                       {daysFromNow === 0 ? 'اليوم'
                         : daysFromNow === 1 ? 'غداً'
-                          : `خلال ${daysFromNow} يوم`}
-                    </p>
-                    <p className="mt-1 truncate text-[13px] font-semibold text-[var(--text)]">
-                      {s.title_ar ?? s.title}
-                    </p>
-                    <p className="truncate text-[11px] text-[var(--text-muted)]">
-                      {s.client_name ?? '—'}
-                      {s.city && <> · {s.city}</>}
-                    </p>
-                    <div className="mt-1.5">
-                      <StatusPill tone={stageTone(s.stage)}>
-                        {stageLabelAr(s.stage)}
-                      </StatusPill>
-                    </div>
+                          : `+${daysFromNow}ي`}
+                    </span>
+                  </div>
+                  <p className="truncate text-[12px] font-medium text-[var(--text)]">
+                    {s.title_ar ?? s.title}
+                  </p>
+                  <p className="truncate text-[10px] text-[var(--text-muted)]">
+                    {s.client_name ?? '—'}
+                    {s.city && <> · {s.city}</>}
+                  </p>
+                  <div className="mt-2 border-t border-[var(--line)] pt-2">
+                    <p className="font-mono text-[10px] text-[var(--text-dim)]">{s.code}</p>
                   </div>
                 </Link>
               );
@@ -438,59 +435,203 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {/* KPI strip */}
-      <section className="grid grid-cols-2 gap-3 stagger-in md:grid-cols-5">
-        <Kpi
-          label="نشطة"
-          value={stats?.active_projects ?? 0}
-          icon={<Briefcase size={14} />}
-          href="/projects"
-        />
-        <Kpi
-          label="إيراد الشهر"
-          value={mtdRevenue}
-          format="k"
-          icon={<TrendingUp size={14} />}
-          tone="accent"
-        />
-        <Kpi
-          label="مهام مفتوحة"
-          value={stats?.open_tasks ?? 0}
-          icon={<ListChecks size={14} />}
-          href="/tasks"
-        />
-        <Kpi
-          label="Leads"
-          value={stats?.open_leads ?? 0}
-          icon={<Users size={14} />}
-          href="/crm"
-        />
-        <Kpi
-          label="بانتظار مراجعة"
-          value={stats?.pending_review_count ?? 0}
-          icon={<Calendar size={14} />}
-          tone={stats.pending_review_count > 0 ? 'warning' : 'default'}
-        />
+      {/* اللوحة — Customizable Cards Grid */}
+      <section>
+        <header className="mb-3 flex items-baseline gap-3">
+          <h2 className="text-[18px] font-bold tracking-[-0.018em]" style={{ fontFamily: 'var(--font-display)' }}>
+            اللوحة
+          </h2>
+          <span className="text-[10px] text-[var(--text-dim)]">
+            ٨ كروت · قابلة للتخصيص
+          </span>
+          <button
+            type="button"
+            className="ms-auto inline-flex h-7 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[11px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)]"
+          >
+            تخصيص
+          </button>
+        </header>
+
+        <div className="dash-cards stagger-in">
+          {/* في خطر / متأخر */}
+          <DashCard span={4} title="مشاريع في خطر" badge={String(stats.overdue_count + budgetBurn.filter(p => p.days_until_due < 3).length)} tone="danger">
+            {stats.overdue_count === 0 && budgetBurn.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">لا مشاريع حرجة الآن.</p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {budgetBurn.slice(0, 4).map((p) => {
+                  const overdue = p.days_until_due < 0;
+                  return (
+                    <li key={p.id} className="flex items-center gap-2 py-1.5 text-[11px]">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ background: overdue ? '#F87171' : p.days_until_due < 3 ? '#FBBF24' : 'var(--text-dim)' }}
+                      />
+                      <Link href={`/projects/${p.id}`} className="font-mono text-[10px] text-[var(--text-dim)] hover:text-[var(--accent)]">
+                        {p.code}
+                      </Link>
+                      <span className="flex-1 truncate text-[var(--text)]">
+                        {overdue ? `متأخر ${Math.abs(p.days_until_due)}ي` : `${p.days_until_due}ي`}
+                      </span>
+                      <span className="font-mono text-[10px] text-[var(--text-muted)]">{p.delivered_pct}%</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </DashCard>
+
+          {/* الموافقات */}
+          <DashCard span={4} title="قائمة الموافقات" badge={String(deliverablesQueue.length)}>
+            {deliverablesQueue.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">الـ pipeline فاضي ✓</p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {deliverablesQueue.slice(0, 4).map((d) => (
+                  <li key={d.id} className="flex items-center gap-2 py-1.5 text-[11px]">
+                    <span className="font-mono text-[10px] text-[var(--text-dim)]">{d.item_number ?? '#'}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[var(--text)]">{d.title ?? '(بدون عنوان)'}</p>
+                      <p className="truncate text-[10px] text-[var(--text-dim)]">
+                        <span className="font-mono">{d.project_code}</span>
+                      </p>
+                    </div>
+                    <Link
+                      href={`/projects/${d.project_id}`}
+                      className="rounded bg-[var(--accent-tint)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/30"
+                    >
+                      راجع
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DashCard>
+
+          {/* تعارضات معدات */}
+          <DashCard span={4} title="تعارضات معدات" badge={String(conflicts.length)} tone={conflicts.length > 0 ? 'warning' : undefined}>
+            {conflicts.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">مفيش تعارضات.</p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {conflicts.slice(0, 4).map((c) => (
+                  <li key={c.equipment_id} className="py-1.5 text-[11px]">
+                    <p className="font-medium text-[var(--text)]">
+                      {c.code} <span className="text-[10px] text-[var(--text-dim)]">· {c.model}</span>
+                    </p>
+                    <p className="text-[10px] text-[var(--warning)]">
+                      {c.conflicting} حجز متداخل من {new Date(c.overlap_starts_at).toISOString().slice(0, 10)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DashCard>
+
+          {/* حمولة الفريق — top 5 */}
+          <DashCard span={6} title="حمولة الفريق · ١٤ يوم" link={{ href: '/team', label: 'الفريق' }}>
+            {people.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">لا توظيفات نشطة.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {[...people]
+                  .sort((a, b) => b.days.reduce((s, d) => s + d, 0) - a.days.reduce((s, d) => s + d, 0))
+                  .slice(0, 5)
+                  .map((p) => {
+                    const total = p.days.reduce((s, d) => s + d, 0);
+                    const pct = Math.min(100, (total / 28) * 100);
+                    const over = total > 28;
+                    return (
+                      <li key={p.profileId} className="grid grid-cols-[100px,1fr,30px] items-center gap-2 text-[11px]">
+                        <span className="truncate text-[var(--text)]">{p.name}</span>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-hover)]">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${Math.min(100, pct)}%`,
+                              background: over ? '#F87171' : pct > 75 ? '#FBBF24' : 'var(--accent)',
+                            }}
+                          />
+                        </div>
+                        <span className="font-mono text-[10px] text-[var(--text-muted)]">{total}</span>
+                      </li>
+                    );
+                  })}
+              </ul>
+            )}
+          </DashCard>
+
+          {/* Revenue forecast */}
+          <DashCard span={6} title="إيراد الشهر" badge={mtdRevenue > 0 ? 'MTD' : undefined} tone="success">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p
+                  className="text-[28px] font-bold leading-none tracking-[-0.02em] text-[var(--accent)]"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Counter to={mtdRevenue} format="k" />
+                </p>
+                <p className="mt-1 text-[10px] text-[var(--text-dim)]">SAR محصّل من بداية الشهر</p>
+              </div>
+              <div className="text-end">
+                <p className="text-[10px] text-[var(--text-dim)]">منذ التحديث</p>
+                <p className="font-mono text-[11px] text-[var(--text-muted)]">live · pg_cron</p>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-12 gap-[2px]" style={{ height: 36 }}>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-sm"
+                  style={{
+                    background: i > 7 ? 'var(--accent)' : 'var(--text-dim)',
+                    opacity: i > 7 ? 0.9 : 0.25,
+                    height: `${30 + ((i * 17) % 60)}%`,
+                    alignSelf: 'end',
+                  }}
+                />
+              ))}
+            </div>
+          </DashCard>
+
+          {/* Mini stats */}
+          <MiniStat span={3} label="مشاريع نشطة" value={stats?.active_projects ?? 0} href="/projects" />
+          <MiniStat span={3} label="مهام مفتوحة" value={stats?.open_tasks ?? 0} href="/tasks" />
+          <MiniStat span={3} label="Leads" value={stats?.open_leads ?? 0} href="/crm" />
+          <MiniStat
+            span={3}
+            label="بانتظار مراجعة"
+            value={stats?.pending_review_count ?? 0}
+            tone={stats.pending_review_count > 0 ? 'warning' : 'default'}
+          />
+
+          {/* Add card placeholder */}
+          <div
+            data-span="12"
+            className="cursor-pointer rounded-xl border border-dashed border-[var(--line)] p-4 text-center text-[12px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:bg-[var(--surface)]/40"
+          >
+            + أضف كرت · ٨ كرت متاح في الـ catalog
+          </div>
+        </div>
       </section>
 
-      {/* Capacity heatmap */}
-      <section className="space-y-3">
-        <header className="flex items-end justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-              — توظيف الفريق · ١٤ يوم
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">
-              من شغّال على إيه و متى؟
-            </h2>
-          </div>
-          <Link
-            href="/team"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)] hover:underline"
-          >
-            الفريق <ArrowUpRight size={11} className="rtl:rotate-180" />
-          </Link>
-        </header>
+      {/* Capacity heatmap — expandable */}
+      <details className="group rounded-xl border border-[var(--line)] bg-[var(--surface)]/40">
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
+            توظيف الفريق · ١٤ يوم
+          </span>
+          <span className="text-[11px] text-[var(--text-muted)]">
+            ({people.length} عضو)
+          </span>
+          <span className="ms-auto text-[11px] text-[var(--accent)] group-open:hidden">
+            افتح الجدول ↓
+          </span>
+          <span className="ms-auto hidden text-[11px] text-[var(--accent)] group-open:inline">
+            اطوي ↑
+          </span>
+        </summary>
+        <div className="border-t border-[var(--line)] p-4">
         {people.length === 0 ? (
           <Card>
             <EmptyState
@@ -591,9 +732,36 @@ export default async function DashboardPage() {
             </div>
           </Card>
         )}
+        </div>
+      </details>
+
+      {/* Ask Claude footer */}
+      <section className="flex items-center gap-3 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-3">
+        <span
+          className="grid h-8 w-8 place-items-center rounded-md font-bold text-white"
+          style={{ background: 'var(--accent-gradient)', fontSize: 12 }}
+        >C</span>
+        <input
+          type="text"
+          placeholder="اسأل Claude أي حاجة عن Volt… (قريباً)"
+          disabled
+          className="flex-1 bg-transparent text-[13px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none"
+        />
+        <button
+          type="button"
+          disabled
+          className="inline-flex h-8 items-center rounded-md px-3 text-[11px] font-semibold text-white opacity-50"
+          style={{ background: 'var(--accent-gradient)' }}
+        >
+          ↗ اسأل
+        </button>
       </section>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="hidden">
+        {/* — legacy approval/budget sections retained below for fallback view if Mohammed wants them back — */}
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 hidden">
         {/* Approval queue */}
         <section className="space-y-3">
           <header className="flex items-end justify-between">
@@ -751,11 +919,105 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <div className="flex items-center justify-between border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
+      <div className="flex items-center justify-between border-t border-[var(--line)] pt-4 text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
         <span>— Antagna Dashboard</span>
         <span>{new Date().getFullYear()} · Volt Production</span>
       </div>
     </Shell>
+  );
+}
+
+function DashCard({
+  span,
+  title,
+  badge,
+  tone,
+  link,
+  children,
+}: {
+  span: number;
+  title: string;
+  badge?: string;
+  tone?: 'success' | 'warning' | 'danger';
+  link?: { href: string; label: string };
+  children: React.ReactNode;
+}) {
+  const badgeColor =
+    tone === 'success' ? 'var(--success)'
+      : tone === 'warning' ? 'var(--warning)'
+        : tone === 'danger' ? 'var(--danger)'
+          : 'var(--text-muted)';
+  return (
+    <div
+      data-span={span}
+      className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
+    >
+      <div className="mb-3 flex items-center gap-2.5">
+        <h3 className="text-[12px] font-semibold text-[var(--text)]">{title}</h3>
+        {badge != null && (
+          <span
+            className="rounded px-2 py-0.5 text-[10px] font-semibold"
+            style={{ background: badgeColor + '22', color: badgeColor }}
+          >
+            {badge}
+          </span>
+        )}
+        {link && (
+          <Link href={link.href} className="ms-auto text-[10px] text-[var(--accent)] hover:underline">
+            {link.label} →
+          </Link>
+        )}
+        <span className="cursor-grab text-[var(--text-dim)]" style={link ? {} : { marginInlineStart: 'auto' }} title="drag to rearrange">
+          ⋮⋮
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MiniStat({
+  span,
+  label,
+  value,
+  href,
+  tone = 'default',
+}: {
+  span: number;
+  label: string;
+  value: number;
+  href?: string;
+  tone?: 'default' | 'warning' | 'danger' | 'accent';
+}) {
+  const color =
+    tone === 'accent' ? 'var(--accent)'
+      : tone === 'warning' ? 'var(--warning)'
+        : tone === 'danger' ? 'var(--danger)'
+          : 'var(--text)';
+  const inner = (
+    <>
+      <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
+      <p
+        className="mt-1 text-[24px] font-bold leading-none tracking-[-0.018em] tabular"
+        style={{ color, fontFamily: 'var(--font-display)' }}
+      >
+        <Counter to={value} />
+      </p>
+    </>
+  );
+  const cls = 'rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 block ' +
+    (href ? 'magnet hover:border-[var(--line-strong)]' : '');
+  if (href) {
+    return (
+      <Link href={href} data-span={span} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div data-span={span} className={cls}>
+      {inner}
+    </div>
   );
 }
 
