@@ -37,6 +37,20 @@ export default async function DashboardPage() {
   if (!user) redirect('/login?next=/dashboard');
 
   // ── ALL THE DATA ──────────────────────────────────────────────────────────
+  // Each query wrapped in try/catch — one broken query shouldn't 500 the page.
+  const safe = async <T,>(
+    label: string,
+    fn: () => Promise<T>,
+    fallback: T,
+  ): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`[dashboard:${label}]`, err);
+      return fallback;
+    }
+  };
+
   const [
     statsRow,
     shootsArr,
@@ -46,7 +60,7 @@ export default async function DashboardPage() {
     conflictsArr,
     initialBriefing,
   ] = await Promise.all([
-    db.execute<{
+    safe('stats', () => db.execute<{
       active_projects: number;
       open_tasks: number;
       open_leads: number;
@@ -73,9 +87,9 @@ export default async function DashboardPage() {
             AND stage NOT IN ('delivered','archived','lost','cancelled')) AS overdue_count,
         (SELECT count(*)::int FROM deliverables
           WHERE status IN ('pending_director','pending_am','in_client_review')) AS pending_review_count
-    `),
+    `), [] as Array<{ active_projects: number; open_tasks: number; open_leads: number; equipment_count: number; mtd_revenue: string | null; overdue_count: number; pending_review_count: number }>),
 
-    db.execute<{
+    safe('shoots', () => db.execute<{
       id: string;
       code: string;
       title_ar: string | null;
@@ -97,9 +111,9 @@ export default async function DashboardPage() {
         AND p.archived_at IS NULL
       ORDER BY p.shoot_starts_at
       LIMIT 6
-    `),
+    `), [] as Array<{ id: string; code: string; title_ar: string | null; title: string; stage: string; starts_at: Date; client_name: string | null; city: string | null }>),
 
-    db.execute<{
+    safe('deliverables', () => db.execute<{
       id: string;
       project_id: string;
       project_code: string;
@@ -117,10 +131,10 @@ export default async function DashboardPage() {
       WHERE d.status IN ('pending_director','pending_am','in_client_review','client_ready')
       ORDER BY d.updated_at DESC
       LIMIT 8
-    `),
+    `), [] as Array<{ id: string; project_id: string; project_code: string; item_number: string | null; title: string | null; status: string; group_name: string }>),
 
-    // Capacity heatmap: people × upcoming-14-days, count of active assignments
-    db.execute<{
+    // Capacity heatmap
+    safe('teamLoad', () => db.execute<{
       profile_id: string;
       name: string;
       day_offset: number;
@@ -146,10 +160,10 @@ export default async function DashboardPage() {
         AND prof.archived_at IS NULL
       GROUP BY prof.id, prof.display_name, ofs.d
       ORDER BY prof.display_name, ofs.d
-    `),
+    `), [] as Array<{ profile_id: string; name: string; day_offset: number; load: number }>),
 
-    // Budget burn risk — projects with delivery_due_at near + low completion
-    db.execute<{
+    // Budget burn
+    safe('budgetBurn', () => db.execute<{
       id: string;
       code: string;
       title_ar: string | null;
@@ -180,10 +194,10 @@ export default async function DashboardPage() {
         AND p.delivery_due_at < now() + interval '14 days'
       ORDER BY p.delivery_due_at
       LIMIT 6
-    `),
+    `), [] as Array<{ id: string; code: string; title_ar: string | null; title: string; stage: string; days_until_due: number; contracted_value: string | null; open_tasks: number; delivered_pct: number }>),
 
-    // Equipment double-booking detection
-    db.execute<{
+    // Equipment double-booking
+    safe('conflicts', () => db.execute<{
       equipment_id: string;
       code: string;
       model: string;
@@ -213,9 +227,9 @@ export default async function DashboardPage() {
       FROM conflicts c
       INNER JOIN equipment e ON e.id = c.equipment_id
       LIMIT 5
-    `),
+    `), [] as Array<{ equipment_id: string; code: string; model: string; overlap_starts_at: Date; conflicting: number }>),
 
-    loadCachedBriefing(),
+    safe('briefing', () => loadCachedBriefing(), null),
   ]);
 
   const stats = ((statsRow as unknown as Array<{
