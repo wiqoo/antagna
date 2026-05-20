@@ -75,6 +75,41 @@ Legend: ✓ done · 🟡 partial (schema landed, runtime/UI/manual deferred) · 
 
 ---
 
+## 📋 Backlog — chosen for a future sprint
+
+### Team Chat (Pillar TBD — slack-lite for the team)
+
+Real-time chat surface inside Antagna. Plan:
+
+**Schema**
+- `chat_channels` — { id, kind ('dm'|'group'|'project'), name, project_id?, created_by, created_at }
+- `chat_channel_members` — { channel_id, profile_id, role, last_read_at, muted_at? }
+- `chat_messages` — { id, channel_id, author_id, body, attachment_ids[], mentioned_profile_ids[], reply_to_id?, created_at, edited_at?, deleted_at? }
+- `chat_reactions` — { message_id, profile_id, emoji, created_at }
+
+**Realtime**
+- Supabase `postgres_changes` channels keyed by `channel_id`
+- Presence (who's online + typing) via Supabase Presence
+
+**AI**
+- Same `mentioned_profile_ids` parse → notifications (reuse fn_notify_on_mention pattern)
+- `/ai summarize` slash command → Claude summarizes the last N messages
+- AI search across all channels with embeddings
+
+**UI**
+- New sidebar entry "الدردشة" in العمليات group
+- Channel list on the left, messages center, member list right
+- Project channels auto-created when a project starts (optional)
+- Mobile: full-screen with bottom dock still visible
+
+**Voice notes**
+- PWA `MediaRecorder` mic → upload to Supabase Storage → render as audio message
+- Auto-transcribe via OpenAI Whisper (already in env)
+
+Estimated: 1-2 days for the channels + messages + realtime, +1 day for AI + voice.
+
+---
+
 ## 🚧 Open blockers (for feature/runtime layers)
 
 1. **Google service account JSON** (Pillar 13 runtime). Needed for Drive/Calendar/Gmail-on-behalf-of-user.

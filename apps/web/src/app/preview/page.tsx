@@ -120,7 +120,7 @@ export default function PreviewIndex() {
           ))}
         </div>
 
-        <div style={{ marginTop: 48 }}>
+        <div style={{ marginTop: 48, display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))' }}>
           <Link
             href="/preview/nav"
             style={{
@@ -134,18 +134,39 @@ export default function PreviewIndex() {
             }}
           >
             <p style={{ fontSize: 11, color: '#FF6B1A', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>
-              Nav Patterns · 5 options
+              Nav Patterns · 6 options
             </p>
             <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
               معاينات أسلوب القائمة
             </h2>
             <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.6 }}>
-              ٥ معماريات تنقل مختلفة — icon-only، expanded، hover-expand، top، bottom dock —
-              جميعها مع Frame.io content.
+              ٦ معماريات تنقل — icon-only، expanded، hover-expand، top، bottom dock، side dock customizable.
             </p>
-            <p style={{ marginTop: 12, fontSize: 13, color: '#FF6B1A', fontWeight: 500 }}>
-              افتح ←
+            <p style={{ marginTop: 12, fontSize: 13, color: '#FF6B1A', fontWeight: 500 }}>افتح ←</p>
+          </Link>
+
+          <Link
+            href="/preview/dashboard"
+            style={{
+              display: 'block',
+              background: 'linear-gradient(135deg, #FF6B1A10, transparent)',
+              border: '1px solid #FF6B1A40',
+              borderRadius: 12,
+              padding: 24,
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+          >
+            <p style={{ fontSize: 11, color: '#FF6B1A', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>
+              Dashboard Concepts · 3 options
             </p>
+            <h2 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+              معاينات الداشبورد الذكية
+            </h2>
+            <p style={{ fontSize: 13, color: '#aaa', lineHeight: 1.6 }}>
+              ٣ مفاهيم: Cards Grid قابلة للتخصيص، AI Conductor (Claude يقود)، Critical Path (time-first).
+            </p>
+            <p style={{ marginTop: 12, fontSize: 13, color: '#FF6B1A', fontWeight: 500 }}>افتح ←</p>
           </Link>
         </div>
 
