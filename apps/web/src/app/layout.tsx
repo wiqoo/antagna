@@ -1,9 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono, Vazirmatn } from 'next/font/google';
+import {
+  Geist,
+  Geist_Mono,
+  Vazirmatn,
+  IBM_Plex_Sans_Arabic,
+} from 'next/font/google';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 
-// Vercel's Geist — modern product UI sans (2024)
+// Geist — Latin product UI sans
 const geist = Geist({
   variable: '--font-sans',
   subsets: ['latin'],
@@ -18,12 +23,20 @@ const geistMono = Geist_Mono({
   weight: ['400', '500'],
 });
 
-// Vazirmatn — modern Arabic typeface designed for screens, pairs with Geist
+// Vazirmatn — DISPLAY/HEADINGS only (Arabic + Latin headings)
 const vazirmatn = Vazirmatn({
+  variable: '--font-arabic-display',
+  subsets: ['arabic', 'latin'],
+  display: 'swap',
+  weight: ['600', '700'],
+});
+
+// IBM Plex Sans Arabic — BODY (more character at small sizes)
+const plexArabic = IBM_Plex_Sans_Arabic({
   variable: '--font-arabic',
   subsets: ['arabic', 'latin'],
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600'],
 });
 
 export const metadata: Metadata = {
@@ -52,7 +65,7 @@ export default function RootLayout({
     <html
       lang="ar"
       dir="rtl"
-      className={`${geist.variable} ${geistMono.variable} ${vazirmatn.variable} h-full antialiased`}
+      className={`${geist.variable} ${geistMono.variable} ${vazirmatn.variable} ${plexArabic.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[var(--bg)] text-[var(--text)]">
         {children}

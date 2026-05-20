@@ -31,10 +31,11 @@
   --color-danger:  #B23B3B;
   --color-info:    #1A6AC0;
 
-  /* Vazirmatn first (Arabic primary), Geist for Latin, system fallback */
-  --font-sans: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --font-display: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Body: Plex Arabic primary (richer at small sizes), Geist for Latin */
+  /* Display: Vazirmatn (the H1 vibe Mohammed approved), fallback to Plex/Geist */
+  --font-sans:    var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-arabic-display), var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -70,12 +71,14 @@
 }
 
 /* ── Base typography ─────────────────────────────────────────────────────
-   Vazirmatn primary (Arabic + Latin glyphs that match Arabic x-height),
-   Geist fallback for Latin-only contexts. tabular-nums everywhere.
-   Geist has stylistic alternates: ss01 = single-storey a, ss03 = display 1. */
+   Two-stack approach:
+   - BODY → Plex Sans Arabic (warmth + character at small sizes), Geist Latin
+   - DISPLAY (h1/h2/h3) → Vazirmatn (the H1 vibe Mohammed approved)
+   - MONO → Geist Mono (with "zero" feature so 0/O are distinct)
+*/
 html, body {
   font-family: var(--font-sans);
-  font-feature-settings: "calt", "ss01";
+  font-feature-settings: "calt";
   font-variant-numeric: tabular-nums;
   background: var(--bg);
   color: var(--text);
@@ -83,7 +86,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body { font-size: 15px; line-height: 1.5; }
+body { font-size: 15px; line-height: 1.55; font-weight: 400; }
 
 /* Arabic line-height — Vazirmatn handles diacritics + tail descenders */
 :lang(ar) p, :lang(ar) li, :lang(ar) td,
