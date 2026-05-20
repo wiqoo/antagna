@@ -31,8 +31,10 @@
   --color-danger:  #B23B3B;
   --color-info:    #1A6AC0;
 
+  /* Vazirmatn first (Arabic primary), Geist for Latin, system fallback */
   --font-sans: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-display: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -68,11 +70,12 @@
 }
 
 /* ── Base typography ─────────────────────────────────────────────────────
-   Generous size + tabular-nums. Notion uses ~14px body with 1.5 line-height.
-   Arabic gets line-height 1.7 (Arabic glyphs need room). */
+   Vazirmatn primary (Arabic + Latin glyphs that match Arabic x-height),
+   Geist fallback for Latin-only contexts. tabular-nums everywhere.
+   Geist has stylistic alternates: ss01 = single-storey a, ss03 = display 1. */
 html, body {
   font-family: var(--font-sans);
-  font-feature-settings: "cv11", "ss01", "calt";
+  font-feature-settings: "calt", "ss01";
   font-variant-numeric: tabular-nums;
   background: var(--bg);
   color: var(--text);
@@ -82,22 +85,29 @@ html, body {
 
 body { font-size: 15px; line-height: 1.5; }
 
-/* Arabic line-height adjustments */
+/* Arabic line-height — Vazirmatn handles diacritics + tail descenders */
 :lang(ar) p, :lang(ar) li, :lang(ar) td,
 [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] td {
   line-height: 1.7;
 }
 
-/* Headings — big, dark, restrained tracking */
+/* Headings — Geist Display weight 700 Latin, Vazirmatn 600 Arabic */
 h1, h2, h3 {
   color: var(--text);
+  font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
 }
 :lang(ar) h1, :lang(ar) h2, :lang(ar) h3,
 [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 {
   letter-spacing: 0;
-  font-weight: 600;  /* Bold Arabic looks blocky; use semi-bold */
+  font-weight: 600;
+}
+
+/* Code / mono — Geist Mono */
+code, pre, kbd, .font-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero", "calt";
 }
 
 ::selection {

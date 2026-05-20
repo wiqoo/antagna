@@ -1,27 +1,29 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Vazirmatn } from 'next/font/google';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 
-const inter = Inter({
+// Vercel's Geist — modern product UI sans (2024)
+const geist = Geist({
   variable: '--font-sans',
   subsets: ['latin'],
   display: 'swap',
   weight: ['400', '500', '600', '700'],
 });
 
-const plexArabic = IBM_Plex_Sans_Arabic({
-  variable: '--font-arabic',
-  subsets: ['arabic', 'latin'],
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700'],
-});
-
-const mono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   variable: '--font-mono',
   subsets: ['latin'],
   display: 'swap',
   weight: ['400', '500'],
+});
+
+// Vazirmatn — modern Arabic typeface designed for screens, pairs with Geist
+const vazirmatn = Vazirmatn({
+  variable: '--font-arabic',
+  subsets: ['arabic', 'latin'],
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'Antagna',
   },
 };
@@ -50,7 +52,7 @@ export default function RootLayout({
     <html
       lang="ar"
       dir="rtl"
-      className={`${inter.variable} ${plexArabic.variable} ${mono.variable} h-full antialiased`}
+      className={`${geist.variable} ${geistMono.variable} ${vazirmatn.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-[var(--bg)] text-[var(--text)]">
         {children}
