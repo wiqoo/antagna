@@ -18,9 +18,10 @@ import {
   Avatar,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles } from 'lucide-react';
+import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { seedDevData } from './seed-actions';
+import { toggleAlertRule, updateAlertCooldown, toggleKpi } from './alert-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -191,10 +192,38 @@ export default async function AdminPage() {
                     <p className="text-xs text-[var(--text-muted)]">{r.description}</p>
                   )}
                 </div>
-                <div className="text-end text-xs text-[var(--text-dim)]">
-                  <p>{r.triggerType}</p>
-                  <p className="font-mono">cooldown {r.cooldownMinutes}m</p>
-                </div>
+                <form action={updateAlertCooldown} className="flex items-center gap-2 text-xs">
+                  <input type="hidden" name="ruleId" value={r.id} />
+                  <span className="text-[var(--text-dim)]">cooldown</span>
+                  <input
+                    type="number"
+                    name="cooldownMinutes"
+                    defaultValue={r.cooldownMinutes}
+                    min={1}
+                    className="h-7 w-16 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-end font-mono text-xs"
+                  />
+                  <span className="text-[var(--text-dim)]">min</span>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-[10px] hover:border-[var(--accent)]"
+                  >
+                    حفظ
+                  </button>
+                </form>
+                <form action={toggleAlertRule.bind(null, r.id)}>
+                  <button
+                    type="submit"
+                    title={r.active ? 'إيقاف' : 'تفعيل'}
+                    className={
+                      'grid h-8 w-8 place-items-center rounded-md border ' +
+                      (r.active
+                        ? 'border-[var(--success)]/40 bg-[var(--success)]/10 text-[var(--success)]'
+                        : 'border-[var(--line)] bg-[var(--surface)] text-[var(--text-dim)]')
+                    }
+                  >
+                    <Power size={12} />
+                  </button>
+                </form>
               </li>
             ))}
           </ul>
@@ -225,6 +254,7 @@ export default async function AdminPage() {
                   <th className="px-5 py-3 text-start">scope</th>
                   <th className="px-5 py-3 text-start">unit</th>
                   <th className="px-5 py-3 text-start">refresh</th>
+                  <th className="px-5 py-3 text-start"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
@@ -243,6 +273,21 @@ export default async function AdminPage() {
                     <td className="px-5 py-3.5 text-xs text-[var(--text-muted)]">
                       {k.refreshFrequency}
                     </td>
+                    <td className="px-5 py-3.5">
+                      <form action={toggleKpi.bind(null, k.key)}>
+                        <button
+                          type="submit"
+                          className={
+                            'grid h-7 w-7 place-items-center rounded-md border ' +
+                            (k.active
+                              ? 'border-[var(--success)]/40 bg-[var(--success)]/10 text-[var(--success)]'
+                              : 'border-[var(--line)] bg-[var(--surface)] text-[var(--text-dim)]')
+                          }
+                        >
+                          <Power size={11} />
+                        </button>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -251,19 +296,6 @@ export default async function AdminPage() {
         )}
       </Card>
 
-      <Card>
-        <div className="flex items-center gap-3">
-          <Shield className="text-[var(--accent)]" size={20} />
-          <div className="text-sm">
-            <p className="text-[var(--text)]">
-              صلاحيات أعمق (إضافة users، تعديل alert rules، تعديل KPI defs) لسه read-only.
-            </p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
-              هتُضاف لما تحدد سياسة الـ system_admin role في Pillar 3 الـ UI.
-            </p>
-          </div>
-        </div>
-      </Card>
 
       <Card className="border-[var(--accent)]/30 bg-[var(--accent)]/[0.03]">
         <div className="flex flex-wrap items-center justify-between gap-4">
