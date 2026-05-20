@@ -132,6 +132,7 @@ export default async function ProjectDetailPage({
       aiStatusParagraph: projects.aiStatusParagraph,
       aiRiskLevel: projects.aiRiskLevel,
       aiNextAction: projects.aiNextAction,
+      aiAnalyzedAt: projects.aiAnalyzedAt,
       driveFolderUrl: projects.driveFolderUrl,
       notes: projects.notes,
       clientId: projects.clientId,
@@ -455,23 +456,51 @@ export default async function ProjectDetailPage({
             </div>
           </div>
 
-          {project.aiStatusParagraph && (
-            <div className="mt-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] p-4">
-              <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
+          <div className="mt-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] p-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
                 <Sparkles size={12} />
                 تحليل ذكي
+                {project.aiAnalyzedAt && (
+                  <span className="font-mono text-[10px] text-[var(--text-dim)]">
+                    · {new Date(project.aiAnalyzedAt).toISOString().slice(0, 10)}
+                  </span>
+                )}
               </div>
-              <p className="text-sm leading-relaxed text-[var(--text)]">
-                {project.aiStatusParagraph}
-              </p>
-              {project.aiNextAction && (
-                <p className="mt-2 text-sm text-[var(--text-muted)]">
-                  <span className="text-[var(--text-dim)]">الخطوة التالية: </span>
-                  {project.aiNextAction}
-                </p>
-              )}
+              <form
+                action={async () => {
+                  'use server';
+                  const { reanalyzeProject } = await import('./ai-actions');
+                  await reanalyzeProject(id, true);
+                }}
+              >
+                <button
+                  type="submit"
+                  className="magnet inline-flex h-7 items-center gap-1.5 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                >
+                  <Sparkles size={10} />
+                  حلّل من جديد
+                </button>
+              </form>
             </div>
-          )}
+            {project.aiStatusParagraph ? (
+              <>
+                <p className="text-sm leading-relaxed text-[var(--text)]">
+                  {project.aiStatusParagraph}
+                </p>
+                {project.aiNextAction && (
+                  <p className="mt-2 text-sm text-[var(--text-muted)]">
+                    <span className="text-[var(--text-dim)]">الخطوة التالية: </span>
+                    {project.aiNextAction}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">
+                لم يتم تحليل المشروع بعد. اضغط "حلّل من جديد" لتشغيل Claude.
+              </p>
+            )}
+          </div>
         </div>
       </Card>
 

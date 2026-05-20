@@ -67,6 +67,13 @@ export async function transitionStage(
 
   revalidatePath(`/projects/${projectId}`);
   revalidatePath('/projects');
+
+  // Trigger AI re-analysis in the background — don't block the redirect.
+  // Stage changes are the cheapest moment to refresh risk + next-action.
+  import('./ai-actions')
+    .then((m) => m.reanalyzeProject(projectId, true))
+    .catch((err) => console.error('[transitionStage] reanalyze failed', err));
+
   return { ok: true };
 }
 
