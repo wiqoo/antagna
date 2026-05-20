@@ -1,0 +1,136 @@
+// Shared mock data across all preview styles so comparison is apples-to-apples.
+
+export const STATS = {
+  activeProjects: 12,
+  openTasks: 24,
+  openLeads: 8,
+  mtdRevenue: 145_000,
+  overdueCount: 2,
+  pendingReview: 5,
+};
+
+export const PROJECTS = [
+  {
+    code: 'PR-0009',
+    titleAr: 'فيلم العلامة التجارية',
+    titleEn: 'Brand Anthem Film',
+    client: 'HRMNY',
+    stage: 'shooting',
+    stageAr: 'تصوير',
+    dueDays: 13,
+    value: 120_000,
+    pm: 'محمد المالكي',
+    risk: 'amber',
+  },
+  {
+    code: 'PR-0005',
+    titleAr: 'ريلز حملة الصيف',
+    titleEn: 'Summer Campaign Reels',
+    client: 'MYNM',
+    stage: 'editing',
+    stageAr: 'مونتاج',
+    dueDays: 7,
+    value: 45_000,
+    pm: 'خالد',
+    risk: 'green',
+  },
+  {
+    code: 'PR-0007',
+    titleAr: 'جولة الشوروم',
+    titleEn: 'Showroom Walkaround',
+    client: 'MTN',
+    stage: 'brief',
+    stageAr: 'برِيف',
+    dueDays: 5,
+    value: 25_000,
+    pm: 'منصوري',
+    risk: 'red',
+  },
+  {
+    code: 'PR-0006',
+    titleAr: 'تصوير الربع الرابع',
+    titleEn: 'Q4 Photoshoot',
+    client: 'ALFTM',
+    stage: 'planning',
+    stageAr: 'تخطيط',
+    dueDays: 21,
+    value: 85_000,
+    pm: 'محسن',
+    risk: 'green',
+  },
+  {
+    code: 'PR-0010',
+    titleAr: 'لقطات اجتماعية',
+    titleEn: 'Social Shorts',
+    client: 'WPP',
+    stage: 'review',
+    stageAr: 'مراجعة',
+    dueDays: 3,
+    value: 32_000,
+    pm: 'كبسي',
+    risk: 'amber',
+  },
+  {
+    code: 'PR-0008',
+    titleAr: 'حملة رمضان',
+    titleEn: 'Ramadan Campaign',
+    client: 'MYNM',
+    stage: 'delivered',
+    stageAr: 'مُسلَّم',
+    dueDays: -14,
+    value: 60_000,
+    pm: 'حماده',
+    risk: 'green',
+  },
+];
+
+export const SHOOTS_THIS_WEEK = [
+  {
+    code: 'PR-0009',
+    titleAr: 'فيلم العلامة التجارية',
+    client: 'HRMNY',
+    city: 'جدة',
+    day: 'الأربعاء',
+    date: '٢١ مايو',
+    time: '09:00',
+    crew: 8,
+  },
+  {
+    code: 'PR-0006',
+    titleAr: 'تصوير الربع الرابع',
+    client: 'ALFTM',
+    city: 'الرياض',
+    day: 'الخميس',
+    date: '٢٢ مايو',
+    time: '14:00',
+    crew: 5,
+  },
+  {
+    code: 'PR-0007',
+    titleAr: 'جولة الشوروم',
+    client: 'MTN',
+    city: 'جدة',
+    day: 'الجمعة',
+    date: '٢٣ مايو',
+    time: '11:00',
+    crew: 4,
+  },
+];
+
+export const ACTIVITY = [
+  { who: 'Mohammed', what: 'وافق على PR-0005 V2', when: 'منذ 10 دقائق', tone: 'success' },
+  { who: 'Ahmed', what: 'علّق على PR-0009 — "اللوجو يهتز ٠:١٤"', when: 'منذ ساعة', tone: 'warning' },
+  { who: 'System', what: 'PR-0007 انتقل لـ brief', when: 'منذ ساعتين', tone: 'info' },
+  { who: 'Khaled', what: 'رفع V3 لـ PR-0010', when: 'منذ 3 ساعات', tone: 'info' },
+  { who: 'AI', what: 'PR-0007 متأخر — 5 أيام بدون تحديث', when: 'منذ 4 ساعات', tone: 'danger' },
+];
+
+export const AI_BRIEFING = {
+  headline: 'يوم مزدحم — 3 تصويرات + تسليمين + Lead بارد',
+  bullets: [
+    { p: 'high',   text: 'PR-0010 تسليم بعد ٣ أيام، 60% فقط مُسلَّم.', action: 'اتصل بـ كبسي لتسريع الـ edit.' },
+    { p: 'high',   text: 'PR-0007 متوقف في brief منذ ٥ أيام.', action: 'راجع البرِيف مع MTN النهارده.' },
+    { p: 'medium', text: 'تصوير HRMNY غداً ٩:٠٠ — لسه ما تأكدش الكاست.', action: 'كلّم Sara عن talent confirmation.' },
+    { p: 'medium', text: 'Lead من WPP بارد منذ ٦ أيام.', action: 'ابعت follow-up email.' },
+  ],
+};
