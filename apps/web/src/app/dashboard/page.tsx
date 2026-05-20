@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import {
-  PageHeader,
   Card,
   StatusPill,
   Counter,
@@ -16,7 +15,6 @@ import {
   Camera,
   ListChecks,
   ArrowUpRight,
-  Plus,
   Calendar,
   Package2,
   AlertTriangle,
@@ -329,25 +327,12 @@ export default async function DashboardPage() {
       user={{ email: user.email ?? '', displayName: user.email?.split('@')[0] }}
       activePath="/dashboard"
     >
-      <PageHeader
-        eyebrow={`${greeting} · ${dateStr}`}
-        title="لوحة التحكم"
-        subtitle="نظرة عامة على كل ما يحرّك Volt اليوم — مع تلخيص الذكاء الاصطناعي."
-        action={
-          <div className="flex items-center gap-2">
-            <Link
-              href="/projects/new"
-              className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-5 text-[13px] font-semibold text-white hover:bg-[var(--accent-hover)]"
-            >
-              <Plus size={15} />
-              مشروع جديد
-            </Link>
-          </div>
-        }
+      {/* AI Daily Briefing — Mix Layered hero */}
+      <BriefingCard
+        initial={initialBriefing}
+        greeting={greeting}
+        dateStr={dateStr}
       />
-
-      {/* AI Daily Briefing — the hero */}
-      <BriefingCard initial={initialBriefing} />
 
       {/* Critical alerts row */}
       {(stats.overdue_count > 0 || conflicts.length > 0) && (

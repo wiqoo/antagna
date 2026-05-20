@@ -16,4 +16,5 @@ export {
 export { MobileNav } from './components/MobileNav';
 export { CommandPalette } from './components/CommandPalette';
 export { Counter } from './components/Counter';
+export { AIHints, type AIHint } from './components/AIHints';
 export { FileUpload } from './components/FileUpload';

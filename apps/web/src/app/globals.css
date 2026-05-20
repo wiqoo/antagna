@@ -3,36 +3,32 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
-  /* ── Notion/Minimal palette — light cream ─────────────────────────────── */
-  --color-bg:           #FBFAF7;  /* warm off-white, Notion's signature */
-  --color-bg-elevated:  #FFFFFF;  /* pure white for raised cards */
-  --color-surface:      #F4F2EE;  /* faint warm gray */
-  --color-surface-hover:#EEEBE5;
-  --color-overlay:      #FFFFFF;
+  /* ── Frame.io dark + Volt orange ───────────────────────────────────────── */
+  --color-bg:           #0F0F12;
+  --color-bg-elevated:  #17171C;
+  --color-surface:      #17171C;
+  --color-surface-hover:#1F1F26;
+  --color-overlay:      #1F1F26;
 
-  --color-line:        rgba(55, 53, 47, 0.09);
-  --color-line-strong: rgba(55, 53, 47, 0.14);
-  --color-line-bold:   rgba(55, 53, 47, 0.22);
+  --color-line:        rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+  --color-line-bold:   rgba(255, 255, 255, 0.24);
 
-  --color-text:       #37352F;  /* Notion's dark brown-black */
-  --color-text-muted: #787774;
-  --color-text-dim:   #9B9A97;
-  --color-text-faded: #B8B6B3;
+  --color-text:       #FFFFFF;
+  --color-text-muted: #9C9CA8;
+  --color-text-dim:   #6B6B78;
+  --color-text-faded: #4D4D55;
 
-  /* Volt orange stays — used VERY sparingly on primary CTA only */
   --color-accent:       #FF6B1A;
-  --color-accent-hover: #E55810;
-  --color-accent-tint:  rgba(255, 107, 26, 0.08);
-  --color-accent-ring:  rgba(255, 107, 26, 0.30);
+  --color-accent-hover: #FF8442;
+  --color-accent-tint:  rgba(255, 107, 26, 0.12);
+  --color-accent-ring:  rgba(255, 107, 26, 0.40);
 
-  /* Semantic — darker on light bg */
-  --color-success: #0F7B6C;
-  --color-warning: #B7651C;
-  --color-danger:  #B23B3B;
-  --color-info:    #1A6AC0;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger:  #F87171;
+  --color-info:    #60A5FA;
 
-  /* Body: Plex Arabic primary (richer at small sizes), Geist for Latin */
-  /* Display: Vazirmatn (the H1 vibe Mohammed approved), fallback to Plex/Geist */
   --font-sans:    var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-arabic-display), var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono:    var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -44,38 +40,37 @@
 }
 
 :root {
-  --bg:            #FBFAF7;
-  --bg-elevated:   #FFFFFF;
-  --surface:       #F4F2EE;
-  --surface-hover: #EEEBE5;
-  --overlay:       #FFFFFF;
+  --bg:            #0F0F12;
+  --bg-elevated:   #17171C;
+  --surface:       #17171C;
+  --surface-hover: #1F1F26;
+  --overlay:       #1F1F26;
 
-  --line:        rgba(55, 53, 47, 0.09);
-  --line-strong: rgba(55, 53, 47, 0.14);
-  --line-bold:   rgba(55, 53, 47, 0.22);
+  --line:        rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-bold:   rgba(255, 255, 255, 0.24);
 
-  --text:       #37352F;
-  --text-muted: #787774;
-  --text-dim:   #9B9A97;
-  --text-faded: #B8B6B3;
+  --text:       #FFFFFF;
+  --text-muted: #9C9CA8;
+  --text-dim:   #6B6B78;
+  --text-faded: #4D4D55;
 
   --accent:       #FF6B1A;
-  --accent-hover: #E55810;
-  --accent-tint:  rgba(255, 107, 26, 0.08);
-  --accent-ring:  rgba(255, 107, 26, 0.30);
+  --accent-hover: #FF8442;
+  --accent-tint:  rgba(255, 107, 26, 0.12);
+  --accent-ring:  rgba(255, 107, 26, 0.40);
+  --accent-gradient: linear-gradient(135deg, #FF6B1A 0%, #FF8442 100%);
 
-  --success: #0F7B6C;  --success-tint: rgba(15, 123, 108, 0.10);
-  --warning: #B7651C;  --warning-tint: rgba(183, 101, 28, 0.10);
-  --danger:  #B23B3B;  --danger-tint:  rgba(178, 59, 59, 0.10);
-  --info:    #1A6AC0;  --info-tint:    rgba(26, 106, 192, 0.10);
+  --success: #34D399;  --success-tint: rgba(52, 211, 153, 0.12);
+  --warning: #FBBF24;  --warning-tint: rgba(251, 191, 36, 0.12);
+  --danger:  #F87171;  --danger-tint:  rgba(248, 113, 113, 0.12);
+  --info:    #60A5FA;  --info-tint:    rgba(96, 165, 250, 0.12);
+
+  /* Layout */
+  --dock-clearance: 88px;
+  --topbar-h: 52px;
 }
 
-/* ── Base typography ─────────────────────────────────────────────────────
-   Two-stack approach:
-   - BODY → Plex Sans Arabic (warmth + character at small sizes), Geist Latin
-   - DISPLAY (h1/h2/h3) → Vazirmatn (the H1 vibe Mohammed approved)
-   - MONO → Geist Mono (with "zero" feature so 0/O are distinct)
-*/
 html, body {
   font-family: var(--font-sans);
   font-feature-settings: "calt";
@@ -86,15 +81,13 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body { font-size: 15px; line-height: 1.55; font-weight: 400; }
+body { font-size: 14px; line-height: 1.55; font-weight: 400; }
 
-/* Arabic line-height — Vazirmatn handles diacritics + tail descenders */
 :lang(ar) p, :lang(ar) li, :lang(ar) td,
 [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] td {
   line-height: 1.7;
 }
 
-/* Headings — Geist Display weight 700 Latin, Vazirmatn 600 Arabic */
 h1, h2, h3 {
   color: var(--text);
   font-family: var(--font-display);
@@ -107,7 +100,6 @@ h1, h2, h3 {
   font-weight: 600;
 }
 
-/* Code / mono — Geist Mono */
 code, pre, kbd, .font-mono {
   font-family: var(--font-mono);
   font-feature-settings: "zero", "calt";
@@ -121,11 +113,11 @@ code, pre, kbd, .font-mono {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(55, 53, 47, 0.15);
+  background: rgba(255, 255, 255, 0.10);
   border-radius: 999px;
   border: 2px solid var(--bg);
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(55, 53, 47, 0.25); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.18); }
 
 input, select, textarea, button { font-family: inherit; }
 
@@ -135,7 +127,6 @@ input, select, textarea, button { font-family: inherit; }
   border-radius: 4px;
 }
 
-/* Motion — minimal. Notion-style is almost no animation. */
 * {
   transition-property: color, background-color, border-color, opacity;
   transition-duration: 120ms;
@@ -173,15 +164,12 @@ input, select, textarea, button { font-family: inherit; }
 
 main { animation: fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* Utilities */
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Magnet hover — subtler in light mode */
 .magnet { will-change: transform; }
-.magnet:hover { background: rgba(55, 53, 47, 0.03); }
-.magnet:active { transform: scale(0.98); transition-duration: 80ms; }
+.magnet:hover { background: rgba(255, 255, 255, 0.04); }
+.magnet:active { transform: scale(0.985); transition-duration: 80ms; }
 
-/* Section divider — was decorative; in Notion-style it's just a hairline */
 .section-rule {
   font-size: 11px;
   font-weight: 600;
@@ -198,20 +186,21 @@ main { animation: fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
   color: var(--text-muted);
 }
 
-/* Form input — light mode */
+/* Form input — dark mode */
 .form-input {
   width: 100%;
   height: 40px;
   padding: 0 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--line);
-  background: var(--bg-elevated);
+  background: var(--surface);
   color: var(--text);
   font-size: 14px;
 }
+.form-input::placeholder { color: var(--text-dim); }
 .form-input:focus {
   outline: none;
-  border-color: var(--text-dim);
+  border-color: var(--line-strong);
   box-shadow: 0 0 0 3px var(--accent-tint);
 }
 textarea.form-input {
@@ -221,7 +210,29 @@ textarea.form-input {
   resize: vertical;
 }
 
-/* Hero number scale — minimal */
 .num-xl  { font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
 .num-lg  { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.018em; color: var(--text); }
 .num-md  { font-size: 18px; line-height: 1.1; font-weight: 600; letter-spacing: -0.012em; color: var(--text); }
+
+/* Page chrome — used by AppShell + page heroes */
+.page-main {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--dock-clearance) + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .page-main { padding-bottom: 32px; }
+}
+
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* AI hints strip */
+.ai-strip {
+  background: linear-gradient(135deg, rgba(255,107,26,0.10), transparent 65%);
+  border: 1px solid rgba(255,107,26,0.22);
+  border-radius: 14px;
+}
