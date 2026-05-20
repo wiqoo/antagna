@@ -19,3 +19,4 @@ export * from './migration';
 export * from './audit';
 export * from './memory';
 export * from './system';
+export * from './google-integrations';

@@ -19,10 +19,12 @@
     "@supabase/supabase-js": "^2.49.4",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.36.4",
+    "google-auth-library": "^10.6.2",
+    "googleapis": "^171.4.0",
     "lucide-react": "^0.469.0",
-    "postgres": "^3.4.5",
     "next": "^15.2.0",
     "next-intl": "^3.26.0",
+    "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zod": "^3.24.1"
