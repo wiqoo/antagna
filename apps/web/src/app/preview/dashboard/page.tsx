@@ -4,6 +4,13 @@ export const dynamic = 'force-static';
 
 const OPTIONS = [
   {
+    slug: 'mix',
+    name: '✓ Mix · المختار',
+    nameAr: 'المختار: Conductor + Critical Path + Cards',
+    desc: 'مزيج الثلاثة: AI Conductor فوق (يوجّه القرارات)، اليوم time-strip في النص، Cards Grid قابلة للتخصيص تحت، Ask Claude في الأسفل. مع side-dock.',
+    cards: ['AI Conductor', 'Today time-strip', 'Cards Grid', 'Ask Claude'],
+  },
+  {
     slug: 'cards',
     name: 'Cards Grid · Customizable',
     nameAr: 'شبكة كروت قابلة للتخصيص',
