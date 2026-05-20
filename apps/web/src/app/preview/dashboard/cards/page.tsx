@@ -6,9 +6,25 @@ export const dynamic = 'force-static';
 export default function CardsGridDashboard() {
   return (
     <div dir="rtl" style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'var(--font-arabic), system-ui' }}>
+      <style>{`
+        .cards-grid { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
+        @media (max-width: 1100px) {
+          /* Tablet: collapse to 6-col grid */
+          .cards-grid { grid-template-columns: repeat(6, 1fr); }
+          .cards-grid > [data-span="8"], .cards-grid > [data-span="6"] { grid-column: span 6 !important; }
+          .cards-grid > [data-span="4"] { grid-column: span 3 !important; }
+          .cards-grid > [data-span="3"] { grid-column: span 3 !important; }
+        }
+        @media (max-width: 720px) {
+          /* Mobile: stack everything full-width */
+          .cards-grid { grid-template-columns: 1fr; }
+          .cards-grid > * { grid-column: span 1 !important; }
+          .cards-main { padding: 20px 14px !important; padding-inline-end: 14px !important; }
+        }
+      `}</style>
       <TopBar />
 
-      <main style={{ padding: '28px 36px', maxWidth: 1400, margin: '0 auto', paddingInlineEnd: 100 }}>
+      <main className="cards-main" style={{ padding: '28px 36px', maxWidth: 1400, margin: '0 auto', paddingInlineEnd: 100 }}>
         {/* Hero */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 11, color: C.muted, marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -40,8 +56,8 @@ export default function CardsGridDashboard() {
           </div>
         </div>
 
-        {/* Cards Grid — 12 col masonry */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 14 }}>
+        {/* Cards Grid — 12 col masonry (responsive: 12 → 6 → 1) */}
+        <div className="cards-grid">
           {/* ROW 1 — AI Briefing (8 col) + Today Stats (4 col) */}
           <Card span={8} title="ملخص اليوم · AI" eyebrow="LIVE" accent>
             <div style={{ marginBottom: 14 }}>
@@ -254,7 +270,7 @@ function Card({
                      badgeTone === 'warning' ? '#FBBF24' :
                      badgeTone === 'danger' ? '#F87171' : C.muted;
   return (
-    <div style={{
+    <div data-span={span} style={{
       gridColumn: `span ${span}`,
       background: accent ? `linear-gradient(135deg, ${C.accent}08, transparent)` : C.surface,
       border: `1px solid ${accent ? C.accent + '25' : C.line}`,
