@@ -16,6 +16,9 @@ import { eq } from 'drizzle-orm';
 import { handleInboundForBot } from '@/lib/whatsapp-bot';
 
 export const dynamic = 'force-dynamic';
+// Bot tool-calling can take 5-20s on the first turn. Default function
+// timeout is 10s; raise to 60 to give Claude room.
+export const maxDuration = 60;
 
 interface WppEvent {
   event?: string;             // 'onmessage' | 'onselfmessage' | 'onstatemessage' | 'onqrcode' | ...
@@ -164,14 +167,19 @@ export async function POST(req: Request) {
     })
     .returning({ id: whatsappMessages.id });
 
-  // Fire the bot on every NEW inbound — only authorized team members get
-  // a reply (handleInboundForBot bails on unknown senders). Errors here
-  // must not break the webhook response.
+  // Run the bot AWAITED — Vercel serverless terminates background work
+  // once the response returns, so fire-and-forget killed the handler
+  // mid-execution before it could reply. WPPConnect doesn't read the
+  // response body and isn't tight on the webhook delivery timeout.
+  let botResult: unknown = null;
   if (direction === 'inbound' && inserted) {
-    handleInboundForBot(inserted.id).catch((err) => {
+    try {
+      botResult = await handleInboundForBot(inserted.id);
+    } catch (err) {
       console.error('[whatsapp-bot]', err);
-    });
+      botResult = { error: err instanceof Error ? err.message : String(err) };
+    }
   }
 
-  return NextResponse.json({ ok: true, persisted: true });
+  return NextResponse.json({ ok: true, persisted: true, bot: botResult });
 }
