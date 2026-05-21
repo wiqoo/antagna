@@ -133,7 +133,12 @@ const SYSTEM_PROMPT = `أنت Volt Bot — صديق فريق Volt اللي بي�
 
 export interface BotReplyResult {
   ok: boolean;
-  skipped?: 'no_profile' | 'no_inbound' | 'already_replied' | 'duplicate_processing';
+  skipped?:
+    | 'no_profile'
+    | 'no_inbound'
+    | 'already_replied'
+    | 'duplicate_processing'
+    | 'superseded';
   profileId?: string;
   reply?: string;
   confidence?: 'high' | 'low';
@@ -158,6 +163,31 @@ export async function handleInboundForBot(
   if (msg.aiClassification) {
     // already processed
     return { ok: true, skipped: 'duplicate_processing' };
+  }
+
+  // Debounce — collapse rapid-fire messages from the same person into one
+  // reply. If a newer inbound arrives in the same thread during the wait,
+  // this run aborts (the newer one will reply for the whole batch).
+  await new Promise((r) => setTimeout(r, 4500));
+  if (msg.threadKey) {
+    const [latest] = await db
+      .select({ id: whatsappMessages.id })
+      .from(whatsappMessages)
+      .where(
+        and(
+          eq(whatsappMessages.threadKey, msg.threadKey),
+          eq(whatsappMessages.direction, 'inbound'),
+        ),
+      )
+      .orderBy(desc(whatsappMessages.receivedAt))
+      .limit(1);
+    if (latest && latest.id !== msg.id) {
+      await db
+        .update(whatsappMessages)
+        .set({ aiClassification: 'superseded' })
+        .where(eq(whatsappMessages.id, msg.id));
+      return { ok: true, skipped: 'superseded' };
+    }
   }
 
   // Identify sender. The from_e164 is either a real +E.164 or 'lid:NNN'
@@ -217,11 +247,11 @@ export async function handleInboundForBot(
     return { ok: true, skipped: 'no_profile' };
   }
 
-  // Last 4 messages in this thread for context. Smaller window so we
-  // don't re-answer questions the bot already handled. The system prompt
-  // also tells Claude: "the latest one is the new query; the rest are
-  // context for tone/topic only."
-  const history = msg.threadKey
+  // Gather ALL unanswered inbound messages since the last outbound — the
+  // user may have typed 2-3 messages rapid-fire and we want to reply to
+  // the batch as ONE message. Plus the most recent assistant/user pair
+  // for tone context.
+  const recent = msg.threadKey
     ? await db
         .select({
           direction: whatsappMessages.direction,
@@ -231,7 +261,7 @@ export async function handleInboundForBot(
         .from(whatsappMessages)
         .where(eq(whatsappMessages.threadKey, msg.threadKey))
         .orderBy(desc(whatsappMessages.receivedAt))
-        .limit(4)
+        .limit(10)
     : [
         {
           direction: msg.direction,
@@ -240,13 +270,36 @@ export async function handleInboundForBot(
         },
       ];
 
+  // Walk newest → oldest, collect consecutive INBOUND messages until we
+  // hit an outbound. That batch is what the bot answers RIGHT NOW (joined
+  // into a single user turn). Stop there and keep the prior pair for tone.
+  const unansweredInbound: string[] = [];
+  const priorContext: typeof recent = [];
+  let crossedAnOutbound = false;
+  for (const h of recent) {
+    if (!crossedAnOutbound && h.direction === 'inbound') {
+      if (h.bodyText) unansweredInbound.push(h.bodyText);
+      continue;
+    }
+    crossedAnOutbound = true;
+    priorContext.push(h);
+    if (priorContext.length >= 2) break;
+  }
+
   const messages: Anthropic.MessageParam[] = [];
-  // Replay history oldest → newest
-  for (const h of [...history].reverse()) {
+  // Prior pair (oldest → newest) for tone/topic continuity.
+  for (const h of [...priorContext].reverse()) {
     if (!h.bodyText) continue;
     messages.push({
       role: h.direction === 'inbound' ? 'user' : 'assistant',
       content: h.bodyText,
+    });
+  }
+  // Unanswered batch joined as one user turn (oldest → newest).
+  if (unansweredInbound.length > 0) {
+    messages.push({
+      role: 'user',
+      content: [...unansweredInbound].reverse().join('\n\n'),
     });
   }
 
