@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server';
 import { db, whatsappMessages } from '@antagna/db';
 import { eq } from 'drizzle-orm';
+import { handleInboundForBot } from '@/lib/whatsapp-bot';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,18 +148,30 @@ export async function POST(req: Request) {
 
   const receivedAt = body.t ? new Date(body.t * 1000) : new Date();
 
-  await db.insert(whatsappMessages).values({
-    baileysMessageId: msgId,
-    direction,
-    fromE164,
-    toE164,
-    messageType,
-    bodyText,
-    mediaUrl,
-    rawPayload: body as unknown as Record<string, unknown>,
-    threadKey: peer,
-    receivedAt,
-  });
+  const [inserted] = await db
+    .insert(whatsappMessages)
+    .values({
+      baileysMessageId: msgId,
+      direction,
+      fromE164,
+      toE164,
+      messageType,
+      bodyText,
+      mediaUrl,
+      rawPayload: body as unknown as Record<string, unknown>,
+      threadKey: peer,
+      receivedAt,
+    })
+    .returning({ id: whatsappMessages.id });
+
+  // Fire the bot on every NEW inbound — only authorized team members get
+  // a reply (handleInboundForBot bails on unknown senders). Errors here
+  // must not break the webhook response.
+  if (direction === 'inbound' && inserted) {
+    handleInboundForBot(inserted.id).catch((err) => {
+      console.error('[whatsapp-bot]', err);
+    });
+  }
 
   return NextResponse.json({ ok: true, persisted: true });
 }
