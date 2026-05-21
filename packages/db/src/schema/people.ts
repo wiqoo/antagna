@@ -68,6 +68,15 @@ export const profiles = pgTable('profiles', {
     .notNull()
     .default({ status: 'pending', steps_done: [] }),
 
+  // WhatsApp self-service linking — short-lived code the user sends from
+  // their phone to the Volt line. The bot reads it, matches to this
+  // profile, sets whatsapp_e164 to the sender's id (LID or +E.164),
+  // and clears the code.
+  whatsappVerificationCode: text('whatsapp_verification_code'),
+  whatsappVerificationExpiresAt: timestamp('whatsapp_verification_expires_at', {
+    withTimezone: true,
+  }),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
   archivedAt: timestamp('archived_at', { withTimezone: true }),

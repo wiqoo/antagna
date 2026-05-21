@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { PageHeader, Card, StatusPill, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { getAdminUser } from '@/lib/auth-admin';
-import { db, whatsappMessages } from '@antagna/db';
-import { desc, sql } from 'drizzle-orm';
+import { db, whatsappMessages, profiles } from '@antagna/db';
+import { desc, sql, isNull } from 'drizzle-orm';
 import { MessageCircle, Phone, AlertCircle } from 'lucide-react';
 import { ConnectionPanel } from './connection-panel';
+import { UnrecognizedPanel } from './unrecognized-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,60 @@ export default async function WhatsAppIntegrationsPage() {
     .orderBy(desc(whatsappMessages.receivedAt))
     .limit(10);
 
+  // Unrecognized senders: inbound from_e164 values that aren't linked to
+  // any profile yet. Group by sender + summarize so admin can one-click
+  // assign them.
+  const unrecognized = await db.execute<{
+    from_e164: string;
+    count: number;
+    last_message: string | null;
+    last_at: Date;
+    pushname: string | null;
+    formatted_name: string | null;
+  }>(sql`
+    SELECT
+      m.from_e164,
+      count(*)::int AS count,
+      (array_agg(m.body_text ORDER BY m.received_at DESC))[1] AS last_message,
+      max(m.received_at)                                       AS last_at,
+      (array_agg(m.raw_payload->'sender'->>'pushname'        ORDER BY m.received_at DESC))[1] AS pushname,
+      (array_agg(m.raw_payload->'sender'->>'formattedName'   ORDER BY m.received_at DESC))[1] AS formatted_name
+    FROM whatsapp_messages m
+    WHERE m.direction = 'inbound'
+      AND m.from_e164 NOT IN (
+        SELECT whatsapp_e164 FROM profiles WHERE whatsapp_e164 IS NOT NULL
+      )
+    GROUP BY m.from_e164
+    ORDER BY max(m.received_at) DESC
+    LIMIT 20
+  `);
+  const unrecognizedArr = (unrecognized as unknown as Array<{
+    from_e164: string;
+    count: number;
+    last_message: string | null;
+    last_at: Date;
+    pushname: string | null;
+    formatted_name: string | null;
+  }>).map((r) => ({
+    fromE164: r.from_e164,
+    count: r.count,
+    lastMessage: r.last_message,
+    lastAt: new Date(r.last_at).toISOString().slice(0, 19).replace('T', ' '),
+    pushname: r.pushname,
+    formattedName: r.formatted_name,
+  }));
+
+  // Active profiles for the picker.
+  const profileOpts = await db
+    .select({
+      id: profiles.id,
+      displayName: profiles.displayName,
+      role: profiles.role,
+    })
+    .from(profiles)
+    .where(isNull(profiles.archivedAt))
+    .limit(50);
+
   const envReady = !!apiUrl && apiKeySet;
 
   return (
@@ -94,6 +149,8 @@ export default async function WhatsAppIntegrationsPage() {
       )}
 
       <ConnectionPanel envReady={envReady} ourNumber={ourE164} />
+
+      <UnrecognizedPanel senders={unrecognizedArr} profiles={profileOpts} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card className="p-4">

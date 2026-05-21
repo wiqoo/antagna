@@ -167,7 +167,23 @@ export async function handleInboundForBot(
     .from(profiles)
     .where(eq(profiles.whatsappE164, msg.fromE164))
     .limit(1);
-  const senderProfile = senderRow ?? null;
+  let senderProfile = senderRow ?? null;
+
+  // No match? Maybe this is a verification code (2-digit body) from a user
+  // mid-onboarding. Match against active codes; if hit, link the sender
+  // and reply with confirmation.
+  if (!senderProfile) {
+    const linkResult = await tryVerificationCodeLink(msg.id, msg.bodyText, msg.fromE164);
+    if (linkResult.linked) {
+      await sendText(msg.fromE164, `تم الربط ✓\nأهلاً ${linkResult.displayName} 👋`);
+      return {
+        ok: true,
+        profileId: linkResult.profileId,
+        reply: 'verified',
+        confidence: 'high',
+      };
+    }
+  }
 
   // Mark processed even if we don't reply, so the scanner doesn't loop.
   await db
@@ -282,6 +298,50 @@ export async function handleInboundForBot(
     reply,
     confidence,
   };
+}
+
+// ── verification code linking ─────────────────────────────────────────────
+
+async function tryVerificationCodeLink(
+  messageDbId: string,
+  body: string | null,
+  fromE164: string,
+): Promise<{ linked: boolean; profileId?: string; displayName?: string }> {
+  if (!body) return { linked: false };
+  // Accept the bare 2-digit code with optional whitespace.
+  const code = body.trim().match(/^(\d{2})$/)?.[1];
+  if (!code) return { linked: false };
+
+  // Find any profile that has this code active right now AND isn't yet
+  // bound to another whatsapp identity (to avoid hijacking).
+  const [match] = await db.execute<{ id: string; display_name: string }>(sql`
+    SELECT id::text AS id, display_name
+    FROM profiles
+    WHERE whatsapp_verification_code = ${code}
+      AND whatsapp_verification_expires_at > now()
+      AND whatsapp_e164 IS NULL
+    LIMIT 1
+  `) as unknown as Array<{ id: string; display_name: string }>;
+
+  if (!match) return { linked: false };
+
+  // Link + clear the code so it can't be reused.
+  await db.execute(sql`
+    UPDATE profiles
+    SET whatsapp_e164 = ${fromE164},
+        whatsapp_verification_code = NULL,
+        whatsapp_verification_expires_at = NULL,
+        updated_at = now()
+    WHERE id = ${match.id}::uuid
+  `);
+
+  // Mark the inbound message as the verification one.
+  await db
+    .update(whatsappMessages)
+    .set({ aiClassification: 'verification' })
+    .where(eq(whatsappMessages.id, messageDbId));
+
+  return { linked: true, profileId: match.id, displayName: match.display_name };
 }
 
 // ── tool implementations ──────────────────────────────────────────────────

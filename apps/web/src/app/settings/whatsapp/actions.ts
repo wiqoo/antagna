@@ -1,0 +1,102 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { db, profiles } from '@antagna/db';
+import { eq, and, isNull, sql } from 'drizzle-orm';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+
+const CODE_TTL_MS = 10 * 60 * 1000; // 10 min
+
+async function getMyProfileId(): Promise<string | null> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const [row] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.authUserId, user.id))
+    .limit(1);
+  return row?.id ?? null;
+}
+
+/**
+ * Generate a fresh 2-digit verification code unique among CURRENTLY active
+ * (non-expired) codes. Stores it on the caller's profile + returns it.
+ */
+export async function generateMyWhatsappCode(): Promise<{
+  ok: boolean;
+  code?: string;
+  expiresAtIso?: string;
+  error?: string;
+}> {
+  const id = await getMyProfileId();
+  if (!id) return { ok: false, error: 'unauthorized' };
+
+  // Pull the set of active codes so we avoid a collision.
+  const used = await db.execute<{ code: string }>(sql`
+    SELECT whatsapp_verification_code AS code
+    FROM profiles
+    WHERE whatsapp_verification_code IS NOT NULL
+      AND whatsapp_verification_expires_at > now()
+      AND id <> ${id}::uuid
+  `);
+  const usedSet = new Set(
+    (used as unknown as { code: string }[]).map((r) => r.code),
+  );
+
+  // Try up to 200 random 2-digit codes before giving up. With 100 slots
+  // and at most a handful of pending codes, this almost always finishes
+  // on the first try.
+  let code: string | null = null;
+  for (let i = 0; i < 200; i++) {
+    const candidate = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+    if (!usedSet.has(candidate)) {
+      code = candidate;
+      break;
+    }
+  }
+  if (!code) return { ok: false, error: 'no_free_code' };
+
+  const expires = new Date(Date.now() + CODE_TTL_MS);
+  await db
+    .update(profiles)
+    .set({
+      whatsappVerificationCode: code,
+      whatsappVerificationExpiresAt: expires,
+      whatsappE164: null, // forces a re-link if they regenerate after pairing
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.id, id));
+
+  revalidatePath('/settings/whatsapp');
+  return { ok: true, code, expiresAtIso: expires.toISOString() };
+}
+
+/**
+ * Clear the verification code (cancel pending link).
+ */
+export async function cancelMyWhatsappCode(): Promise<void> {
+  const id = await getMyProfileId();
+  if (!id) return;
+  await db
+    .update(profiles)
+    .set({
+      whatsappVerificationCode: null,
+      whatsappVerificationExpiresAt: null,
+    })
+    .where(eq(profiles.id, id));
+  revalidatePath('/settings/whatsapp');
+}
+
+/**
+ * Disconnect a previously linked WhatsApp identity.
+ */
+export async function unlinkMyWhatsapp(): Promise<void> {
+  const id = await getMyProfileId();
+  if (!id) return;
+  await db
+    .update(profiles)
+    .set({ whatsappE164: null })
+    .where(eq(profiles.id, id));
+  revalidatePath('/settings/whatsapp');
+}
