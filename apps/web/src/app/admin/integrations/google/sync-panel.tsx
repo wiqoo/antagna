@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, DownloadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, DownloadCloud, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 
 type Report = {
   ok: boolean;
@@ -19,9 +19,26 @@ type Report = {
   error?: string;
 };
 
+type SummarizeReport = {
+  ok: boolean;
+  report?: {
+    startedAt: string;
+    finishedAt: string;
+    eligibleThreads: number;
+    summarizedThreads: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    estimatedCostUsd: number;
+    errors: { threadId: string; error: string }[];
+  };
+  error?: string;
+};
+
 export function SyncPanel({ email }: { email: string }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Report | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summary, setSummary] = useState<SummarizeReport | null>(null);
 
   async function run() {
     setLoading(true);
@@ -37,6 +54,22 @@ export function SyncPanel({ email }: { email: string }) {
       setResult({ ok: false, error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function runSummarize() {
+    setSummarizing(true);
+    setSummary(null);
+    try {
+      const res = await fetch(`/api/integrations/gmail/summarize?maxThreads=30`, {
+        method: 'POST',
+      });
+      const json = (await res.json()) as SummarizeReport;
+      setSummary(json);
+    } catch (err) {
+      setSummary({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setSummarizing(false);
     }
   }
 
@@ -120,6 +153,79 @@ export function SyncPanel({ email }: { email: string }) {
               <div className="flex items-start gap-2 text-[12px]">
                 <AlertCircle size={13} className="mt-0.5 text-[var(--danger)]" />
                 <span className="text-[var(--danger)]">{result.error}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Summarize section */}
+      <div className="mt-5 flex items-center justify-between border-t border-[var(--line)] pt-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
+            تلخيص AI
+          </p>
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            Claude Haiku يقرأ كل thread جديد ويصنّفه + يلخّصه + يقترح إجراء
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={runSummarize}
+          disabled={summarizing}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 disabled:opacity-50"
+        >
+          {summarizing ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Sparkles size={12} />
+          )}
+          {summarizing ? 'يلخّص…' : 'لخّص الجديد'}
+        </button>
+      </div>
+
+      {summary && (
+        <div className="mt-3">
+          {summary.report ? (
+            <div className="rounded-md border border-[var(--success)]/30 bg-[var(--success)]/[0.05] p-3">
+              <div className="flex items-center gap-2 text-[12px]">
+                <CheckCircle2 size={13} className="text-[var(--success)]" />
+                <span className="font-semibold text-[var(--text)]">تم</span>
+                <span className="text-[var(--text-muted)]">
+                  {summary.report.summarizedThreads}/{summary.report.eligibleThreads} threads ·{' '}
+                  ${summary.report.estimatedCostUsd.toFixed(4)}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-[var(--text-dim)] md:grid-cols-4">
+                <Stat label="Eligible" value={summary.report.eligibleThreads} />
+                <Stat
+                  label="Summarized"
+                  value={summary.report.summarizedThreads}
+                  tone="success"
+                />
+                <Stat label="In tokens" value={summary.report.totalInputTokens} />
+                <Stat label="Out tokens" value={summary.report.totalOutputTokens} />
+              </div>
+              {summary.report.errors.length > 0 && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-[11px] text-[var(--danger)]">
+                    ⚠ {summary.report.errors.length} خطأ
+                  </summary>
+                  <ul className="mt-1 space-y-1 text-[10px] text-[var(--text-muted)]">
+                    {summary.report.errors.slice(0, 10).map((e, i) => (
+                      <li key={i} className="font-mono">
+                        {e.threadId}: {e.error}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-md border border-[var(--danger)]/40 bg-[var(--danger)]/[0.05] p-3">
+              <div className="flex items-start gap-2 text-[12px]">
+                <AlertCircle size={13} className="mt-0.5 text-[var(--danger)]" />
+                <span className="text-[var(--danger)]">{summary.error}</span>
               </div>
             </div>
           )}
