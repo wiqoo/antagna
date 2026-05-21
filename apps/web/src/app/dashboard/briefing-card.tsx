@@ -15,10 +15,12 @@ export function BriefingCard({
   initial,
   greeting,
   dateStr,
+  firstName,
 }: {
   initial: Briefing | null;
   greeting: string;
   dateStr: string;
+  firstName: string;
 }) {
   const [briefing, setBriefing] = useState<Briefing | null>(initial);
   const [isPending, startTransition] = useTransition();
@@ -50,7 +52,7 @@ export function BriefingCard({
           className="text-[24px] font-bold leading-[1.2] tracking-[-0.018em] md:text-[30px]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          {greeting} محمد —{' '}
+          {greeting} {firstName} —{' '}
           <span className="gradient-text">جاهز يلخّص يومك؟</span>
         </h2>
         <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-muted)]">
@@ -115,7 +117,7 @@ export function BriefingCard({
         context={`Antagna AI · ${mood}`}
         headline={
           <>
-            {greeting} محمد — <span className="gradient-text">{briefing.headline}</span>
+            {greeting} {firstName} — <span className="gradient-text">{briefing.headline}</span>
           </>
         }
         summary={`Claude راجع كل أنشطة Volt. أنت من يقرر، وهو ينبّه.`}

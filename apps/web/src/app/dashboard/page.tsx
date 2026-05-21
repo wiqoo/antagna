@@ -21,6 +21,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getCurrentProfile } from '@/lib/view-as';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { BriefingCard } from './briefing-card';
 import { loadCachedBriefing } from './briefing-actions';
@@ -33,6 +34,14 @@ export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/dashboard');
+
+  // Honor View-As impersonation — the greeting / topbar / any per-user
+  // data should match the profile the admin is viewing as.
+  const current = await getCurrentProfile();
+  const greetingName =
+    current?.displayName?.trim().split(/\s+/)[0] ??
+    user.email?.split('@')[0] ??
+    'صديقي';
 
   // ── ALL THE DATA ──────────────────────────────────────────────────────────
   // Each query wrapped in try/catch — one broken query shouldn't 500 the page.
@@ -324,7 +333,10 @@ export default async function DashboardPage() {
 
   return (
     <Shell
-      user={{ email: user.email ?? '', displayName: user.email?.split('@')[0] }}
+      user={{
+        email: current?.email ?? user.email ?? '',
+        displayName: current?.displayName ?? user.email?.split('@')[0],
+      }}
       activePath="/dashboard"
     >
       {/* AI Daily Briefing — Mix Layered hero */}
@@ -332,6 +344,7 @@ export default async function DashboardPage() {
         initial={initialBriefing}
         greeting={greeting}
         dateStr={dateStr}
+        firstName={greetingName}
       />
 
       <style>{`
