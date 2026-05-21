@@ -26,5 +26,19 @@ sed -i "s|autoClose: 60000|autoClose: 0|g" "$CONFIG_JS"
 # the webhook is ready.
 sed -i "s|startAllSession: true|startAllSession: false|g" "$CONFIG_JS"
 
-echo "[entrypoint] patched dist/config.js — secret installed + autoClose disabled"
+# Webhook URL — Antagna receives every WhatsApp event here. The URL
+# includes ?key=<CRON_SECRET> so the receiver can authenticate the
+# inbound POST without WPPConnect needing to send a header.
+if [ -n "$ANTAGNA_WEBHOOK_URL" ]; then
+  # WPPConnect's default webhook URL in config is `null`, which Babel
+  # compiles as the literal `null`. Replace it.
+  sed -i "0,/url: null,/ s||url: '${ANTAGNA_WEBHOOK_URL}',|" "$CONFIG_JS"
+  echo "[entrypoint] webhook → $ANTAGNA_WEBHOOK_URL"
+fi
+
+# After a session restarts (or container recreate), bring up the
+# paired session automatically so messages keep flowing.
+sed -i "s|startAllSession: false|startAllSession: true|g" "$CONFIG_JS"
+
+echo "[entrypoint] patched dist/config.js"
 exec node dist/server.js

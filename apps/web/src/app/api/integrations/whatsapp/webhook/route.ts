@@ -1,14 +1,14 @@
 /**
- * Evolution API → Antagna webhook.
+ * WPPConnect → Antagna webhook.
  *
- * Evolution POSTs every configured event here (see
- * infra/whatsapp/docker-compose.yml → WEBHOOK_EVENTS_*). We pick the events
- * we care about and normalize them into the `whatsapp_messages` table.
+ * WPPConnect Server POSTs JSON for every configured event. We pick the
+ * message events (onmessage / onselfmessage) and normalize them into the
+ * `whatsapp_messages` table.
  *
- * Auth: Evolution doesn't sign webhooks by default, so we require the
- * `apikey` header to match `WHATSAPP_API_KEY`. (Evolution will include it
- * automatically when it has it set as the global key.) Failing that we
- * accept `Authorization: Bearer CRON_SECRET` so we can replay during tests.
+ * Auth: WPPConnect can't sign outbound webhooks. We require the URL to
+ * carry `?key=<CRON_SECRET>` (or `?key=<WHATSAPP_API_KEY>`). The same
+ * URL lives in the WPPConnect config — anyone scraping antagna-v2's
+ * routes can guess the path but not the secret.
  */
 import { NextResponse } from 'next/server';
 import { db, whatsappMessages } from '@antagna/db';
@@ -16,134 +16,120 @@ import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
-interface EvolutionMessageKey {
-  id?: string;
-  remoteJid?: string;       // e.g. "966501234567@s.whatsapp.net"
+interface WppEvent {
+  event?: string;             // 'onmessage' | 'onselfmessage' | 'onstatemessage' | 'onqrcode' | ...
+  session?: string;
+  // The actual message payload — present on onmessage / onselfmessage.
+  id?: string | { _serialized?: string };
+  body?: string;
+  type?: string;              // 'chat' | 'image' | 'video' | 'audio' | 'ptt' | 'document' | 'location' | 'vcard'
+  from?: string;              // '<jid>@c.us' or '<jid>@g.us'
+  to?: string;
+  t?: number;                 // unix timestamp (seconds)
   fromMe?: boolean;
-  participant?: string;
+  isGroupMsg?: boolean;
+  notifyName?: string;
+  pushname?: string;
+  caption?: string;
+  filename?: string;
+  mimetype?: string;
+  mediaUrl?: string;
+  [k: string]: unknown;
 }
 
-interface EvolutionMessagePayload {
-  key?: EvolutionMessageKey;
-  pushName?: string;
-  message?: {
-    conversation?: string;
-    extendedTextMessage?: { text?: string };
-    imageMessage?: { caption?: string; mimetype?: string; url?: string };
-    videoMessage?: { caption?: string; mimetype?: string; url?: string };
-    audioMessage?: { mimetype?: string; url?: string };
-    documentMessage?: { fileName?: string; mimetype?: string; url?: string };
-  };
-  messageTimestamp?: number;
+const MESSAGE_EVENTS = new Set([
+  'onmessage',
+  'onselfmessage',
+  'message',
+  'self-message',
+]);
+
+function stripJid(jid: string): string {
+  // e.g. '966590989518@c.us' → '+966590989518'
+  const digits = jid.replace(/@.+$/, '').replace(/[^0-9]/g, '');
+  return digits ? `+${digits}` : jid;
 }
 
-interface EvolutionEvent {
-  event?: string;
-  instance?: string;
-  data?: EvolutionMessagePayload | Record<string, unknown>;
+function messageIdOf(id: unknown): string | null {
+  if (typeof id === 'string') return id;
+  if (id && typeof id === 'object') {
+    const v = (id as { _serialized?: string })._serialized;
+    if (v) return v;
+  }
+  return null;
 }
 
 export async function POST(req: Request) {
-  // Auth check.
-  const apiKey = req.headers.get('apikey');
-  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-  const expectedKey = process.env.WHATSAPP_API_KEY;
+  // URL-key auth (WPPConnect doesn't sign webhooks).
+  const url = new URL(req.url);
+  const key = url.searchParams.get('key');
   const cronSecret = process.env.CRON_SECRET;
+  const apiKey = process.env.WHATSAPP_API_KEY;
 
   const authed =
-    (expectedKey && apiKey === expectedKey) ||
-    (cronSecret && bearer === cronSecret);
+    (cronSecret && key === cronSecret) || (apiKey && key === apiKey);
 
   if (!authed) {
-    return NextResponse.json(
-      { ok: false, error: 'forbidden' },
-      { status: 403 },
-    );
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
   }
 
-  let body: EvolutionEvent;
+  let body: WppEvent;
   try {
-    body = (await req.json()) as EvolutionEvent;
+    body = (await req.json()) as WppEvent;
   } catch {
-    return NextResponse.json(
-      { ok: false, error: 'invalid_json' },
-      { status: 400 },
-    );
+    return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 });
   }
 
   const event = body.event ?? '';
-
-  // We only persist message events. Connection-state and QR events are
-  // observable via the Evolution API directly when the admin UI asks.
-  if (
-    event !== 'messages.upsert' &&
-    event !== 'send.message' &&
-    event !== 'MESSAGES_UPSERT' &&
-    event !== 'SEND_MESSAGE'
-  ) {
+  if (!MESSAGE_EVENTS.has(event)) {
+    // QR / state / presence events — we don't persist them.
     return NextResponse.json({ ok: true, skipped: event });
   }
 
-  const data = (body.data ?? {}) as EvolutionMessagePayload;
-  const key = data.key ?? {};
-  if (!key.id || !key.remoteJid) {
-    return NextResponse.json({ ok: true, skipped: 'no_key' });
+  const msgId = messageIdOf(body.id);
+  if (!msgId) {
+    return NextResponse.json({ ok: true, skipped: 'no_id' });
   }
 
-  // Skip if we've seen this message ID already (idempotent).
+  // Idempotent on the WPPConnect message id (stored in baileys_message_id
+  // since the column was originally named for the Evolution/Baileys
+  // implementation — same semantic).
   const [existing] = await db
     .select({ id: whatsappMessages.id })
     .from(whatsappMessages)
-    .where(eq(whatsappMessages.baileysMessageId, key.id))
+    .where(eq(whatsappMessages.baileysMessageId, msgId))
     .limit(1);
   if (existing) {
     return NextResponse.json({ ok: true, skipped: 'duplicate' });
   }
 
-  // Phone numbers — strip the JID suffix (@s.whatsapp.net / @g.us / @lid).
-  const stripJid = (s: string) => s.replace(/@.+$/, '');
-  const fromMe = !!key.fromMe;
+  const fromMe = !!body.fromMe;
   const direction: 'inbound' | 'outbound' = fromMe ? 'outbound' : 'inbound';
 
-  // Determine peer (the other party). When fromMe=true, remoteJid is the
-  // recipient; when fromMe=false, remoteJid is the sender.
-  const peer = '+' + stripJid(key.remoteJid);
-  const us = process.env.WHATSAPP_OUR_E164 ?? 'unknown';
+  const peerJid = (fromMe ? body.to : body.from) ?? '';
+  const ourJid = (fromMe ? body.from : body.to) ?? '';
+  const peer = peerJid ? stripJid(peerJid) : 'unknown';
+  const us = ourJid ? stripJid(ourJid) : process.env.WHATSAPP_OUR_E164 ?? 'unknown';
   const fromE164 = fromMe ? us : peer;
   const toE164 = fromMe ? peer : us;
 
-  // Body + type.
-  const msg = data.message ?? {};
-  let bodyText: string | null = null;
+  // Map WPPConnect's `type` enum to our messageType column.
+  const wppType = (body.type ?? 'chat').toLowerCase();
   let messageType = 'text';
-  let mediaUrl: string | null = null;
-  if (msg.conversation) {
-    bodyText = msg.conversation;
-  } else if (msg.extendedTextMessage?.text) {
-    bodyText = msg.extendedTextMessage.text;
-  } else if (msg.imageMessage) {
-    bodyText = msg.imageMessage.caption ?? null;
-    messageType = 'image';
-    mediaUrl = msg.imageMessage.url ?? null;
-  } else if (msg.videoMessage) {
-    bodyText = msg.videoMessage.caption ?? null;
-    messageType = 'video';
-    mediaUrl = msg.videoMessage.url ?? null;
-  } else if (msg.audioMessage) {
-    messageType = 'audio';
-    mediaUrl = msg.audioMessage.url ?? null;
-  } else if (msg.documentMessage) {
-    bodyText = msg.documentMessage.fileName ?? null;
-    messageType = 'document';
-    mediaUrl = msg.documentMessage.url ?? null;
-  }
+  if (wppType === 'image') messageType = 'image';
+  else if (wppType === 'video') messageType = 'video';
+  else if (wppType === 'audio' || wppType === 'ptt') messageType = 'audio';
+  else if (wppType === 'document') messageType = 'document';
+  else if (wppType === 'location') messageType = 'location';
 
-  const receivedAt = data.messageTimestamp
-    ? new Date(data.messageTimestamp * 1000)
-    : new Date();
+  const bodyText = body.body ?? body.caption ?? null;
+  const mediaUrl =
+    typeof body.mediaUrl === 'string' ? body.mediaUrl : null;
+
+  const receivedAt = body.t ? new Date(body.t * 1000) : new Date();
 
   await db.insert(whatsappMessages).values({
-    baileysMessageId: key.id,
+    baileysMessageId: msgId,
     direction,
     fromE164,
     toE164,
@@ -151,7 +137,7 @@ export async function POST(req: Request) {
     bodyText,
     mediaUrl,
     rawPayload: body as unknown as Record<string, unknown>,
-    threadKey: peer, // group by the other party until we wire proper threading
+    threadKey: peer,
     receivedAt,
   });
 

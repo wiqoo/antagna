@@ -23,10 +23,11 @@ services:
     ports:
       - "127.0.0.1:21465:21465"
     # v2.10.0 ignores --secretKey on the CLI. Our entrypoint script reads
-    # WPP_SECRET_KEY from the env and injects it into the config JSON
-    # before launching the server. Mount the env so it's available.
+    # WPP_SECRET_KEY + ANTAGNA_WEBHOOK_URL from env and patches the
+    # baked config at startup.
     environment:
       WPP_SECRET_KEY: ${WPP_SECRET_KEY}
+      ANTAGNA_WEBHOOK_URL: ${ANTAGNA_WEBHOOK_URL}
     volumes:
       # Session tokens + browser state persist across restarts → no re-pairing
       # unless the volume is wiped.
