@@ -154,3 +154,20 @@ export async function sendText(
     raw,
   };
 }
+
+/**
+ * Show the "typing..." indicator to the recipient. Fire-and-forget — we
+ * don't block on it. The recipient sees the indicator until either we
+ * call setTyping(phone, false) or WhatsApp times it out (~10s).
+ */
+export async function setTyping(toE164: string, value: boolean): Promise<void> {
+  const phone = toE164.replace(/[^0-9]/g, '');
+  try {
+    await wppFetch('/typing', {
+      method: 'POST',
+      body: JSON.stringify({ phone, value, isGroup: false }),
+    });
+  } catch {
+    // Best-effort — never let typing indicator failures break the bot.
+  }
+}

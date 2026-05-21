@@ -16,7 +16,7 @@
 import { db, whatsappMessages, profiles, projects, projectTasks, dailyTasks } from '@antagna/db';
 import { eq, and, or, desc, sql, isNull, gte } from 'drizzle-orm';
 import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
-import { sendText } from './whatsapp';
+import { sendText, setTyping } from './whatsapp';
 import Anthropic from '@anthropic-ai/sdk';
 
 const BOT_BASE_URL = 'https://antagna-v2.vercel.app';
@@ -241,16 +241,24 @@ export async function handleInboundForBot(
     });
   }
 
-  // Tool-calling loop
+  // Show "typing..." while we think. Best-effort — fire-and-forget so a
+  // slow typing call doesn't add to overall latency.
+  if (senderProfile.whatsappE164) {
+    void setTyping(senderProfile.whatsappE164, true);
+  }
+
+  // Tool-calling loop. Haiku is ~3× faster than Sonnet for these simple
+  // lookups (and ~5× cheaper). We don't need Sonnet-level reasoning to
+  // read a task list or look up a colleague.
   const anthropic = getAnthropic();
   let reply = '';
   let confidence: 'high' | 'low' = 'high';
-  const maxTurns = 4;
+  const maxTurns = 3;
 
   for (let turn = 0; turn < maxTurns; turn++) {
     const resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODELS.sonnet,
-      max_tokens: 800,
+      model: ANTHROPIC_MODELS.haiku,
+      max_tokens: 400,
       system: SYSTEM_PROMPT + `\n\nالمستخدم الحالي: ${senderProfile.displayName} (الدور: ${senderProfile.role}, id: ${senderProfile.id}).`,
       tools: TOOLS,
       messages,
@@ -305,6 +313,8 @@ export async function handleInboundForBot(
         error: 'no_send_target',
       };
     }
+    // Stop the typing indicator before sending the actual message.
+    void setTyping(senderProfile.whatsappE164, false);
     const sendRes = await sendText(senderProfile.whatsappE164, reply);
     return {
       ok: sendRes.ok,
@@ -314,6 +324,10 @@ export async function handleInboundForBot(
       sentMessageId: sendRes.messageId,
       error: sendRes.ok ? undefined : 'send_failed',
     };
+  }
+  // Low confidence — stop typing too.
+  if (senderProfile.whatsappE164) {
+    void setTyping(senderProfile.whatsappE164, false);
   }
   // Low confidence: save as DRAFT (not sent), Mohammed reviews from admin UI later.
   // For now we just return — a future iteration adds the draft store.
