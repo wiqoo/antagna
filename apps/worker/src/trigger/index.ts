@@ -10,3 +10,4 @@ export { postAnalyticsCapture } from './post-analytics-capture';
 export { aiSmokeTest } from './ai-smoke-test';
 export { embeddingSmokeTest } from './embedding-smoke-test';
 export { sentrySmokeTest } from './sentry-smoke-test';
+export { gmailScanner } from './gmail-scanner';

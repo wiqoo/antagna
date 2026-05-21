@@ -15,10 +15,17 @@ export const maxDuration = 300;
  *   ?query=newer_than:7d          (override query for backfills)
  */
 export async function POST(req: Request) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  // Two auth paths: logged-in user (admin UI) or Bearer CRON_SECRET (Trigger.dev worker).
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  const cronSecret = process.env.CRON_SECRET;
+  const viaCron = !!(bearer && cronSecret && bearer === cronSecret);
+
+  if (!viaCron) {
+    const supabase = await getSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+    }
   }
 
   const url = new URL(req.url);

@@ -10,6 +10,8 @@ const RUNTIME_ENV_VARS = [
   'ANTHROPIC_API_KEY',
   'OPENAI_API_KEY',
   'SENTRY_WORKER_DSN',
+  'CRON_SECRET',
+  'ANTAGNA_BASE_URL',
 ] as const;
 
 export default defineConfig({
