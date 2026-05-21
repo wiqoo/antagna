@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { TestPanel } from './test-panel';
+import { SyncPanel } from './sync-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -159,6 +160,10 @@ export default async function GoogleIntegrationsPage({
 
               <div className="mt-5 border-t border-[var(--line)] pt-4">
                 <TestPanel email={row.email} />
+              </div>
+
+              <div className="mt-5 border-t border-[var(--line)] pt-4">
+                <SyncPanel email={row.email} />
               </div>
             </Card>
           ))}
