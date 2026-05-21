@@ -30,9 +30,9 @@ services:
       ANTAGNA_WEBHOOK_URL: ${ANTAGNA_WEBHOOK_URL}
     volumes:
       # Session tokens + browser state persist across restarts → no re-pairing
-      # unless the volume is wiped.
-      - wpp-tokens:/usr/src/wpp-server/tokens
-      - wpp-userDataDir:/usr/src/wpp-server/userDataDir
+      # unless the volume is wiped. Paths match WORKDIR /app in our Dockerfile.
+      - wpp-tokens:/app/tokens
+      - wpp-userDataDir:/app/userDataDir
       - ./wpp-config.json:/etc/wpp/config.json:ro
 
 volumes:

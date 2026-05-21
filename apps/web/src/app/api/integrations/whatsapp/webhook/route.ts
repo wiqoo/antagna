@@ -44,10 +44,29 @@ const MESSAGE_EVENTS = new Set([
   'self-message',
 ]);
 
+/**
+ * Convert a WhatsApp JID to an E.164-ish string.
+ *
+ *   '966590989518@c.us'  → '+966590989518'    (normal user)
+ *   '120363021234@g.us'  → 'group:120363021234' (group chat)
+ *   '622904476017@lid'   → 'lid:622904476017'   (privacy LID — NOT a real phone)
+ *
+ * WhatsApp rolled out `@lid` in 2024+ to hide the underlying phone number
+ * of strangers. We never get the real E.164 for these contacts unless the
+ * user is already in our address book and we cross-reference via sender.
+ */
 function stripJid(jid: string): string {
-  // e.g. '966590989518@c.us' → '+966590989518'
-  const digits = jid.replace(/@.+$/, '').replace(/[^0-9]/g, '');
-  return digits ? `+${digits}` : jid;
+  const at = jid.indexOf('@');
+  if (at === -1) return jid;
+  const local = jid.slice(0, at);
+  const suffix = jid.slice(at + 1);
+  if (suffix === 'c.us' || suffix === 's.whatsapp.net') {
+    const digits = local.replace(/[^0-9]/g, '');
+    return digits ? `+${digits}` : jid;
+  }
+  if (suffix === 'g.us') return `group:${local}`;
+  if (suffix === 'lid') return `lid:${local}`;
+  return jid;
 }
 
 function messageIdOf(id: unknown): string | null {
