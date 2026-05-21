@@ -1,4 +1,4 @@
-import { task } from '@trigger.dev/sdk/v3';
+import { task } from '@trigger.dev/sdk';
 import { embed, OPENAI_MODELS, recordUsage } from '@antagna/ai';
 import { db, schema } from '@antagna/db';
 import { sql } from 'drizzle-orm';

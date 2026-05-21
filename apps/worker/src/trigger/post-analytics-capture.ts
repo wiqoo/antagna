@@ -6,7 +6,7 @@
  * post_analytics_snapshots. Actual platform API calls land here once the
  * social OAuth tokens are configured (currently MANUAL).
  */
-import { schedules } from '@trigger.dev/sdk/v3';
+import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 

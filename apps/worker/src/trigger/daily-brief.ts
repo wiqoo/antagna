@@ -5,7 +5,7 @@
  * active project + each person, writes to `daily_briefs`. Notifications are
  * fanned out by `notify_daily_brief` via NOTIFY (Pillar 8 worker reads it).
  */
-import { schedules } from '@trigger.dev/sdk/v3';
+import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';

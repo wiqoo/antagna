@@ -7,7 +7,7 @@
  *
  * Trigger.dev v3 scheduled task. Deploys only when PROD key exists.
  */
-import { schedules } from '@trigger.dev/sdk/v3';
+import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 

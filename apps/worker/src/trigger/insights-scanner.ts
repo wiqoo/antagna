@@ -6,7 +6,7 @@
  *
  * Runs every 2 hours. Skips projects analyzed within the last 1h to avoid spam.
  */
-import { schedules } from '@trigger.dev/sdk/v3';
+import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';

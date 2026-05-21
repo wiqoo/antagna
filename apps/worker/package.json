@@ -14,13 +14,13 @@
     "@antagna/db": "workspace:*",
     "@antagna/shared": "workspace:*",
     "@sentry/node": "^8.42.0",
-    "@trigger.dev/sdk": "^3.3.0",
+    "@trigger.dev/sdk": "^4.4.6",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.36.4",
     "pino": "^9.5.0"
   },
   "devDependencies": {
-    "@trigger.dev/build": "^3.3.0",
+    "@trigger.dev/build": "^4.4.6",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
