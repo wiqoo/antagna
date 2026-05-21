@@ -236,3 +236,15 @@ textarea.form-input {
   border: 1px solid rgba(255,107,26,0.22);
   border-radius: 14px;
 }
+
+/* Skeleton shimmer (used by @antagna/ui Skeleton). */
+@keyframes antagna-skeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.antagna-skeleton {
+  animation: antagna-skeleton 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .antagna-skeleton { animation: none; }
+}

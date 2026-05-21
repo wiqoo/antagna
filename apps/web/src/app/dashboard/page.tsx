@@ -38,6 +38,19 @@ export default async function DashboardPage() {
   // Honor View-As impersonation — the greeting / topbar / any per-user
   // data should match the profile the admin is viewing as.
   const current = await getCurrentProfile();
+
+  // First-login flow (Pillar 16 §H.4). Only redirect the REAL user (not
+  // when an admin is viewing-as someone else, otherwise they get bounced
+  // every time they pick a fake profile that hasn't onboarded).
+  if (current && !current.isImpersonating) {
+    const [self] = await db.execute<{ status: string }>(
+      sql`SELECT onboarding_state->>'status' AS status FROM profiles WHERE id = ${current.id}::uuid`,
+    );
+    const status = (self as unknown as { status: string }[])[0]?.status;
+    if (status === 'pending' || status === 'in_progress') {
+      redirect('/welcome');
+    }
+  }
   const greetingName =
     current?.displayName?.trim().split(/\s+/)[0] ??
     user.email?.split('@')[0] ??

@@ -62,6 +62,12 @@ export const profiles = pgTable('profiles', {
   timezone: text('timezone').notNull().default('Asia/Riyadh'),
   notificationPrefs: jsonb('notification_prefs').notNull().default({}),
 
+  // Per-user onboarding state (Pillar 16 §H.4).
+  // Shape: { status, steps_done?, completed_at?, skipped_at? }
+  onboardingState: jsonb('onboarding_state')
+    .notNull()
+    .default({ status: 'pending', steps_done: [] }),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
   archivedAt: timestamp('archived_at', { withTimezone: true }),

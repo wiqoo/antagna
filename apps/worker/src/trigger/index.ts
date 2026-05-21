@@ -11,3 +11,5 @@ export { aiSmokeTest } from './ai-smoke-test';
 export { embeddingSmokeTest } from './embedding-smoke-test';
 export { sentrySmokeTest } from './sentry-smoke-test';
 export { gmailScanner } from './gmail-scanner';
+export { oauthHealthScanner } from './oauth-health-scanner';
+export { kpiEngine } from './kpi-engine';
