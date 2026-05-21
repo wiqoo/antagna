@@ -15,11 +15,19 @@
  */
 import { db, whatsappMessages, profiles, projects, projectTasks, dailyTasks } from '@antagna/db';
 import { eq, and, or, desc, sql, isNull, gte } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
+import { getAnthropic, getOpenAI, ANTHROPIC_MODELS } from '@antagna/ai';
 import { sendText, setTyping } from './whatsapp';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 const BOT_BASE_URL = 'https://antagna-v2.vercel.app';
+
+// Provider switch. Default to OpenAI — gpt-4o-mini follows tone + language
+// switch rules more strictly than Haiku in our prompt. Override via env.
+const BOT_PROVIDER = (process.env.WHATSAPP_BOT_PROVIDER ?? 'openai') as
+  | 'openai'
+  | 'anthropic';
+const OPENAI_MODEL = process.env.WHATSAPP_BOT_OPENAI_MODEL ?? 'gpt-4o-mini';
 
 // ── tool surface ──────────────────────────────────────────────────────────
 
@@ -97,37 +105,44 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
-const SYSTEM_PROMPT = `أنت Volt Bot — صديق فريق Volt اللي بيساعدهم على واتساب.
+const SYSTEM_PROMPT = `You are Volt Bot — the internal assistant for Volt Production's team on WhatsApp.
 
-شخصيتك:
-- ودود ومرحب، بترحب وبتسلّم لما حد يكلمك.
-- بترد على أي حاجة الناس بتقولها — سلام، شكر، سؤال، كلام عادي، أي حاجة.
-- خفيف الظل، بتستخدم إيموجي خفيفة لما تليق (✓ 👋 🙂 📋 🚀 — ما تكتّرش).
-- لهجة عربية ودودة قريبة من اللي بيتكلم — بدّل عربي فصحى بالعامية المصرية/الخليجية حسب لي بيكتب.
-- ردودك قصيرة (1-3 أسطر) لأنها واتساب، بس مش جافة. زي صديق بيرد بسرعة.
+## Voice & tone
+- Professional first, lightly warm. Concise. Confident. Not jokey.
+- No emojis except a single "✓" when confirming an action completed. Never use 👋 🙂 📋 🚀 or similar.
+- Replies are short — 1-2 lines is ideal, 3 lines max. WhatsApp short, not chatty.
+- Don't introduce yourself or sign off unless asked.
 
-اللي تقدر تعمله:
-- تجيب المهام لأي حد من الفريق (my_open_tasks)
-- تطلع حالة مشروع (project_status)
-- تبحث عن زميل في الفريق (lookup_colleague)
-- تبعت رابط لصفحة Antagna (antagna_link)
-- تشوف آخر النشاط (recent_activity)
+## Language mirroring (critical)
+- Default: match the language the user is currently writing in.
+- If user writes Arabic → reply in clean MSA Arabic (light, not flowery).
+- If user writes English → reply in English. Do not switch back to Arabic.
+- If user EXPLICITLY says "كلمني بالإنجليزي" / "speak English" / "in English" → from then on reply only in English until they switch back.
+- If user EXPLICITLY says "بالعربي" / "Arabic" → switch to Arabic.
+- Same for dialect: mirror Egyptian / Khaleeji / MSA based on what they write.
 
-قواعد:
-- لو حد قال "السلام عليكم" / "هاي" / "صباح الخير" — رد عليه عادي وقولّه إنك جاهز يساعد.
-- لو حد قال "شكراً" / "تمام" / "ميرسي" — رد بترحيب لطيف ("على الرحب والسعة" / "أي وقت").
-- لو سأل سؤال محدد عن Antagna — استخدم الـ tools المناسبة.
-- لو الموضوع محتاج تفاصيل أكتر، ابعت رابط Antagna (antagna_link).
-- لو الطلب مش واضح، اسأل بود "تقصد إيه بالظبط؟" بدل ما ترفض.
-- لو طلب حاجة مش في قدراتك (تعديل / إنشاء / إرسال) — قول "ده محتاج تفتحه في Antagna" + ابعت اللينك.
-- ما تخترعش بيانات. لو ما لقيت في الـ tools → قول بود "ما لقيت كده، تتأكد من الاسم؟" أو ابعت اللينك.
+## What you can do (tools)
+- my_open_tasks — get the user's open tasks (today / overdue / week / all)
+- project_status — look up a project by code or name
+- lookup_colleague — find a teammate's contact info
+- antagna_link — return a deep link to a page in Antagna
+- recent_activity — recent activity events (mine or team)
 
-⚠️ مهم جداً عن المحادثة:
-- آخر رسالة من المستخدم هي اللي ترد عليها فقط.
-- الرسائل اللي قبلها (لو موجودة) سياق — انت بالفعل رددت عليها قبل كده.
-- ما تعيدش الإجابة على أسئلة قديمة. ركّز على الرسالة الأخيرة فقط.
+## Rules
+- Greetings (salam, hi, good morning) → return a brief, professional greeting + offer help. One short line.
+- Thanks ("شكراً" / "thanks") → brief acknowledgement ("Any time" / "أي وقت"). One short line.
+- Specific question about Antagna → use the right tool. Reply concisely with the answer + a link if useful.
+- Action requests that aren't in your tool set (create / edit / send / approve) → "That needs Antagna" + the appropriate antagna_link.
+- Unclear request → ask exactly ONE clarifying question, not multiple.
+- Never fabricate data. If a tool returns nothing, say so plainly + suggest opening Antagna.
 
-الفكرة: خَلِّك زي صديق متعاون مش زي bot جاف. الناس لازم تحس إنها بتكلم حد ذكي وودود.`;
+## Multi-message handling
+- If the user sent several messages in a row without a reply between them, treat them as ONE query and answer all of them in a single tidy reply — not one message per item.
+- Older messages (above the current batch in your context) have already been answered. Don't re-answer them.
+
+## Capability boundary
+- You ARE NOT a customer-facing concierge. You serve internal team only. Stay focused on Antagna info + workflows.
+- If asked about things outside Antagna (jokes, news, opinions), give a short polite line and pivot back: "I focus on Antagna info. Anything I can look up for you?"`;
 
 // ── public entry point ────────────────────────────────────────────────────
 
@@ -309,57 +324,25 @@ export async function handleInboundForBot(
     void setTyping(senderProfile.whatsappE164, true);
   }
 
-  // Tool-calling loop. Haiku is ~3× faster than Sonnet for these simple
-  // lookups (and ~5× cheaper). We don't need Sonnet-level reasoning to
-  // read a task list or look up a colleague.
-  const anthropic = getAnthropic();
+  const systemFull =
+    SYSTEM_PROMPT +
+    `\n\n## Current user\n${senderProfile.displayName} — role: ${senderProfile.role} — profile_id: ${senderProfile.id}`;
+
   let reply = '';
   let confidence: 'high' | 'low' = 'high';
-  const maxTurns = 3;
 
-  for (let turn = 0; turn < maxTurns; turn++) {
-    const resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODELS.haiku,
-      max_tokens: 400,
-      system: SYSTEM_PROMPT + `\n\nالمستخدم الحالي: ${senderProfile.displayName} (الدور: ${senderProfile.role}, id: ${senderProfile.id}).`,
-      tools: TOOLS,
-      messages,
-    });
-
-    // Did Claude want a tool?
-    const toolUseBlocks = resp.content.filter(
-      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
-    );
-    const textBlocks = resp.content.filter(
-      (b): b is Anthropic.TextBlock => b.type === 'text',
-    );
-
-    if (toolUseBlocks.length === 0) {
-      // Final answer
-      reply = textBlocks.map((t) => t.text).join('\n').trim();
-      // Heuristic: very short or uncertain replies → low confidence
-      if (/ما لقيت|لست متأكد|اسأل|توضيح/i.test(reply)) {
-        confidence = 'low';
-      }
-      break;
-    }
-
-    // Run all tools, collect results
-    messages.push({ role: 'assistant', content: resp.content });
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-    for (const tu of toolUseBlocks) {
-      const result = await runTool(tu.name, tu.input as Record<string, unknown>, senderProfile);
-      toolResults.push({
-        type: 'tool_result',
-        tool_use_id: tu.id,
-        content: JSON.stringify(result),
-      });
-    }
-    messages.push({ role: 'user', content: toolResults });
+  if (BOT_PROVIDER === 'openai') {
+    const r = await runOpenAiTurn(systemFull, messages, senderProfile);
+    reply = r.reply;
+    confidence = r.confidence;
+  } else {
+    const r = await runAnthropicTurn(systemFull, messages, senderProfile);
+    reply = r.reply;
+    confidence = r.confidence;
   }
 
   if (!reply) {
-    reply = 'مفيش رد جاهز. افتح Antagna للتفاصيل: ' + BOT_BASE_URL;
+    reply = `No ready reply. Open Antagna for details: ${BOT_BASE_URL}`;
     confidence = 'low';
   }
 
@@ -391,7 +374,7 @@ export async function handleInboundForBot(
           toE164: senderProfile.whatsappE164,
           messageType: 'text',
           bodyText: reply,
-          rawPayload: { generated_by: 'volt-bot', model: 'haiku' },
+          rawPayload: { generated_by: 'volt-bot', provider: BOT_PROVIDER },
           threadKey: msg.threadKey,
           receivedAt: new Date(),
         });
@@ -482,6 +465,134 @@ async function tryVerificationCodeLink(
     displayName: match.display_name,
     replyToE164: match.whatsapp_e164,
   };
+}
+
+// ── provider runners ──────────────────────────────────────────────────────
+
+interface TurnResult {
+  reply: string;
+  confidence: 'high' | 'low';
+}
+
+/** OpenAI tool-calling loop. */
+async function runOpenAiTurn(
+  system: string,
+  initialMessages: Anthropic.MessageParam[],
+  user: { id: string; displayName: string; role: string },
+): Promise<TurnResult> {
+  const client = getOpenAI();
+  // Translate Anthropic-style messages into OpenAI chat messages. Our
+  // messages only contain string content (no tool_use blocks at this point),
+  // so the mapping is direct.
+  const oaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: system },
+    ...initialMessages.map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: typeof m.content === 'string' ? m.content : '',
+    })),
+  ];
+
+  const oaiTools: OpenAI.Chat.ChatCompletionTool[] = TOOLS.map((t) => ({
+    type: 'function',
+    function: {
+      name: t.name,
+      description: t.description ?? '',
+      parameters: t.input_schema as Record<string, unknown>,
+    },
+  }));
+
+  const maxTurns = 3;
+  for (let turn = 0; turn < maxTurns; turn++) {
+    const resp = await client.chat.completions.create({
+      model: OPENAI_MODEL,
+      max_tokens: 400,
+      messages: oaiMessages,
+      tools: oaiTools,
+      tool_choice: 'auto',
+    });
+    const choice = resp.choices[0];
+    if (!choice) break;
+    const msg = choice.message;
+
+    if (!msg.tool_calls || msg.tool_calls.length === 0) {
+      const reply = (msg.content ?? '').trim();
+      const confidence: 'high' | 'low' = /not sure|لست متأكد|ما لقيت|i don't have/i.test(reply)
+        ? 'low'
+        : 'high';
+      return { reply, confidence };
+    }
+
+    oaiMessages.push({
+      role: 'assistant',
+      content: msg.content ?? '',
+      tool_calls: msg.tool_calls,
+    });
+
+    for (const call of msg.tool_calls) {
+      if (call.type !== 'function') continue;
+      let args: Record<string, unknown> = {};
+      try {
+        args = JSON.parse(call.function.arguments || '{}');
+      } catch {
+        args = {};
+      }
+      const result = await runTool(call.function.name, args, user);
+      oaiMessages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: JSON.stringify(result),
+      });
+    }
+  }
+  return { reply: '', confidence: 'low' };
+}
+
+/** Anthropic tool-calling loop (kept as a fallback). */
+async function runAnthropicTurn(
+  system: string,
+  initialMessages: Anthropic.MessageParam[],
+  user: { id: string; displayName: string; role: string },
+): Promise<TurnResult> {
+  const anthropic = getAnthropic();
+  const messages = [...initialMessages];
+  const maxTurns = 3;
+
+  for (let turn = 0; turn < maxTurns; turn++) {
+    const resp = await anthropic.messages.create({
+      model: ANTHROPIC_MODELS.haiku,
+      max_tokens: 400,
+      system,
+      tools: TOOLS,
+      messages,
+    });
+    const toolUseBlocks = resp.content.filter(
+      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+    );
+    const textBlocks = resp.content.filter(
+      (b): b is Anthropic.TextBlock => b.type === 'text',
+    );
+
+    if (toolUseBlocks.length === 0) {
+      const reply = textBlocks.map((t) => t.text).join('\n').trim();
+      const confidence: 'high' | 'low' = /ما لقيت|لست متأكد|not sure/i.test(reply)
+        ? 'low'
+        : 'high';
+      return { reply, confidence };
+    }
+
+    messages.push({ role: 'assistant', content: resp.content });
+    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    for (const tu of toolUseBlocks) {
+      const result = await runTool(tu.name, tu.input as Record<string, unknown>, user);
+      toolResults.push({
+        type: 'tool_result',
+        tool_use_id: tu.id,
+        content: JSON.stringify(result),
+      });
+    }
+    messages.push({ role: 'user', content: toolResults });
+  }
+  return { reply: '', confidence: 'low' };
 }
 
 // ── tool implementations ──────────────────────────────────────────────────
