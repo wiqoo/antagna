@@ -1,0 +1,19 @@
+{
+  "name": "@antagna/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "PWDEBUG=1 playwright test",
+    "auth:setup": "playwright test tests/auth.setup.ts --project=setup",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "@types/node": "^22.0.0",
+    "postgres": "^3.4.5"
+  }
+}

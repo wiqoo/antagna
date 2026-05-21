@@ -21,16 +21,16 @@ import {
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power } from 'lucide-react';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 import { seedDevData } from './seed-actions';
 import { toggleAlertRule, updateAlertCooldown, toggleKpi } from './alert-actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/admin');
+  const admin = await getAdminUser();
+  if (!admin) redirect('/login?next=/admin');
+  const user = admin.user;
 
   const [people, rules, kpis, permList, roleGrants] = await Promise.all([
     db

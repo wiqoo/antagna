@@ -13,7 +13,11 @@
     "db:gen": "pnpm --filter @antagna/db drizzle:generate",
     "db:push": "pnpm --filter @antagna/db drizzle:push",
     "db:studio": "pnpm --filter @antagna/db drizzle:studio",
-    "db:seed": "pnpm --filter @antagna/db seed"
+    "db:seed": "pnpm --filter @antagna/db seed",
+    "e2e": "pnpm --filter @antagna/e2e test",
+    "e2e:headed": "pnpm --filter @antagna/e2e test:headed",
+    "e2e:ui": "pnpm --filter @antagna/e2e test:ui",
+    "e2e:report": "pnpm --filter @antagna/e2e report"
   },
   "packageManager": "pnpm@11.1.2",
   "engines": {

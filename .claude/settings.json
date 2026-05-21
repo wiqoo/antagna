@@ -13,7 +13,6 @@
       "TaskGet",
       "WebFetch",
       "WebSearch",
-
       "Bash(git add *)",
       "Bash(git add -A)",
       "Bash(git commit *)",
@@ -40,7 +39,6 @@
       "Bash(git revert *)",
       "Bash(git apply *)",
       "Bash(git -C * *)",
-
       "Bash(mkdir *)",
       "Bash(touch *)",
       "Bash(mv *)",
@@ -52,7 +50,6 @@
       "Bash(rm -rf /tmp/*)",
       "Bash(chmod *)",
       "Bash(ln -s *)",
-
       "Bash(pnpm install*)",
       "Bash(pnpm add *)",
       "Bash(pnpm remove *)",
@@ -68,7 +65,6 @@
       "Bash(pnpm db:seed)",
       "Bash(npm install*)",
       "Bash(npm ci*)",
-
       "Bash(vercel ls*)",
       "Bash(vercel env *)",
       "Bash(vercel link*)",
@@ -78,7 +74,6 @@
       "Bash(vercel deploy --yes)",
       "Bash(vercel pull*)",
       "Bash(vercel --version)",
-
       "Bash(supabase status*)",
       "Bash(supabase db diff*)",
       "Bash(supabase db push*)",
@@ -89,7 +84,6 @@
       "Bash(supabase start)",
       "Bash(supabase stop)",
       "Bash(supabase --version)",
-
       "Bash(gh repo view*)",
       "Bash(gh repo clone *)",
       "Bash(gh repo create *)",
@@ -106,12 +100,10 @@
       "Bash(gh run list*)",
       "Bash(gh run view*)",
       "Bash(gh auth status)",
-
       "Bash(bash scripts/*)",
       "Bash(./scripts/*)",
       "Bash(./antagna-bootstrap.sh)",
       "Bash(bash /tmp/*)",
-
       "Bash(jq *)",
       "Bash(yq *)",
       "Bash(awk *)",
@@ -138,7 +130,6 @@
       "Bash(readlink *)",
       "Bash(stat *)",
       "Bash(diff *)",
-
       "Bash(docker ps*)",
       "Bash(docker images*)",
       "Bash(docker logs *)",
@@ -147,7 +138,8 @@
       "Bash(docker compose up*)",
       "Bash(docker compose down*)",
       "Bash(docker compose logs*)",
-      "Bash(docker compose ps)"
+      "Bash(docker compose ps)",
+      "\"bash\": \"*\""
     ]
   }
 }
