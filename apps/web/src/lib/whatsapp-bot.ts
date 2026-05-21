@@ -153,22 +153,21 @@ export async function handleInboundForBot(
     return { ok: true, skipped: 'duplicate_processing' };
   }
 
-  // Identify sender. The from_e164 is +E.164 OR 'lid:...' for privacy LIDs.
-  // Match on profiles.whatsapp_e164 — only E.164 matches today; LID-based
-  // identification needs WhatsApp's contact resolution which we don't have.
-  let senderProfile = null as null | { id: string; displayName: string; role: string };
-  if (msg.fromE164.startsWith('+')) {
-    const [p] = await db
-      .select({
-        id: profiles.id,
-        displayName: profiles.displayName,
-        role: profiles.role,
-      })
-      .from(profiles)
-      .where(eq(profiles.whatsappE164, msg.fromE164))
-      .limit(1);
-    senderProfile = p ?? null;
-  }
+  // Identify sender by raw from_e164. WhatsApp's @lid privacy rollout
+  // means many inbound messages arrive as 'lid:<number>' instead of a
+  // real +E.164. We store both formats interchangeably in
+  // profiles.whatsapp_e164 — the LID is stable per (sender, receiver)
+  // pair, so once we save it we can match forever.
+  const [senderRow] = await db
+    .select({
+      id: profiles.id,
+      displayName: profiles.displayName,
+      role: profiles.role,
+    })
+    .from(profiles)
+    .where(eq(profiles.whatsappE164, msg.fromE164))
+    .limit(1);
+  const senderProfile = senderRow ?? null;
 
   // Mark processed even if we don't reply, so the scanner doesn't loop.
   await db
