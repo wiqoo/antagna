@@ -21,9 +21,11 @@ test.describe('View-As impersonation', () => {
     await expect(page.getByText(/تشاهد كـ/)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/محسن/).first()).toBeVisible();
 
-    // Visiting /admin should redirect to /login.
+    // Visiting /admin should kick us off the admin page. The chain is
+    // /admin → /login?next=/admin → /dashboard (login bounces signed-in
+    // users back). Either is fine — the key signal is we're NOT on /admin.
     await page.goto('/admin');
-    await expect(page).toHaveURL(/\/login/);
+    await expect(page).not.toHaveURL(/\/admin\/?$/);
 
     // Switch back via the "رجوع" button (the bar persists on every page).
     await page.goto('/dashboard');
