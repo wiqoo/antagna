@@ -4,9 +4,9 @@
  * The actual integration code (Drive auto-folders, Calendar sync, Gemini meeting
  * note ingest, social platform API calls, ZATCA UBL XML) is BLOCKED on manual
  * setup of:
- *   - Google service account with domain-wide delegation
- *   - Resend domain verification (notifications.voltsaudi.com)
- *   - Per-platform OAuth tokens for Instagram / TikTok / YouTube
+ *   - Google OAuth single-account flow — DONE 2026-05-21 (info@voltsaudi.com)
+ *   - Resend domain verification — DONE 2026-05-02 (antagna.me)
+ *   - Per-platform OAuth tokens — SKIPPED Phase 1 (manual data entry)
  *
  * The schema below lets us land the contracts, log every integration call, and
  * track which integrations are healthy.
