@@ -29,6 +29,9 @@ type SummarizeReport = {
     totalInputTokens: number;
     totalOutputTokens: number;
     estimatedCostUsd: number;
+    threadsAutoClosed: number;
+    threadsLinkedToClient: number;
+    leadsCreated: number;
     errors: { threadId: string; error: string }[];
   };
   error?: string;
@@ -205,6 +208,15 @@ export function SyncPanel({ email }: { email: string }) {
                 />
                 <Stat label="In tokens" value={summary.report.totalInputTokens} />
                 <Stat label="Out tokens" value={summary.report.totalOutputTokens} />
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-[var(--text-dim)]">
+                <Stat label="Auto-closed" value={summary.report.threadsAutoClosed} />
+                <Stat label="Linked → client" value={summary.report.threadsLinkedToClient} />
+                <Stat
+                  label="Leads created"
+                  value={summary.report.leadsCreated}
+                  tone="success"
+                />
               </div>
               {summary.report.errors.length > 0 && (
                 <details className="mt-2">

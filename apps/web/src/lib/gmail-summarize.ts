@@ -17,6 +17,7 @@
 import { db, emailThreads, emailMessages } from '@antagna/db';
 import { eq, isNull, or, sql, desc } from 'drizzle-orm';
 import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
+import { applyRoutingAndLinking } from './gmail-routing';
 
 export interface SummarizeReport {
   startedAt: string;
@@ -26,6 +27,9 @@ export interface SummarizeReport {
   totalInputTokens: number;
   totalOutputTokens: number;
   estimatedCostUsd: number;
+  threadsAutoClosed: number;
+  threadsLinkedToClient: number;
+  leadsCreated: number;
   errors: { threadId: string; error: string }[];
 }
 
@@ -85,6 +89,9 @@ export async function summarizeThreads(
     totalInputTokens: 0,
     totalOutputTokens: 0,
     estimatedCostUsd: 0,
+    threadsAutoClosed: 0,
+    threadsLinkedToClient: 0,
+    leadsCreated: 0,
     errors: [],
   };
 
@@ -207,6 +214,21 @@ export async function summarizeThreads(
       }
 
       report.summarizedThreads++;
+
+      // Run routing + linking right after the summary is written so the
+      // thread immediately gets categorized (auto-close marketing, link to
+      // client, create lead if business).
+      try {
+        const routed = await applyRoutingAndLinking(thread.id);
+        if (routed.statusSet === 'closed') report.threadsAutoClosed++;
+        if (routed.clientLinked) report.threadsLinkedToClient++;
+        if (routed.leadCreated) report.leadsCreated++;
+      } catch (err) {
+        report.errors.push({
+          threadId: thread.id,
+          error: `routing: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
     } catch (err) {
       report.errors.push({
         threadId: thread.id,
