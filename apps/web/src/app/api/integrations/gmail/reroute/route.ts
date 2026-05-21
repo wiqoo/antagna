@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, emailThreads } from '@antagna/db';
 import { isNotNull, sql } from 'drizzle-orm';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 import { applyRoutingAndLinking } from '@/lib/gmail-routing';
 
 export const dynamic = 'force-dynamic';
@@ -18,10 +18,9 @@ export async function POST(req: Request) {
   const viaCron = !!(bearer && cronSecret && bearer === cronSecret);
 
   if (!viaCron) {
-    const supabase = await getSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+    const admin = await getAdminUser();
+    if (!admin) {
+      return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
     }
   }
 

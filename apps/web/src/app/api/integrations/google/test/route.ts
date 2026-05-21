@@ -4,7 +4,7 @@ import {
   getDriveClient,
   getCalendarClient,
 } from '@/lib/google';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,10 +14,9 @@ export const dynamic = 'force-dynamic';
  * the exact error message if something failed.
  */
 export async function GET(req: Request) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
   }
 
   const email = new URL(req.url).searchParams.get('email');

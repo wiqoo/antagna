@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
 import { redirect } from 'next/navigation';
 import { exchangeCodeAndStore } from '@/lib/google';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Google redirects here after the user authorizes. We exchange the code for
- * tokens, persist them, then bounce back to the admin page with a status.
+ * Google redirects here after the user authorizes. Admin-only — the same
+ * guard as /connect, so an unauthorized user can't trick the callback into
+ * storing tokens on their behalf.
  */
 export async function GET(req: Request) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const admin = await getAdminUser();
+  if (!admin) {
     redirect('/login?next=/admin/integrations/google');
   }
 

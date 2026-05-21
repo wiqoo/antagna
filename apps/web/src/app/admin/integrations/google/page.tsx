@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 import { TestPanel } from './test-panel';
 import { SyncPanel } from './sync-panel';
 
@@ -25,9 +25,9 @@ export default async function GoogleIntegrationsPage({
   searchParams: Promise<{ connected?: string; disconnected?: string; error?: string }>;
 }) {
   const sp = await searchParams;
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/admin/integrations/google');
+  const admin = await getAdminUser();
+  if (!admin) redirect('/login?next=/admin/integrations/google');
+  const { user } = admin;
 
   const rows = await db
     .select()

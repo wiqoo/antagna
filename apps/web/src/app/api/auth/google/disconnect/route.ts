@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, googleIntegrations } from '@antagna/db';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const admin = await getAdminUser();
+  if (!admin) {
+    return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
   }
 
   const form = await req.formData();

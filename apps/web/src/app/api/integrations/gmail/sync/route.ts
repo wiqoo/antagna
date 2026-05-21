@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/auth-admin';
 import { ingestGmail, SYSTEM_MAILBOX } from '@/lib/gmail-ingest';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +21,9 @@ export async function POST(req: Request) {
   const viaCron = !!(bearer && cronSecret && bearer === cronSecret);
 
   if (!viaCron) {
-    const supabase = await getSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+    const admin = await getAdminUser();
+    if (!admin) {
+      return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
     }
   }
 
