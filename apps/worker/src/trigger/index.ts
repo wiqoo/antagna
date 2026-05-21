@@ -13,3 +13,5 @@ export { sentrySmokeTest } from './sentry-smoke-test';
 export { gmailScanner } from './gmail-scanner';
 export { oauthHealthScanner } from './oauth-health-scanner';
 export { kpiEngine } from './kpi-engine';
+export { driveFolderScanner } from './drive-folder-scanner';
+export { emailSendScanner } from './email-send-scanner';

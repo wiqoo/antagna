@@ -18,6 +18,7 @@ import { db, emailThreads, emailMessages } from '@antagna/db';
 import { eq, isNull, or, sql, desc } from 'drizzle-orm';
 import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
 import { applyRoutingAndLinking } from './gmail-routing';
+import { extractMeetingNotes } from './meeting-notes';
 
 export interface SummarizeReport {
   startedAt: string;
@@ -30,6 +31,7 @@ export interface SummarizeReport {
   threadsAutoClosed: number;
   threadsLinkedToClient: number;
   leadsCreated: number;
+  meetingNotesExtracted: number;
   errors: { threadId: string; error: string }[];
 }
 
@@ -92,6 +94,7 @@ export async function summarizeThreads(
     threadsAutoClosed: 0,
     threadsLinkedToClient: 0,
     leadsCreated: 0,
+    meetingNotesExtracted: 0,
     errors: [],
   };
 
@@ -227,6 +230,18 @@ export async function summarizeThreads(
         report.errors.push({
           threadId: thread.id,
           error: `routing: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+
+      // Meeting notes extraction (Read.ai, Gemini Notes, Meet recordings,
+      // Fathom, Otter, Granola). No-op for ordinary threads.
+      try {
+        const mn = await extractMeetingNotes(thread.id);
+        if (mn.insertedId) report.meetingNotesExtracted++;
+      } catch (err) {
+        report.errors.push({
+          threadId: thread.id,
+          error: `meeting_notes: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     } catch (err) {
