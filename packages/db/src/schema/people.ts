@@ -70,8 +70,12 @@ export const profiles = pgTable('profiles', {
 
   // WhatsApp self-service linking — short-lived code the user sends from
   // their phone to the Volt line. The bot reads it, matches to this
-  // profile, sets whatsapp_e164 to the sender's id (LID or +E.164),
-  // and clears the code.
+  // profile, sets whatsapp_lid to the LID of the sender (for incoming
+  // identification), and clears the code. whatsappE164 is set BEFORE
+  // verification (the user types their real phone in /settings/whatsapp)
+  // and is what the bot uses for OUTBOUND sends — WPPConnect can't
+  // resolve LIDs to a sendable target.
+  whatsappLid: text('whatsapp_lid'),
   whatsappVerificationCode: text('whatsapp_verification_code'),
   whatsappVerificationExpiresAt: timestamp('whatsapp_verification_expires_at', {
     withTimezone: true,

@@ -22,8 +22,11 @@ async function getMyProfileId(): Promise<string | null> {
 /**
  * Generate a fresh 2-digit verification code unique among CURRENTLY active
  * (non-expired) codes. Stores it on the caller's profile + returns it.
+ *
+ * REQUIRES the user's E.164 phone number — WPPConnect can't reply to LIDs,
+ * so we need the real phone to send outgoing messages.
  */
-export async function generateMyWhatsappCode(): Promise<{
+export async function generateMyWhatsappCode(phoneE164: string): Promise<{
   ok: boolean;
   code?: string;
   expiresAtIso?: string;
@@ -31,6 +34,12 @@ export async function generateMyWhatsappCode(): Promise<{
 }> {
   const id = await getMyProfileId();
   if (!id) return { ok: false, error: 'unauthorized' };
+
+  // Validate phone number format (E.164: +, country code, 6-15 digits)
+  const normalized = phoneE164.trim().replace(/\s+/g, '');
+  if (!/^\+[1-9]\d{6,14}$/.test(normalized)) {
+    return { ok: false, error: 'phone_invalid' };
+  }
 
   // Pull the set of active codes so we avoid a collision.
   const used = await db.execute<{ code: string }>(sql`
@@ -44,9 +53,6 @@ export async function generateMyWhatsappCode(): Promise<{
     (used as unknown as { code: string }[]).map((r) => r.code),
   );
 
-  // Try up to 200 random 2-digit codes before giving up. With 100 slots
-  // and at most a handful of pending codes, this almost always finishes
-  // on the first try.
   let code: string | null = null;
   for (let i = 0; i < 200; i++) {
     const candidate = String(Math.floor(Math.random() * 100)).padStart(2, '0');
@@ -61,9 +67,10 @@ export async function generateMyWhatsappCode(): Promise<{
   await db
     .update(profiles)
     .set({
+      whatsappE164: normalized,            // the real phone for outbound sends
+      whatsappLid: null,                   // wipe any previous LID
       whatsappVerificationCode: code,
       whatsappVerificationExpiresAt: expires,
-      whatsappE164: null, // forces a re-link if they regenerate after pairing
       updatedAt: new Date(),
     })
     .where(eq(profiles.id, id));
@@ -96,7 +103,7 @@ export async function unlinkMyWhatsapp(): Promise<void> {
   if (!id) return;
   await db
     .update(profiles)
-    .set({ whatsappE164: null })
+    .set({ whatsappE164: null, whatsappLid: null })
     .where(eq(profiles.id, id));
   revalidatePath('/settings/whatsapp');
 }

@@ -25,15 +25,18 @@ interface ActiveCode {
 export function WhatsappLinkPanel({
   voltLine,
   currentE164,
+  linked,
   activeCode,
 }: {
   voltLine: string;
   currentE164: string | null;
+  linked: boolean;
   activeCode: ActiveCode | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState<string>(currentE164 ?? '+966');
   const [secondsLeft, setSecondsLeft] = useState(() =>
     activeCode ? Math.max(0, Math.floor((new Date(activeCode.expiresAtIso).getTime() - Date.now()) / 1000)) : 0,
   );
@@ -63,8 +66,12 @@ export function WhatsappLinkPanel({
 
   function generate() {
     setError(null);
+    if (!/^\+[1-9]\d{6,14}$/.test(phoneInput.trim())) {
+      setError('phone_invalid');
+      return;
+    }
     startTransition(async () => {
-      const r = await generateMyWhatsappCode();
+      const r = await generateMyWhatsappCode(phoneInput.trim());
       if (!r.ok) setError(r.error ?? 'failed');
       router.refresh();
     });
@@ -91,7 +98,7 @@ export function WhatsappLinkPanel({
   }
 
   // ── State: already linked ──
-  if (currentE164) {
+  if (linked && currentE164) {
     return (
       <Card>
         <div className="flex items-start gap-3">
@@ -186,15 +193,24 @@ export function WhatsappLinkPanel({
   // ── State: idle, no active code ──
   return (
     <Card>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[13px] text-[var(--text)]">
-            ابدأ ربط واتسابك
-          </p>
-          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            هنا تولّد كود سريع تبعته على واتساب — ودي العملية كلها مرة واحدة.
-          </p>
-        </div>
+      <div>
+        <p className="text-[13px] text-[var(--text)]">ابدأ ربط واتسابك</p>
+        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+          محتاجين رقم واتسابك بشكله الكامل (مثل: +966554176850) — Volt Bot
+          هيستخدمه عشان يبعتلك ردوده. WhatsApp بتخفي الأرقام دلوقتي، فلازم
+          نحطه يدوي.
+        </p>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          type="tel"
+          dir="ltr"
+          value={phoneInput}
+          onChange={(e) => setPhoneInput(e.target.value)}
+          placeholder="+966554176850"
+          className="h-10 flex-1 min-w-[160px] rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[13px] font-mono text-[var(--text)]"
+        />
         <button
           onClick={generate}
           disabled={pending}
@@ -206,7 +222,11 @@ export function WhatsappLinkPanel({
         </button>
       </div>
       {error && (
-        <p className="mt-2 text-[11px] text-[var(--danger)]">⚠ {error}</p>
+        <p className="mt-2 text-[11px] text-[var(--danger)]">
+          ⚠ {error === 'phone_invalid'
+            ? 'الرقم لازم يبدأ بـ + ويكون E.164 صحيح (مثل +966554176850)'
+            : error}
+        </p>
       )}
     </Card>
   );

@@ -20,6 +20,7 @@ export default async function MyWhatsappPage() {
       id: profiles.id,
       displayName: profiles.displayName,
       whatsappE164: profiles.whatsappE164,
+      whatsappLid: profiles.whatsappLid,
       verificationCode: profiles.whatsappVerificationCode,
       verificationExpiresAt: profiles.whatsappVerificationExpiresAt,
     })
@@ -59,7 +60,7 @@ export default async function MyWhatsappPage() {
               {me.displayName}
             </p>
           </div>
-          {me.whatsappE164 ? (
+          {me.whatsappE164 && me.whatsappLid ? (
             <StatusPill tone="success">مربوط</StatusPill>
           ) : codeIsActive ? (
             <StatusPill tone="warning">في انتظار الكود</StatusPill>
@@ -72,6 +73,7 @@ export default async function MyWhatsappPage() {
       <WhatsappLinkPanel
         voltLine={voltLine}
         currentE164={me.whatsappE164 ?? null}
+        linked={!!(me.whatsappE164 && me.whatsappLid)}
         activeCode={
           codeIsActive
             ? {

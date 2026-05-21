@@ -153,29 +153,44 @@ export async function handleInboundForBot(
     return { ok: true, skipped: 'duplicate_processing' };
   }
 
-  // Identify sender by raw from_e164. WhatsApp's @lid privacy rollout
-  // means many inbound messages arrive as 'lid:<number>' instead of a
-  // real +E.164. We store both formats interchangeably in
-  // profiles.whatsapp_e164 — the LID is stable per (sender, receiver)
-  // pair, so once we save it we can match forever.
+  // Identify sender. The from_e164 is either a real +E.164 or 'lid:NNN'
+  // (WhatsApp privacy rollout). Try both lookup paths:
+  //   - 'lid:NNN'    → match profiles.whatsapp_lid = 'NNN'
+  //   - '+E.164'     → match profiles.whatsapp_e164 directly
+  const lidValue = msg.fromE164.startsWith('lid:')
+    ? msg.fromE164.slice(4)
+    : null;
   const [senderRow] = await db
     .select({
       id: profiles.id,
       displayName: profiles.displayName,
       role: profiles.role,
+      whatsappE164: profiles.whatsappE164,
     })
     .from(profiles)
-    .where(eq(profiles.whatsappE164, msg.fromE164))
+    .where(
+      lidValue
+        ? eq(profiles.whatsappLid, lidValue)
+        : eq(profiles.whatsappE164, msg.fromE164),
+    )
     .limit(1);
   let senderProfile = senderRow ?? null;
 
   // No match? Maybe this is a verification code (2-digit body) from a user
   // mid-onboarding. Match against active codes; if hit, link the sender
-  // and reply with confirmation.
+  // and reply with confirmation via the user's pre-registered phone.
   if (!senderProfile) {
-    const linkResult = await tryVerificationCodeLink(msg.id, msg.bodyText, msg.fromE164);
-    if (linkResult.linked) {
-      await sendText(msg.fromE164, `تم الربط ✓\nأهلاً ${linkResult.displayName} 👋`);
+    const linkResult = await tryVerificationCodeLink(
+      msg.id,
+      msg.bodyText,
+      lidValue,
+      msg.fromE164.startsWith('+') ? msg.fromE164 : null,
+    );
+    if (linkResult.linked && linkResult.replyToE164) {
+      await sendText(
+        linkResult.replyToE164,
+        `تم الربط ✓\nأهلاً ${linkResult.displayName} 👋`,
+      );
       return {
         ok: true,
         profileId: linkResult.profileId,
@@ -278,9 +293,19 @@ export async function handleInboundForBot(
     confidence = 'low';
   }
 
-  // Send if high confidence
+  // Send if high confidence. ALWAYS send to whatsappE164 (the real phone),
+  // never to a LID — WPPConnect can't deliver to LIDs.
   if (confidence === 'high') {
-    const sendRes = await sendText(msg.fromE164, reply);
+    if (!senderProfile.whatsappE164) {
+      return {
+        ok: false,
+        profileId: senderProfile.id,
+        reply,
+        confidence,
+        error: 'no_send_target',
+      };
+    }
+    const sendRes = await sendText(senderProfile.whatsappE164, reply);
     return {
       ok: sendRes.ok,
       profileId: senderProfile.id,
@@ -305,43 +330,61 @@ export async function handleInboundForBot(
 async function tryVerificationCodeLink(
   messageDbId: string,
   body: string | null,
-  fromE164: string,
-): Promise<{ linked: boolean; profileId?: string; displayName?: string }> {
+  lidValue: string | null,
+  realPhoneE164: string | null,
+): Promise<{
+  linked: boolean;
+  profileId?: string;
+  displayName?: string;
+  replyToE164?: string;
+}> {
   if (!body) return { linked: false };
-  // Accept the bare 2-digit code with optional whitespace.
   const code = body.trim().match(/^(\d{2})$/)?.[1];
   if (!code) return { linked: false };
 
-  // Find any profile that has this code active right now AND isn't yet
-  // bound to another whatsapp identity (to avoid hijacking).
-  const [match] = await db.execute<{ id: string; display_name: string }>(sql`
-    SELECT id::text AS id, display_name
+  // The user pre-registered their phone in /settings/whatsapp BEFORE
+  // generating the code — that's the whatsapp_e164 on their profile.
+  // We only allow profiles that have that phone set (otherwise we'd link
+  // a LID with no way to reply).
+  const [match] = await db.execute<{
+    id: string;
+    display_name: string;
+    whatsapp_e164: string;
+  }>(sql`
+    SELECT id::text AS id, display_name, whatsapp_e164
     FROM profiles
     WHERE whatsapp_verification_code = ${code}
       AND whatsapp_verification_expires_at > now()
-      AND whatsapp_e164 IS NULL
+      AND whatsapp_lid IS NULL
+      AND whatsapp_e164 IS NOT NULL
     LIMIT 1
-  `) as unknown as Array<{ id: string; display_name: string }>;
+  `) as unknown as Array<{ id: string; display_name: string; whatsapp_e164: string }>;
 
   if (!match) return { linked: false };
 
-  // Link + clear the code so it can't be reused.
+  // Link the LID (or +E.164 if WhatsApp gave us a real number) and clear
+  // the verification code. The pre-registered whatsapp_e164 stays — it's
+  // the send target.
   await db.execute(sql`
     UPDATE profiles
-    SET whatsapp_e164 = ${fromE164},
+    SET whatsapp_lid = ${lidValue},
         whatsapp_verification_code = NULL,
         whatsapp_verification_expires_at = NULL,
         updated_at = now()
     WHERE id = ${match.id}::uuid
   `);
 
-  // Mark the inbound message as the verification one.
   await db
     .update(whatsappMessages)
     .set({ aiClassification: 'verification' })
     .where(eq(whatsappMessages.id, messageDbId));
 
-  return { linked: true, profileId: match.id, displayName: match.display_name };
+  return {
+    linked: true,
+    profileId: match.id,
+    displayName: match.display_name,
+    replyToE164: match.whatsapp_e164,
+  };
 }
 
 // ── tool implementations ──────────────────────────────────────────────────
