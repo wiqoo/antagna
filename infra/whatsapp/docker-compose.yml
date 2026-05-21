@@ -1,86 +1,39 @@
-# Evolution API — local self-hosted WhatsApp gateway (Baileys under the hood).
-# Antagna's WhatsApp integration calls this service over HTTP.
+# WPPConnect Server — self-hosted WhatsApp gateway (whatsapp-web.js / Puppeteer
+# under the hood). Replaces Evolution v2 which had a known instance-restart loop
+# that prevented QR generation in our setup.
 #
-# Default ports (host):
-#   8080  → Evolution API (HTTP)
-#   5556  → Evolution's PostgreSQL  (don't expose publicly; bound to localhost)
+# Default port (host): 127.0.0.1:21465 — Cloudflare Tunnel proxies it to
+# https://whatsapp.antagna.me.
 #
 # Bring up:    docker compose -f infra/whatsapp/docker-compose.yml --env-file infra/whatsapp/.env up -d
 # Tear down:   docker compose -f infra/whatsapp/docker-compose.yml --env-file infra/whatsapp/.env down
-# Logs:        docker compose -f infra/whatsapp/docker-compose.yml logs -f evolution
-# Reset (kill the WhatsApp session — needs a new QR pairing):
-#              docker compose -f infra/whatsapp/docker-compose.yml down -v
+# Logs:        docker compose -f infra/whatsapp/docker-compose.yml logs -f wpp
+# Reset session (force new QR): docker compose down -v && docker compose up -d
 
 services:
-  evolution-db:
-    image: postgres:16-alpine
-    container_name: evolution-db
+  wpp:
+    build:
+      context: .
+      dockerfile: Dockerfile.wpp
+      args:
+        WPP_SERVER_REF: main
+    image: antagna/wpp-server:latest
+    container_name: wpp-server
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: evolution
-      POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD}
-      POSTGRES_DB: evolution
     ports:
-      - "127.0.0.1:5556:5432"
-    volumes:
-      - evolution-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  evolution:
-    image: atendai/evolution-api:v2.1.1
-    container_name: evolution-api
-    restart: unless-stopped
-    depends_on:
-      evolution-db:
-        condition: service_healthy
-    ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:21465:21465"
+    # v2.10.0 ignores --secretKey on the CLI. Our entrypoint script reads
+    # WPP_SECRET_KEY from the env and injects it into the config JSON
+    # before launching the server. Mount the env so it's available.
     environment:
-      # ── server ─────────────────────────────────────────────────────────
-      SERVER_TYPE: http
-      SERVER_PORT: 8080
-      SERVER_URL: ${EVOLUTION_PUBLIC_URL:-http://localhost:8080}
-      # Global API key — required on every Evolution API request via the
-      # `apikey` header. Generate with: openssl rand -hex 32
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      # ── persistence ────────────────────────────────────────────────────
-      DATABASE_ENABLED: "true"
-      DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_DB_PASSWORD}@evolution-db:5432/evolution
-      DATABASE_CONNECTION_CLIENT_NAME: evolution
-      DATABASE_SAVE_DATA_INSTANCE: "true"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
-      DATABASE_SAVE_MESSAGE_UPDATE: "true"
-      DATABASE_SAVE_DATA_CONTACTS: "true"
-      DATABASE_SAVE_DATA_CHATS: "true"
-      # ── webhooks (global; Antagna receives every event) ────────────────
-      WEBHOOK_GLOBAL_ENABLED: "true"
-      WEBHOOK_GLOBAL_URL: ${ANTAGNA_WEBHOOK_URL}
-      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
-      WEBHOOK_EVENTS_QRCODE_UPDATED: "true"
-      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
-      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
-      WEBHOOK_EVENTS_SEND_MESSAGE: "true"
-      WEBHOOK_EVENTS_CONTACTS_UPSERT: "false"
-      WEBHOOK_EVENTS_CHATS_UPSERT: "false"
-      # ── instance defaults ──────────────────────────────────────────────
-      CONFIG_SESSION_PHONE_CLIENT: Antagna
-      CONFIG_SESSION_PHONE_NAME: Chrome
-      DEL_INSTANCE: "false"
-      QRCODE_LIMIT: "30"
-      # ── logging ────────────────────────────────────────────────────────
-      LOG_LEVEL: ERROR,WARN,INFO
-      LOG_COLOR: "true"
-      LOG_BAILEYS: error
+      WPP_SECRET_KEY: ${WPP_SECRET_KEY}
     volumes:
-      - evolution-instances:/evolution/instances
-      - evolution-store:/evolution/store
+      # Session tokens + browser state persist across restarts → no re-pairing
+      # unless the volume is wiped.
+      - wpp-tokens:/usr/src/wpp-server/tokens
+      - wpp-userDataDir:/usr/src/wpp-server/userDataDir
+      - ./wpp-config.json:/etc/wpp/config.json:ro
 
 volumes:
-  evolution-db-data:
-  evolution-instances:
-  evolution-store:
+  wpp-tokens:
+  wpp-userDataDir:

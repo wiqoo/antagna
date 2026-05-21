@@ -1,0 +1,46 @@
+# WPPConnect Server built from latest GitHub source with the latest
+# @wppconnect-team/wppconnect lib forced. The published Docker image
+# bundles an outdated wppconnect (1.37.8) that fails to load WhatsApp
+# Web's current protocol; this build pulls 2.2+ which works.
+
+FROM node:20-bookworm-slim
+
+# Chromium + the libs Puppeteer needs at runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git ca-certificates curl \
+      chromium chromium-sandbox \
+      fonts-noto-color-emoji fonts-noto-cjk \
+      libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 \
+      libdrm2 libgbm1 libnss3 libxcomposite1 libxdamage1 libxfixes3 \
+      libxrandr2 libxshmfence1 libxtst6 libpango-1.0-0 libpangocairo-1.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ARG WPP_SERVER_REF=main
+RUN git clone --depth 1 --branch "$WPP_SERVER_REF" \
+      https://github.com/wppconnect-team/wppconnect-server.git . \
+    && git log -1 --oneline
+
+# Use system Chromium instead of letting Puppeteer download one (which
+# Puppeteer can't currently do on Ubuntu 26 anyway).
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Install ALL deps (including dev) so tsc is available, force the latest
+# wppconnect lib over whatever package.json pins, then build the dist
+# tree. We don't strip devDeps after — the image isn't size-constrained
+# and the extra ~200MB doesn't matter for a single-instance gateway.
+RUN npm install --no-audit --no-fund \
+    && npm install --no-save --no-audit --no-fund @wppconnect-team/wppconnect@latest \
+    && npm run build
+
+ENV NODE_ENV=production \
+    PORT=21465
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+EXPOSE 21465
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

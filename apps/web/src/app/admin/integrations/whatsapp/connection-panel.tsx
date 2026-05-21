@@ -13,10 +13,11 @@ import {
 } from 'lucide-react';
 
 type State = 'open' | 'connecting' | 'close' | 'unknown';
+type Qr = { base64?: string; pairingCode?: string };
 type StatusResp = {
   ok: boolean;
   state?: State;
-  qr?: { base64?: string; pairingCode?: string };
+  qr?: Qr;
   error?: string;
 };
 
@@ -29,6 +30,7 @@ export function ConnectionPanel({
 }) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<StatusResp | null>(null);
+  const [qr, setQr] = useState<Qr | null>(null);
   const [polling, setPolling] = useState(false);
 
   async function refresh() {
@@ -40,6 +42,12 @@ export function ConnectionPanel({
       });
       const json = (await res.json()) as StatusResp;
       setStatus(json);
+      // Update QR from the response. Drop it once we leave connecting.
+      if (json.state === 'connecting' && json.qr?.base64) {
+        setQr(json.qr);
+      } else if (json.state !== 'connecting') {
+        setQr(null);
+      }
     } catch (err) {
       setStatus({ ok: false, error: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -117,14 +125,14 @@ export function ConnectionPanel({
         </div>
       </div>
 
-      {state === 'connecting' && status?.qr?.base64 && (
+      {state === 'connecting' && qr?.base64 && (
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[auto,1fr]">
           <div className="rounded-md border border-[var(--line)] bg-white p-2">
             <img
               src={
-                status.qr.base64.startsWith('data:')
-                  ? status.qr.base64
-                  : `data:image/png;base64,${status.qr.base64}`
+                qr.base64.startsWith('data:')
+                  ? qr.base64
+                  : `data:image/png;base64,${qr.base64}`
               }
               alt="WhatsApp QR"
               className="h-48 w-48"
@@ -139,9 +147,9 @@ export function ConnectionPanel({
               <li>Settings → Linked Devices → Link a Device</li>
               <li>صوّر الـ QR ده</li>
             </ol>
-            {status.qr.pairingCode && (
+            {qr.pairingCode && (
               <p className="mt-3 rounded border border-[var(--line)] bg-[var(--surface)]/40 p-2 font-mono text-[14px] text-[var(--accent)]">
-                pairing code: {status.qr.pairingCode}
+                pairing code: {qr.pairingCode}
               </p>
             )}
           </div>

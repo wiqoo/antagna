@@ -4,6 +4,10 @@ import { getConnectionState, getQrCode } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Connection state + QR (when connecting). WPPConnect's qrcode-session is
+ * a side-effect-free read, so it's safe to poll alongside status.
+ */
 export async function GET() {
   const admin = await getAdminUser();
   if (!admin) {
@@ -12,15 +16,16 @@ export async function GET() {
 
   try {
     const conn = await getConnectionState();
-    if (conn.state === 'connecting') {
+    const state = conn.state ?? 'unknown';
+    if (state === 'connecting') {
       const qr = await getQrCode();
       return NextResponse.json({
         ok: true,
-        state: conn.state,
-        qr: { base64: qr.base64, pairingCode: qr.pairingCode },
+        state,
+        qr: qr.base64 ? { base64: qr.base64, pairingCode: qr.pairingCode } : undefined,
       });
     }
-    return NextResponse.json({ ok: true, state: conn.state ?? 'unknown' });
+    return NextResponse.json({ ok: true, state });
   } catch (err) {
     return NextResponse.json(
       {
