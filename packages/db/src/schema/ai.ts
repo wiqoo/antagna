@@ -147,6 +147,55 @@ export const stateTransitionOverrides = pgTable('state_transition_overrides', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
 });
 
+// ── email_extractions (Pillar 8 + Pillar 10) ──────────────────────────────
+// Structured data extracted from each business email message (sender,
+// intent, project signals, dates, money, deliverables, action items).
+// One row per email_messages.id.
+
+export const emailExtractions = pgTable('email_extractions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').notNull(),
+  messageId: uuid('message_id').notNull().unique(),
+  data: jsonb('data').notNull(),
+  confidence: numeric('confidence', { precision: 3, scale: 2 }).notNull(),
+  model: text('model').notNull(),
+  inputTokens: integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  costUsd: numeric('cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
+  extractedAt: timestamp('extracted_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+// ── ai_suggestions (Phase 1 — pending proposals queue) ────────────────────
+
+export const aiSuggestions = pgTable('ai_suggestions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceType: text('source_type').notNull().default('email'),
+  sourceThreadId: uuid('source_thread_id'),
+  sourceMessageId: uuid('source_message_id'),
+  sourceExtractionId: uuid('source_extraction_id'),
+  suggestionType: text('suggestion_type').notNull(),
+  proposedData: jsonb('proposed_data').notNull(),
+  summaryAr: text('summary_ar').notNull(),
+  confidence: numeric('confidence', { precision: 3, scale: 2 }).notNull(),
+  status: text('status').notNull().default('pending'),
+  approvedById: uuid('approved_by_id').references(() => profiles.id),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  executedAt: timestamp('executed_at', { withTimezone: true }),
+  executionResult: jsonb('execution_result'),
+  rejectedReason: text('rejected_reason'),
+  expiresAt: timestamp('expires_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now() + interval '14 days'`),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
 export type DailyBrief = typeof dailyBriefs.$inferSelect;
 export type ProjectInsight = typeof projectInsights.$inferSelect;
 export type AiActionLog = typeof aiActionLog.$inferSelect;
@@ -154,3 +203,5 @@ export type ProjectLearning = typeof projectLearnings.$inferSelect;
 export type DecisionOutcome = typeof decisionOutcomes.$inferSelect;
 export type TemplateEditPattern = typeof templateEditPatterns.$inferSelect;
 export type StateTransitionOverride = typeof stateTransitionOverrides.$inferSelect;
+export type EmailExtraction = typeof emailExtractions.$inferSelect;
+export type AiSuggestion = typeof aiSuggestions.$inferSelect;
