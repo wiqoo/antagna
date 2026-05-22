@@ -1,0 +1,136 @@
+import Link from 'next/link';
+import {
+  Type, List, Sparkles, Palette, Menu, LayoutDashboard, Grid, Layers,
+} from 'lucide-react';
+
+const SECTIONS = [
+  {
+    href: '/preview/lab/typography',
+    title: 'الخطوط والألوان',
+    desc: 'مقارنة سلم الخطوط + ٣ خيارات لتباين النصوص (المعظم مش واضح حالياً).',
+    icon: Type,
+    items: 4,
+  },
+  {
+    href: '/preview/lab/lists',
+    title: 'شكل القوائم',
+    desc: 'الـ table الحالي مقابل ٤ بدائل (cards / compact rows / magazine grid / dense).',
+    icon: List,
+    items: 4,
+  },
+  {
+    href: '/preview/lab/icons',
+    title: 'الأيقونات',
+    desc: 'Lucide outline (الحالي) vs Lucide thick vs Phosphor duotone vs Heroicons solid.',
+    icon: Layers,
+    items: 4,
+  },
+  {
+    href: '/preview/lab/effects',
+    title: 'التأثيرات والـ animations',
+    desc: 'hover lift, magnet pull (الحالي), ripple, fade-in, parallax, subtle shift.',
+    icon: Sparkles,
+    items: 6,
+  },
+  {
+    href: '/preview/lab/nav',
+    title: 'القائمة الجانبية',
+    desc: 'الـ split الحالي (٥/٨) مقابل ٣ مقترحات لإعادة التقسيم.',
+    icon: Menu,
+    items: 4,
+  },
+  {
+    href: '/preview/lab/dashboard',
+    title: 'تخطيط الداش بورد',
+    desc: '٤ تصميمات بديلة: zones, hero+rail, magazine, command-center.',
+    icon: LayoutDashboard,
+    items: 4,
+  },
+  {
+    href: '/preview/lab/cards',
+    title: 'كروت جديدة للداش بورد',
+    desc: '١٢ فكرة كرت إضافي (cashflow, AI cost, team availability, ...). شوف نمطها واختار.',
+    icon: Grid,
+    items: 12,
+  },
+  {
+    href: '/preview/lab/customize',
+    title: 'تخصيص أذكى',
+    desc: 'حفظ "views" متعددة، حجم/أعمدة لكل كرت، ترتيب بالسحب، تخصيص لكل دور.',
+    icon: Palette,
+    items: 4,
+  },
+] as const;
+
+export default function PreviewLabIndex() {
+  return (
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <div className="mx-auto max-w-[1200px] px-6 py-12 md:px-8 md:py-16">
+        <header className="mb-10 space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
+            — Design Lab
+          </p>
+          <h1
+            className="text-[36px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[44px]"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            اختياراتنا قبل ما نطبّق
+          </h1>
+          <p className="max-w-2xl text-[14px] leading-relaxed text-[var(--text-muted)]">
+            كل قسم فيه مقارنة بصرية. اضغط على القسم اللي يهمّك، شوف الخيارات
+            جنب بعض، وقولي رقم الخيار اللي عاجبك. لما تختار، أطبّق على الإنتاج.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {SECTIONS.map((s) => {
+            const Icon = s.icon;
+            return (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="group block rounded-xl border border-[var(--line)] bg-[var(--surface)] p-5 transition-all hover:border-[var(--accent)]/40 hover:bg-[var(--bg-elevated)]"
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  <div
+                    className="grid h-10 w-10 place-items-center rounded-lg"
+                    style={{
+                      background: 'var(--accent-tint)',
+                      color: 'var(--accent)',
+                    }}
+                  >
+                    <Icon size={18} strokeWidth={1.8} />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--text)]">
+                      {s.title}
+                    </h2>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--text-dim)]">
+                      {s.items} خيار
+                    </p>
+                  </div>
+                  <span className="text-[var(--text-dim)] transition-all group-hover:translate-x-[-4px] group-hover:text-[var(--accent)] rtl:rotate-180">
+                    →
+                  </span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">
+                  {s.desc}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+
+        <footer className="mt-12 flex items-center justify-between border-t border-[var(--line)] pt-6 text-[11px] text-[var(--text-dim)]">
+          <span>هذه صفحات معاينة فقط — لم يتم تطبيق أي تغيير على الإنتاج بعد.</span>
+          <Link
+            href="/dashboard"
+            className="text-[var(--accent)] hover:text-[var(--accent-hover)]"
+          >
+            ← العودة للداش بورد
+          </Link>
+        </footer>
+      </div>
+    </div>
+  );
+}
