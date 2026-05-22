@@ -15,10 +15,12 @@
  * AI only decides whether the thread *needs* a reply.
  */
 import { db, emailThreads, emailMessages } from '@antagna/db';
-import { eq, isNull, or, sql, desc } from 'drizzle-orm';
+import { eq, isNull, or, sql, desc, and } from 'drizzle-orm';
 import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
 import { applyRoutingAndLinking } from './gmail-routing';
 import { extractMeetingNotes } from './meeting-notes';
+import { extractEmail } from './email-intel/extract';
+import { generateSuggestionsForExtraction } from './email-intel/generate';
 
 export interface SummarizeReport {
   startedAt: string;
@@ -32,6 +34,8 @@ export interface SummarizeReport {
   threadsLinkedToClient: number;
   leadsCreated: number;
   meetingNotesExtracted: number;
+  deepExtractions: number;
+  suggestionsGenerated: number;
   errors: { threadId: string; error: string }[];
 }
 
@@ -95,6 +99,8 @@ export async function summarizeThreads(
     threadsLinkedToClient: 0,
     leadsCreated: 0,
     meetingNotesExtracted: 0,
+    deepExtractions: 0,
+    suggestionsGenerated: 0,
     errors: [],
   };
 
@@ -242,6 +248,37 @@ export async function summarizeThreads(
         report.errors.push({
           threadId: thread.id,
           error: `meeting_notes: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+
+      // Deep Email Intelligence — extract structured data from the latest
+      // inbound message in this thread + generate ai_suggestions. The
+      // extractor itself skips junk-category threads and outbound, so
+      // burning tokens on noise is bounded.
+      try {
+        const [latestInbound] = await db
+          .select({ id: emailMessages.id })
+          .from(emailMessages)
+          .where(
+            and(
+              eq(emailMessages.threadId, thread.id),
+              eq(emailMessages.direction, 'inbound'),
+            ),
+          )
+          .orderBy(desc(emailMessages.sentAt))
+          .limit(1);
+        if (latestInbound) {
+          const ext = await extractEmail(latestInbound.id);
+          if (ext.ok && ext.extractionId) {
+            report.deepExtractions++;
+            const gen = await generateSuggestionsForExtraction(ext.extractionId);
+            if (gen.ok) report.suggestionsGenerated += gen.generated;
+          }
+        }
+      } catch (err) {
+        report.errors.push({
+          threadId: thread.id,
+          error: `intel: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     } catch (err) {
