@@ -185,6 +185,58 @@ real, OR if external clients demand SSO.
 
 ---
 
+### D-028 — Social Media OAuth: CANCELLED for Phase 1
+**Decision (2026-05-22 by Mohammed):** Social platform OAuth (Instagram Graph,
+TikTok Business, YouTube Data) is **cancelled** — not just deferred. All social
+data entry stays manual via the existing `/social` UI. The `post-analytics-capture`
+worker scanner remains in place as a no-op (kept idempotent so a future enable
+doesn't require schema changes).
+**Affects:** Pillar 7 (Social Media Module) — schema + UI stay, runtime OAuth is removed from the roadmap.
+**Trigger to revisit:** explicit decision to enable automated analytics later.
+
+---
+
+### D-029 — AI Command Bar: CANCELLED
+**Decision (2026-05-22 by Mohammed):** The natural-language entry point
+("ابعت لـ BMW السعر" → intent + suggestion) is **cancelled**, not deferred.
+Replaced in practice by: (a) the WhatsApp team chat-ops bot (already live),
+and (b) the proactive smart-suggestions feed.
+**Affects:** Pillar 10/12 backlog item. Removed from STATUS.md.
+
+---
+
+### D-030 — Google Calendar runtime: gate behind Drive verification
+**Decision (2026-05-22 by Mohammed):** Before wiring Calendar auto-block on
+shoot dates, verify the existing Drive folder auto-create runtime end-to-end
+in production (project insert → folder appears within 60s · `projects.driveFolderUrl` set).
+Only after that passes do we add the Calendar event creation + crew invite logic.
+**Reason:** Both use the same service-account / domain-wide delegation path. If
+Drive isn't actually flowing in prod, Calendar won't either. Validate the link
+first, layer conditions after.
+**Affects:** Pillar 13 §3-4 acceptance.
+
+---
+
+### D-031 — PWA attendance check-in: PRIORITY (was deferred)
+**Decision (2026-05-22 by Mohammed):** Pillar 9's mobile check-in UI is no
+longer deferred — it's the next priority feature after Email Intel Phase 1.
+**Scope:** PWA-installable check-in / check-out, GPS-stamped, integrates with
+existing `attendance_*` schema + KPI engine. Manager view of who's in, who's
+not, late arrivals. Notifications via existing Pillar 8 channels.
+**Affects:** Pillar 9 (Attendance & KPIs), Pillar 12 (PWA shell).
+
+---
+
+### D-032 — Team Chat: scope locked to per-project, deferred
+**Decision (2026-05-22 by Mohammed):** When Team Chat eventually ships, it is
+**per-project only** — no DMs, no general/global channels. Each project has
+exactly one chat thread, auto-created when the project is created, members =
+project participants. Deferred for now (no sprint slot yet).
+**Reason:** Keep chat tied to work context. Avoid Slack-style channel sprawl.
+**Affects:** Backlog item in STATUS.md updated.
+
+---
+
 ## Pending Decisions (to revisit in later pillars)
 
 - **Inngest tier**: free vs paid — depends on background workflow volume (decided in Pillar 10)
