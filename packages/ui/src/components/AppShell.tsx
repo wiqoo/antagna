@@ -100,7 +100,7 @@ function MoreMenu({
         <span className="text-[9px] leading-none">المزيد</span>
       </summary>
       <div
-        className="absolute end-full top-0 mx-2 hidden min-w-[200px] rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block md:end-auto md:start-full"
+        className="absolute end-0 bottom-full mb-2 hidden min-w-[200px] rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block md:bottom-auto md:top-0 md:end-full md:me-2 md:mb-0"
         style={{ boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6)' }}
       >
         <ul className="space-y-px">
@@ -218,15 +218,15 @@ export function AppShell({
       </header>
 
       {/* CONTENT */}
-      <main className="px-4 py-6 md:px-8 md:py-8 md:pe-[110px]">
+      <main className="px-4 py-6 md:px-8 md:py-8 md:ps-[110px]">
         <div className="mx-auto max-w-[1200px] space-y-8">{children}</div>
       </main>
 
-      {/* SIDE DOCK — desktop, fixed right (RTL start) */}
+      {/* SIDE DOCK — desktop, fixed to the visual right (RTL start) */}
       <nav
         className="fixed top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-1 rounded-2xl border border-[var(--line-strong)] bg-[var(--surface)]/95 p-1.5 backdrop-blur md:flex"
         style={{
-          insetInlineEnd: 16,
+          insetInlineStart: 16,
           boxShadow: '0 20px 50px -10px rgba(0,0,0,0.5)',
         }}
         aria-label="الملاحة الجانبية"
