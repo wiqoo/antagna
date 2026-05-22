@@ -13,12 +13,26 @@ import { db, emailAttachments, emailMessages } from '@antagna/db';
 import { eq, and } from 'drizzle-orm';
 import { getGmailClient } from './../google';
 import { SYSTEM_MAILBOX } from './../gmail-ingest';
-// pdf-parse v2's typings expose named exports rather than a default.
-// Use a runtime resolve that works for both ESM and CJS callsites.
-import * as pdfParseMod from 'pdf-parse';
-const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
-  (pdfParseMod as { default?: (b: Buffer) => Promise<{ text: string }> }).default ??
-  (pdfParseMod as unknown as (b: Buffer) => Promise<{ text: string }>);
+
+// pdf-parse@2 pulls in pdfjs-dist@5 which needs DOMMatrix / ImageData
+// (browser-only). That blows up the whole Gmail summarize route on
+// Vercel serverless. Load it lazily and degrade gracefully — if the
+// PDF parser can't load in this runtime, we record the attachment row
+// without extracted_text rather than 500-ing the whole pipeline.
+type PdfParser = (buf: Buffer) => Promise<{ text: string }>;
+
+async function loadPdfParser(): Promise<PdfParser | null> {
+  try {
+    const mod = (await import('pdf-parse')) as unknown as {
+      default?: PdfParser;
+    };
+    const fn = mod.default ?? (mod as unknown as PdfParser);
+    return typeof fn === 'function' ? fn : null;
+  } catch (err) {
+    console.warn('[email-intel/attachments] pdf-parse unavailable:', err);
+    return null;
+  }
+}
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB cap
 const MAX_TEXT_CHARS = 50_000;
@@ -140,6 +154,25 @@ export async function processMessageAttachments(
 
     // Only PDFs supported for now. Skip other binary types silently.
     if (a.mimeType !== 'application/pdf') continue;
+
+    const pdfParse = await loadPdfParser();
+    if (!pdfParse) {
+      await db
+        .update(emailAttachments)
+        .set({
+          extractionMethod: 'pdf-parse',
+          extractionError: 'parser_unavailable_in_runtime',
+          extractedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(emailAttachments.messageId, msg.id),
+            eq(emailAttachments.gmailAttachmentId, a.attachmentId),
+          ),
+        );
+      result.errors++;
+      continue;
+    }
 
     try {
       const blob = await gmail.users.messages.attachments.get({
