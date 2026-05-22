@@ -1,29 +1,29 @@
 /**
  * Pillar 10/11 — proactive "smart suggestions" feed.
  *
- * Once a day, scans across the whole system and inserts ai_suggestions
- * rows for proactive opportunities the team would otherwise miss:
- *
- *   - Threads in "awaiting_their_reply" > 5 days → suggest follow-up
- *   - Hot leads (high temperature) untouched > 48h → suggest contact
- *   - Profile with zero open tasks → capacity flag
- *   - Project delivery_due_at within 3 days, stage < editing → risk flag
- *   - Stalled conversation_summaries (outcome_status='stalled') → suggest recall
+ * Regular task (NOT a schedule — Trigger.dev Pro caps us at 10 schedules
+ * and the daily brief already runs at 07:30 Asia/Riyadh, so we piggyback
+ * by triggering this task from `daily-brief` at the end of its run).
  *
  * Each opportunity becomes an ai_suggestion of type 'escalate_to_human'
  * with metadata in proposed_data so the queue can render it correctly.
+ *
+ * Sources:
+ *   - Threads in "awaiting_their_reply" > 5 days → suggest follow-up
+ *   - Hot leads (high temperature) untouched > 48h → suggest contact
+ *   - Project delivery_due_at within 3 days, stage < editing → risk flag
+ *   - Stalled conversation_summaries (outcome_status='stalled') → suggest recall
  */
-import { schedules } from '@trigger.dev/sdk';
+import { task } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 
 type AnyRow = Record<string, unknown>;
 
-export const smartSuggestionsScanner = schedules.task({
+export const smartSuggestionsScanner = task({
   id: 'smart-suggestions-scanner',
-  cron: '15 5 * * *', // 05:15 UTC = 08:15 Asia/Riyadh
   maxDuration: 180,
-  run: async (_payload, { ctx }) => {
+  run: async (_payload: Record<string, never>, { ctx }) => {
     const startedAt = Date.now();
     let inserted = 0;
 

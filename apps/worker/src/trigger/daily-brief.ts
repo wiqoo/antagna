@@ -9,6 +9,7 @@ import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { smartSuggestionsScanner } from './smart-suggestions-scanner';
 
 const SYSTEM_PROMPT = `You are Antagna's daily brief generator for a Saudi production agency.
 Output 3-5 sentences in Arabic about what changed yesterday, what blocks today,
@@ -114,6 +115,15 @@ ${proj.activity_summary}`;
       } catch (err) {
         console.error(`[daily-brief] failed for ${proj.code}:`, err);
       }
+    }
+
+    // Piggyback: fan out the smart-suggestions scan once briefs are
+    // generated (kept as a regular task to stay under Trigger.dev's
+    // 10-schedule cap on Pro).
+    try {
+      await smartSuggestionsScanner.trigger({});
+    } catch (err) {
+      console.error('[daily-brief] failed to trigger smart-suggestions:', err);
     }
 
     return {
