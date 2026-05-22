@@ -205,3 +205,46 @@ export type TemplateEditPattern = typeof templateEditPatterns.$inferSelect;
 export type StateTransitionOverride = typeof stateTransitionOverrides.$inferSelect;
 export type EmailExtraction = typeof emailExtractions.$inferSelect;
 export type AiSuggestion = typeof aiSuggestions.$inferSelect;
+
+// ── email_attachments ─────────────────────────────────────────────────────
+
+export const emailAttachments = pgTable('email_attachments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  messageId: uuid('message_id').notNull(),
+  gmailAttachmentId: text('gmail_attachment_id').notNull(),
+  filename: text('filename').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes'),
+  extractedText: text('extracted_text'),
+  extractionMethod: text('extraction_method'),
+  extractionError: text('extraction_error'),
+  extractedAt: timestamp('extracted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type EmailAttachment = typeof emailAttachments.$inferSelect;
+
+// ── conversation_summaries ────────────────────────────────────────────────
+
+export const conversationSummaries = pgTable('conversation_summaries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').notNull().unique(),
+  messageCountAtSummary: integer('message_count_at_summary').notNull(),
+  summaryAr: text('summary_ar').notNull(),
+  sentimentTrajectory: text('sentiment_trajectory'),
+  intentArc: text('intent_arc'),
+  decisionPoints: jsonb('decision_points').notNull().default([]),
+  openItems: jsonb('open_items').notNull().default([]),
+  outcomeStatus: text('outcome_status'),
+  confidence: numeric('confidence', { precision: 3, scale: 2 }).notNull(),
+  model: text('model').notNull(),
+  inputTokens: integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  summarizedAt: timestamp('summarized_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type ConversationSummary = typeof conversationSummaries.$inferSelect;

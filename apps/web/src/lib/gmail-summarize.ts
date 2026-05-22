@@ -21,6 +21,7 @@ import { applyRoutingAndLinking } from './gmail-routing';
 import { extractMeetingNotes } from './meeting-notes';
 import { extractEmail } from './email-intel/extract';
 import { generateSuggestionsForExtraction } from './email-intel/generate';
+import { summarizeConversation } from './email-intel/conversation';
 
 export interface SummarizeReport {
   startedAt: string;
@@ -279,6 +280,17 @@ export async function summarizeThreads(
         report.errors.push({
           threadId: thread.id,
           error: `intel: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+
+      // Cross-thread conversation summary — only for threads with 2+
+      // messages and only when stale. Skips lightweight automatically.
+      try {
+        await summarizeConversation(thread.id);
+      } catch (err) {
+        report.errors.push({
+          threadId: thread.id,
+          error: `convo: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     } catch (err) {

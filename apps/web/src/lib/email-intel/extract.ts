@@ -9,6 +9,10 @@ import { db, emailMessages, emailThreads, emailExtractions } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
 import { getOpenAI } from '@antagna/ai';
 import type { ExtractedEmail } from './types';
+import {
+  processMessageAttachments,
+  getAttachmentTextForMessage,
+} from './attachments';
 
 const MODEL = process.env.EMAIL_INTEL_MODEL ?? 'gpt-4o-mini';
 
@@ -110,15 +114,26 @@ export async function extractEmail(
 
   // Cap the body to ~8k chars — most business emails fit easily.
   const body = (msg.bodyText ?? msg.snippet ?? '').trim().slice(0, 8000);
-  if (body.length < 5) {
+  if (body.length < 5 && (msg.attachmentCount ?? 0) === 0) {
     return { ok: false, messageId: messageDbId, error: 'body_too_short' };
+  }
+
+  // Fetch + parse attachments if any, then include their text in the prompt.
+  let attachmentText: string | null = null;
+  if ((msg.attachmentCount ?? 0) > 0) {
+    try {
+      await processMessageAttachments(msg.id);
+      attachmentText = await getAttachmentTextForMessage(msg.id);
+    } catch {
+      // best-effort; extraction still proceeds without attachment text
+    }
   }
 
   const userPrompt = `Subject: ${msg.subject ?? thread?.subject ?? '(none)'}
 From: ${msg.fromName ?? ''} <${msg.fromEmail}>
 Sent: ${new Date(msg.sentAt).toISOString()}
 
-${body}`;
+${body}${attachmentText ? `\n\n──── Attachments ────\n${attachmentText}` : ''}`;
 
   const client = getOpenAI();
   let raw: string;
