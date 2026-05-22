@@ -100,7 +100,7 @@ function MoreMenu({
         <span className="text-[9px] leading-none">المزيد</span>
       </summary>
       <div
-        className="absolute end-0 bottom-full mb-2 hidden min-w-[200px] rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block md:bottom-auto md:top-0 md:end-full md:me-2 md:mb-0"
+        className="absolute start-0 bottom-full mb-2 hidden min-w-[200px] rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block md:bottom-auto md:top-0 md:start-full md:ms-2 md:mb-0"
         style={{ boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6)' }}
       >
         <ul className="space-y-px">
