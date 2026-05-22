@@ -12,6 +12,7 @@ import { Shell } from '@/components/Shell';
 import { getAdminUser } from '@/lib/auth-admin';
 import { Brain, Mail } from 'lucide-react';
 import { SuggestionsList } from './suggestions-list';
+import { RefreshButton } from './refresh-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,7 @@ export default async function SuggestionsPage() {
         eyebrow="AI · Suggestions"
         title="اقتراحات الـ AI"
         subtitle="مقترحات من تحليل الإيميلات (إنشاء عملاء، مشاريع، مهام، ربط threads). راجع ووافق."
+        action={<RefreshButton />}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">

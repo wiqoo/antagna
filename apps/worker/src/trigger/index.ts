@@ -15,3 +15,4 @@ export { oauthHealthScanner } from './oauth-health-scanner';
 export { kpiEngine } from './kpi-engine';
 export { driveFolderScanner } from './drive-folder-scanner';
 export { emailSendScanner } from './email-send-scanner';
+export { emailFollowupScanner } from './email-followup-scanner';
