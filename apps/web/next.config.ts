@@ -4,6 +4,13 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig: NextConfig = {
   // Skip ESLint during Vercel builds — we lint via turbo + CI separately.
   eslint: { ignoreDuringBuilds: true },
+
+  // pdfjs-dist@5 (transitive of pdf-parse@2) ships browser-only code that
+  // references DOMMatrix / ImageData at module load. Bundling it into the
+  // serverless function makes the whole route 500. Mark these as external
+  // so Node loads them via require() at runtime — the lazy import in
+  // email-intel/attachments.ts then catches the failure and degrades.
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
 };
 
 export default withSentryConfig(nextConfig, {
