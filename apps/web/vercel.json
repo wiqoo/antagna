@@ -3,5 +3,6 @@
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile=false",
   "buildCommand": "cd ../.. && pnpm --filter @antagna/web build",
   "outputDirectory": ".next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "regions": ["hnd1"]
 }
