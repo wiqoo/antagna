@@ -82,35 +82,40 @@ export default function PreviewLabIndex() {
           </p>
         </header>
 
-        {/* V2 hero */}
+        {/* V3 hero — restrained, single accent */}
         <Link
-          href="/preview/lab/v2"
-          className="group mb-10 block overflow-hidden rounded-2xl border border-orange-500/30 p-6 transition-all hover:border-orange-500/60"
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(255,107,26,0.15), rgba(244,63,94,0.10), rgba(168,85,247,0.10))',
-          }}
+          href="/preview/lab/v3"
+          className="group mb-4 block overflow-hidden rounded-xl border border-[var(--accent)]/30 bg-[var(--surface)] p-5 transition-all hover:border-[var(--accent)]/60"
         >
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="mb-2 inline-block rounded-full bg-orange-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300">
-                NEW · مستوى Creative Pro
+              <p className="mb-2 inline-block rounded bg-[var(--accent-tint)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
+                V3 · بالـ palette الحالية
               </p>
               <h2
-                className="text-[28px] font-bold leading-[1.1] tracking-[-0.02em]"
+                className="text-[24px] font-bold leading-[1.15] tracking-[-0.02em]"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
-                ٣ رؤى بصرية كاملة — اختار اللي بيحرّك إحساسك
+                ٣ رؤى هادئة — برتقالي واحد، مفيش زجاج، مفيش gradient ملوّن
               </h2>
-              <p className="mt-2 max-w-xl text-[13px] text-[var(--text-muted)]">
-                Editorial (مجلّة) · Studio (gradient mesh) · Liquid Glass (Apple WWDC).
-                كلهم بـ live data من Volt الحقيقي.
+              <p className="mt-2 max-w-xl text-[12px] text-[var(--text-muted)]">
+                Calm (مجلّة دارك) · Precise (Linear terminal) · Spaced (Vercel Geist).
+                نفس الـ palette الحالية، الـ design كله من المسافات والـ typography.
               </p>
             </div>
-            <span className="text-[20px] text-orange-300 transition-transform group-hover:-translate-x-1 rtl:rotate-180">
+            <span className="text-[18px] text-[var(--accent)] transition-transform group-hover:-translate-x-1 rtl:rotate-180">
               →
             </span>
           </div>
+        </Link>
+
+        {/* V2 — kept as alt */}
+        <Link
+          href="/preview/lab/v2"
+          className="group mb-10 block rounded-xl border border-white/10 bg-[var(--bg-elevated)]/40 p-4 text-[12px] text-[var(--text-muted)] hover:border-white/20"
+        >
+          <span className="text-[var(--text)]">V2 — الـ ٣ تصميمات الأولى (Editorial / Studio / Glass)</span>
+          <span className="ms-2 text-[var(--text-dim)]">— الأوفر اللي اتقالك عنها. متاحة للمقارنة لو احتجت.</span>
         </Link>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
