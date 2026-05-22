@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { useMemo, useState, useTransition } from 'react';
+import { Sparkles, Loader2, RotateCw } from 'lucide-react';
 import { AIHints, type AIHint } from '@antagna/ui';
 import { generateBriefing, type Briefing } from './briefing-actions';
 
 const MOOD_LABEL: Record<string, string> = {
-  calm: 'هادئ',
-  busy: 'مشغول',
-  critical: 'حرج',
+  calm: 'يوم هادئ',
+  busy: 'يوم مشغول',
+  critical: 'يوم حرج',
 };
 
 export function BriefingCard({
@@ -25,9 +25,11 @@ export function BriefingCard({
   const [briefing, setBriefing] = useState<Briefing | null>(initial);
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
 
   function handleRefresh() {
     setErr(null);
+    setDismissed(new Set());
     startTransition(async () => {
       const res = await generateBriefing();
       if (res.ok) {
@@ -38,26 +40,35 @@ export function BriefingCard({
     });
   }
 
+  function dismissOne(i: number) {
+    setDismissed((s) => {
+      const next = new Set(s);
+      next.add(i);
+      return next;
+    });
+  }
+
   if (!briefing) {
     return (
       <section className="ai-strip p-5 md:p-6">
-        <div className="mb-3 flex items-center gap-2.5">
+        <div className="mb-3 flex flex-wrap items-center gap-2.5">
           <span className="inline-flex items-center gap-1.5 rounded bg-[var(--accent-tint)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--accent)]">
             <Sparkles size={10} strokeWidth={2} />
             Antagna AI
           </span>
-          <span className="text-[10px] text-[var(--text-dim)]">{dateStr}</span>
+          <span className="text-[10px] text-[var(--text-dim)]">
+            {greeting}، {firstName} · {dateStr}
+          </span>
         </div>
         <h2
-          className="text-[24px] font-bold leading-[1.2] tracking-[-0.018em] md:text-[30px]"
+          className="text-[22px] font-bold leading-[1.2] tracking-[-0.018em] md:text-[28px]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          {greeting} {firstName} —{' '}
-          <span className="gradient-text">جاهز يلخّص يومك؟</span>
+          <span className="gradient-text">ابدأ يومك بملخص ذكي</span>
         </h2>
         <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-muted)]">
-          Claude ممكن يقرأ كل أنشطة Volt ويقترح أولوياتك في ثوانٍ. أنت تقرر،
-          هو ينبّه ويقترح.
+          هيقرا كل اللي حصل في Volt من إيميلات ومشاريع ومهام، ويرتّبلك ٣–٥ نقاط
+          محتاجة قرار منك دلوقتي.
         </p>
         <div className="mt-4">
           <button
@@ -72,7 +83,7 @@ export function BriefingCard({
             ) : (
               <Sparkles size={14} />
             )}
-            {isPending ? 'يجهّز…' : 'لخّص يومي'}
+            {isPending ? 'بيجهّز…' : 'لخّص يومي'}
           </button>
         </div>
         {err && (
@@ -89,27 +100,34 @@ export function BriefingCard({
     ageMin < 1
       ? 'محدّث الآن'
       : ageMin < 60
-        ? `محدّث منذ ${ageMin}د`
-        : `محدّث منذ ${Math.floor(ageMin / 60)}س`;
+        ? `محدّث من ${ageMin}د`
+        : `من ${Math.floor(ageMin / 60)}س`;
 
-  const hints: AIHint[] = briefing.bullets.map((b, i) => ({
-    index: String(i + 1).padStart(2, '0'),
+  const visibleBullets = useMemo(
+    () =>
+      briefing.bullets
+        .map((b, i) => ({ b, i }))
+        .filter(({ i }) => !dismissed.has(i)),
+    [briefing.bullets, dismissed],
+  );
+
+  const hints: AIHint[] = visibleBullets.map(({ b, i }, displayIdx) => ({
+    index: String(displayIdx + 1).padStart(2, '0'),
     text: b.text,
     insight: b.action,
     urgent: b.priority === 'high',
     actions: b.link
       ? [
-          {
-            label: 'افتح',
-            href: b.link,
-            primary: true,
-          },
-          { label: 'لاحقاً', onClick: () => undefined },
+          { label: 'افتح', href: b.link, primary: true },
+          { label: 'أجّل', onClick: () => dismissOne(i) },
         ]
-      : [{ label: 'تمام', onClick: () => undefined }],
+      : [{ label: 'تم', onClick: () => dismissOne(i) }],
   }));
 
-  const mood = MOOD_LABEL[briefing.mood] ?? 'مشغول';
+  const mood = MOOD_LABEL[briefing.mood] ?? 'يوم عادي';
+  const remaining = visibleBullets.length;
+  const total = briefing.bullets.length;
+  const allDismissed = remaining === 0;
 
   return (
     <div className="relative">
@@ -117,10 +135,17 @@ export function BriefingCard({
         context={`Antagna AI · ${mood}`}
         headline={
           <>
-            {greeting} {firstName} — <span className="gradient-text">{briefing.headline}</span>
+            <span className="block text-[11px] font-medium text-[var(--text-muted)] tracking-normal normal-case mb-1.5" style={{ fontFamily: 'var(--font-sans)' }}>
+              {greeting}، {firstName}
+            </span>
+            <span className="gradient-text">{briefing.headline}</span>
           </>
         }
-        summary={`Claude راجع كل أنشطة Volt. أنت من يقرر، وهو ينبّه.`}
+        summary={
+          allDismissed
+            ? 'خلصت كل النقاط — اضغط 🔄 لو عايز ملخص جديد.'
+            : `${remaining} من ${total} نقطة محتاجة قرار${remaining < total ? ` · أجّلت ${total - remaining}` : ''}`
+        }
         hints={hints}
         updatedAt={updatedAt}
       />
@@ -128,14 +153,15 @@ export function BriefingCard({
         type="button"
         onClick={handleRefresh}
         disabled={isPending}
-        title="حلّل من جديد"
-        className="absolute end-4 top-4 grid h-8 w-8 place-items-center rounded-md border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-dim)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+        title="ولّد ملخص جديد"
+        className="absolute end-4 top-4 inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--line-strong)] bg-[var(--surface)] px-2.5 text-[11px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
       >
         {isPending ? (
-          <Loader2 size={13} className="animate-spin" />
+          <Loader2 size={11} className="animate-spin" />
         ) : (
-          <Sparkles size={13} />
+          <RotateCw size={11} />
         )}
+        {isPending ? 'بيجهّز' : 'جدّد'}
       </button>
       {err && (
         <p className="mt-2 text-[12px] text-[var(--danger)]">⚠ {err}</p>
