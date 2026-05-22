@@ -82,6 +82,37 @@ export default function PreviewLabIndex() {
           </p>
         </header>
 
+        {/* V2 hero */}
+        <Link
+          href="/preview/lab/v2"
+          className="group mb-10 block overflow-hidden rounded-2xl border border-orange-500/30 p-6 transition-all hover:border-orange-500/60"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(255,107,26,0.15), rgba(244,63,94,0.10), rgba(168,85,247,0.10))',
+          }}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="mb-2 inline-block rounded-full bg-orange-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300">
+                NEW · مستوى Creative Pro
+              </p>
+              <h2
+                className="text-[28px] font-bold leading-[1.1] tracking-[-0.02em]"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                ٣ رؤى بصرية كاملة — اختار اللي بيحرّك إحساسك
+              </h2>
+              <p className="mt-2 max-w-xl text-[13px] text-[var(--text-muted)]">
+                Editorial (مجلّة) · Studio (gradient mesh) · Liquid Glass (Apple WWDC).
+                كلهم بـ live data من Volt الحقيقي.
+              </p>
+            </div>
+            <span className="text-[20px] text-orange-300 transition-transform group-hover:-translate-x-1 rtl:rotate-180">
+              →
+            </span>
+          </div>
+        </Link>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {SECTIONS.map((s) => {
             const Icon = s.icon;
