@@ -347,7 +347,6 @@ export default async function ProjectsListPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
-                  <th className="px-5 py-3 font-medium text-start">code</th>
                   <th className="px-5 py-3 font-medium text-start">المشروع</th>
                   <th className="px-5 py-3 font-medium text-start">العميل</th>
                   <th className="px-5 py-3 font-medium text-start">المرحلة</th>
@@ -361,23 +360,15 @@ export default async function ProjectsListPage({
                 {rows.map((r) => (
                   <tr key={r.id} className="group hover:bg-[var(--surface-hover)]">
                     <td className="px-5 py-3.5">
-                      <Link
-                        href={`/projects/${r.id}`}
-                        className="font-mono text-xs text-[var(--text-dim)] group-hover:text-[var(--accent)]"
-                      >
-                        {r.code}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3.5">
                       <Link href={`/projects/${r.id}`} className="block">
-                        <div className="font-medium text-[var(--text)]">
+                        <div className="font-medium text-[var(--text)] group-hover:text-[var(--accent)]">
                           {r.titleAr ?? r.title}
                         </div>
-                        {r.titleAr && r.title && (
-                          <div className="mt-0.5 text-xs text-[var(--text-dim)]">
-                            {r.title}
-                          </div>
-                        )}
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-dim)]">
+                          {r.titleAr && r.title && <span>{r.title}</span>}
+                          {r.titleAr && r.title && <span>·</span>}
+                          <span className="font-mono text-[10px] opacity-70">{r.code}</span>
+                        </div>
                       </Link>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-[var(--text-muted)]">

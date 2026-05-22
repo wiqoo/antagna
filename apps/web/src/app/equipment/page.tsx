@@ -385,9 +385,6 @@ export default async function EquipmentPage() {
                   <thead>
                     <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/60">
                       <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                        Code
-                      </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
                         Model
                       </th>
                       <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
@@ -410,18 +407,18 @@ export default async function EquipmentPage() {
                         key={it.id}
                         className="bg-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/80"
                       >
-                        <td className="px-5 py-3.5 font-mono text-[11px] text-[var(--text-dim)]">
-                          {it.code}
-                        </td>
                         <td className="px-5 py-3.5">
-                          <span className="text-[13px] text-[var(--text)]">
+                          <div className="text-[13px] text-[var(--text)]">
                             {it.manufacturer && (
                               <span className="text-[var(--text-dim)]">
                                 {it.manufacturer}{' '}
                               </span>
                             )}
                             {it.model}
-                          </span>
+                          </div>
+                          <div className="mt-0.5 font-mono text-[10px] text-[var(--text-dim)] opacity-70">
+                            {it.code}
+                          </div>
                           {it.requiresCharging && (
                             <Battery
                               size={11}

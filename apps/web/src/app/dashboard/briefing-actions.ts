@@ -32,7 +32,10 @@ VOICE / TONE
   use light colloquial when it lands better ("في", "محتاج", "خلّيك").
 - One short Arabic sentence per field. No commas-then-and-then chains.
 - Lead the action with a verb. "راجع", "اتصل بـ", "وزّع", "أجّل", "اقفل".
-- Reference projects by code (PRJ-XXXX), people by first name only.
+- Reference projects by their NAME (title_ar if exists, else title) — not
+  by code. Codes (PRJ-XXXX, EQ-001, etc.) are internal identifiers and
+  should NEVER appear in the visible briefing text. People by first
+  name only.
 - Do not start bullets with "هناك" / "يوجد" — start with the thing
   itself ("PRJ-0007 متأخر يومين — راجع الفريق").
 - Don't write motivational filler ("يلا بتوفيق", "اليوم مهم"). Just the facts.

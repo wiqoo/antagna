@@ -578,9 +578,6 @@ export default async function DashboardPage() {
                     {s.client_name ?? '—'}
                     {s.city && <> · {s.city}</>}
                   </p>
-                  <div className="mt-2 border-t border-[var(--line)] pt-2">
-                    <p className="font-mono text-[10px] text-[var(--text-dim)]">{s.code}</p>
-                  </div>
                 </Link>
               );
             })}
@@ -616,10 +613,14 @@ export default async function DashboardPage() {
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ background: overdue ? '#F87171' : p.days_until_due < 3 ? '#FBBF24' : 'var(--text-dim)' }}
                       />
-                      <Link href={`/projects/${p.id}`} className="font-mono text-[10px] text-[var(--text-dim)] hover:text-[var(--accent)]">
-                        {p.code}
+                      <Link
+                        href={`/projects/${p.id}`}
+                        className="min-w-0 flex-1 truncate text-[var(--text)] hover:text-[var(--accent)]"
+                        title={p.code}
+                      >
+                        {p.title_ar ?? p.title}
                       </Link>
-                      <span className="flex-1 truncate text-[var(--text)]">
+                      <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
                         {overdue ? `متأخر ${Math.abs(p.days_until_due)}ي` : `${p.days_until_due}ي`}
                       </span>
                       <span className="font-mono text-[10px] text-[var(--text-muted)]">{p.delivered_pct}%</span>
@@ -640,11 +641,13 @@ export default async function DashboardPage() {
               <ul className="divide-y divide-[var(--line)]">
                 {deliverablesQueue.slice(0, 4).map((d) => (
                   <li key={d.id} className="flex items-center gap-2 py-1.5 text-[11px]">
-                    <span className="font-mono text-[10px] text-[var(--text-dim)]">{d.item_number ?? '#'}</span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[var(--text)]">{d.title ?? '(بدون عنوان)'}</p>
-                      <p className="truncate text-[10px] text-[var(--text-dim)]">
-                        <span className="font-mono">{d.project_code}</span>
+                      <p
+                        className="truncate text-[10px] text-[var(--text-dim)]"
+                        title={d.project_code}
+                      >
+                        {d.group_name}
                       </p>
                     </div>
                     <Link
@@ -668,10 +671,8 @@ export default async function DashboardPage() {
             ) : (
               <ul className="divide-y divide-[var(--line)]">
                 {conflicts.slice(0, 4).map((c) => (
-                  <li key={c.equipment_id} className="py-1.5 text-[11px]">
-                    <p className="font-medium text-[var(--text)]">
-                      {c.code} <span className="text-[10px] text-[var(--text-dim)]">· {c.model}</span>
-                    </p>
+                  <li key={c.equipment_id} className="py-1.5 text-[11px]" title={c.code}>
+                    <p className="font-medium text-[var(--text)]">{c.model}</p>
                     <p className="text-[10px] text-[var(--warning)]">
                       {c.conflicting} حجز متداخل من {new Date(c.overlap_starts_at).toISOString().slice(0, 10)}
                     </p>

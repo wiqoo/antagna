@@ -193,7 +193,6 @@ export default async function CrmPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
-                  <th className="px-5 py-3 text-start">code</th>
                   <th className="px-5 py-3 text-start">من</th>
                   <th className="px-5 py-3 text-start">المصدر</th>
                   <th className="px-5 py-3 text-start">temperature</th>
@@ -210,14 +209,16 @@ export default async function CrmPage() {
                   );
                   return (
                     <tr key={l.id} className="hover:bg-[var(--surface-hover)]">
-                      <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-dim)]">
-                        {l.code}
-                      </td>
-                      <td className="px-5 py-3.5 text-[var(--text)]">
-                        {l.clientNameAr ??
-                          l.unmatchedFromName ??
-                          l.unmatchedFromEmail ??
-                          '—'}
+                      <td className="px-5 py-3.5">
+                        <div className="text-[var(--text)]">
+                          {l.clientNameAr ??
+                            l.unmatchedFromName ??
+                            l.unmatchedFromEmail ??
+                            '—'}
+                        </div>
+                        <div className="mt-0.5 font-mono text-[10px] text-[var(--text-dim)] opacity-70">
+                          {l.code}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-xs text-[var(--text-muted)]">
                         {l.source ?? '—'}
@@ -296,7 +297,6 @@ export default async function CrmPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 text-start text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
-                  <th className="px-5 py-3 text-start">code</th>
                   <th className="px-5 py-3 text-start">العميل</th>
                   <th className="px-5 py-3 text-start">النوع</th>
                   <th className="px-5 py-3 text-start">نشط</th>
@@ -319,14 +319,6 @@ export default async function CrmPage() {
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/clients/${c.id}`}
-                          className="font-mono text-xs text-[var(--text-dim)] hover:text-[var(--accent)]"
-                        >
-                          {c.code}
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <Link
-                          href={`/clients/${c.id}`}
                           className="flex items-center gap-3 hover:text-[var(--accent)]"
                         >
                           <Avatar name={c.nameAr} size="sm" />
@@ -334,11 +326,11 @@ export default async function CrmPage() {
                             <div className="font-medium text-[var(--text)]">
                               {c.nameAr}
                             </div>
-                            {c.nameEn && (
-                              <div className="text-xs text-[var(--text-dim)]">
-                                {c.nameEn}
-                              </div>
-                            )}
+                            <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-dim)]">
+                              {c.nameEn && <span>{c.nameEn}</span>}
+                              {c.nameEn && <span>·</span>}
+                              <span className="font-mono text-[10px] opacity-70">{c.code}</span>
+                            </div>
                           </div>
                         </Link>
                       </td>
