@@ -62,14 +62,25 @@ export default async function DashboardPage() {
     'صديقي';
 
   // ── ALL THE DATA ──────────────────────────────────────────────────────────
-  // Each query wrapped in try/catch — one broken query shouldn't 500 the page.
+  // Each query wrapped in try/catch + per-query timeout. One slow or
+  // broken query should never block the whole dashboard — better to
+  // render with stale/missing data than spin a 5-minute Vercel timeout.
+  const QUERY_TIMEOUT_MS = 6000;
   const safe = async <T,>(
     label: string,
     fn: () => Promise<T>,
     fallback: T,
   ): Promise<T> => {
     try {
-      return await fn();
+      return await Promise.race<T>([
+        fn(),
+        new Promise<T>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`dashboard:${label} timed out after ${QUERY_TIMEOUT_MS}ms`)),
+            QUERY_TIMEOUT_MS,
+          ),
+        ),
+      ]);
     } catch (err) {
       console.error(`[dashboard:${label}]`, err);
       return fallback;
