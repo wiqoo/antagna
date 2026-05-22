@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import {
@@ -19,12 +20,16 @@ import {
   Package2,
   AlertTriangle,
   TrendingUp,
+  Mail,
+  Brain,
+  Reply,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { BriefingCard } from './briefing-card';
 import { loadCachedBriefing } from './briefing-actions';
+import { CustomizeButton, CARD_CATALOG, type CardId } from './dashboard-customize';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +84,10 @@ export default async function DashboardPage() {
     budgetBurnArr,
     conflictsArr,
     initialBriefing,
+    commHealthRow,
+    pendingSuggestionsArr,
+    recentThreadsArr,
+    staleFollowupsArr,
   ] = await Promise.all([
     safe('stats', () => db.execute<{
       active_projects: number;
@@ -250,6 +259,77 @@ export default async function DashboardPage() {
     `), [] as Array<{ equipment_id: string; code: string; model: string; overlap_starts_at: Date; conflicting: number }>),
 
     safe('briefing', () => loadCachedBriefing(), null),
+
+    // Email inbox↔outbox health (uses v_email_communication_metrics)
+    safe('commHealth', () => db.execute<{
+      awaiting_our_reply: number;
+      awaiting_their_reply: number;
+      active_threads: number;
+    }>(sql`
+      SELECT
+        count(*) FILTER (WHERE reply_state = 'awaiting_our_reply')::int  AS awaiting_our_reply,
+        count(*) FILTER (WHERE reply_state = 'awaiting_their_reply')::int AS awaiting_their_reply,
+        count(*)::int AS active_threads
+      FROM v_email_communication_metrics
+      WHERE last_message_at > now() - interval '30 days'
+    `), [] as Array<{ awaiting_our_reply: number; awaiting_their_reply: number; active_threads: number }>),
+
+    // Pending AI suggestions queue (top 5 by confidence)
+    safe('pendingSuggestions', () => db.execute<{
+      id: string;
+      suggestion_type: string;
+      summary_ar: string | null;
+      confidence: number;
+      thread_subject: string | null;
+    }>(sql`
+      SELECT s.id::text, s.suggestion_type::text AS suggestion_type,
+             s.summary_ar, s.confidence::float AS confidence,
+             t.subject AS thread_subject
+      FROM ai_suggestions s
+      LEFT JOIN email_threads t ON t.id = s.source_thread_id
+      WHERE s.status = 'pending' AND s.expires_at > now()
+      ORDER BY s.confidence DESC, s.created_at DESC
+      LIMIT 5
+    `), [] as Array<{ id: string; suggestion_type: string; summary_ar: string | null; confidence: number; thread_subject: string | null }>),
+
+    // Recent active threads with their AI summary
+    safe('recentThreads', () => db.execute<{
+      id: string;
+      subject: string | null;
+      ai_summary: string | null;
+      last_from: string | null;
+      last_message_at: Date;
+    }>(sql`
+      SELECT t.id::text, t.subject, t.ai_summary,
+             (
+               SELECT COALESCE(m.from_name, m.from_email)
+               FROM email_messages m
+               WHERE m.thread_id = t.id
+               ORDER BY m.sent_at DESC
+               LIMIT 1
+             ) AS last_from,
+             t.last_message_at
+      FROM email_threads t
+      WHERE t.last_message_at > now() - interval '14 days'
+        AND t.status != 'closed'
+      ORDER BY t.last_message_at DESC
+      LIMIT 5
+    `), [] as Array<{ id: string; subject: string | null; ai_summary: string | null; last_from: string | null; last_message_at: Date }>),
+
+    // Stale follow-ups — threads we sent to but client hasn't replied in >5d
+    safe('staleFollowups', () => db.execute<{
+      thread_id: string;
+      subject: string | null;
+      hours: number;
+    }>(sql`
+      SELECT vm.thread_id::text AS thread_id, vm.subject,
+             vm.hours_since_last_outbound::float AS hours
+      FROM v_email_communication_metrics vm
+      WHERE vm.reply_state = 'awaiting_their_reply'
+        AND vm.hours_since_last_outbound > 120
+      ORDER BY vm.hours_since_last_outbound DESC
+      LIMIT 5
+    `), [] as Array<{ thread_id: string; subject: string | null; hours: number }>),
   ]);
 
   const stats = ((statsRow as unknown as Array<{
@@ -317,6 +397,42 @@ export default async function DashboardPage() {
     overlap_starts_at: Date;
     conflicting: number;
   }>;
+
+  const commHealth = ((commHealthRow as unknown as Array<{
+    awaiting_our_reply: number;
+    awaiting_their_reply: number;
+    active_threads: number;
+  }>)[0]) ?? { awaiting_our_reply: 0, awaiting_their_reply: 0, active_threads: 0 };
+
+  const pendingSuggestions = pendingSuggestionsArr as unknown as Array<{
+    id: string;
+    suggestion_type: string;
+    summary_ar: string | null;
+    confidence: number;
+    thread_subject: string | null;
+  }>;
+
+  const recentThreads = recentThreadsArr as unknown as Array<{
+    id: string;
+    subject: string | null;
+    ai_summary: string | null;
+    last_from: string | null;
+    last_message_at: Date;
+  }>;
+
+  const staleFollowups = staleFollowupsArr as unknown as Array<{
+    thread_id: string;
+    subject: string | null;
+    hours: number;
+  }>;
+
+  // Dashboard customization — read which cards are hidden from cookie.
+  const jar = await cookies();
+  const hidden = (jar.get('dash_hidden')?.value ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const visible = (id: CardId) => !hidden.includes(id);
 
   // Pivot team load
   type PersonRow = { profileId: string; name: string; days: number[] };
@@ -468,18 +584,14 @@ export default async function DashboardPage() {
             اللوحة
           </h2>
           <span className="text-[10px] text-[var(--text-dim)]">
-            ٨ كروت · قابلة للتخصيص
+            {CARD_CATALOG.length - hidden.length}/{CARD_CATALOG.length} كرت · قابلة للتخصيص
           </span>
-          <button
-            type="button"
-            className="ms-auto inline-flex h-7 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[11px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)]"
-          >
-            تخصيص
-          </button>
+          <CustomizeButton hidden={hidden} />
         </header>
 
         <div className="dash-cards stagger-in">
           {/* في خطر / متأخر */}
+          {visible('projects-at-risk') && (
           <DashCard span={4} title="مشاريع في خطر" badge={String(stats.overdue_count + budgetBurn.filter(p => p.days_until_due < 3).length)} tone="danger">
             {stats.overdue_count === 0 && budgetBurn.length === 0 ? (
               <p className="py-2 text-[11px] text-[var(--text-muted)]">لا مشاريع حرجة الآن.</p>
@@ -506,8 +618,10 @@ export default async function DashboardPage() {
               </ul>
             )}
           </DashCard>
+          )}
 
           {/* الموافقات */}
+          {visible('approval-queue') && (
           <DashCard span={4} title="قائمة الموافقات" badge={String(deliverablesQueue.length)}>
             {deliverablesQueue.length === 0 ? (
               <p className="py-2 text-[11px] text-[var(--text-muted)]">المسار فارغ ✓</p>
@@ -533,8 +647,10 @@ export default async function DashboardPage() {
               </ul>
             )}
           </DashCard>
+          )}
 
           {/* تعارضات معدات */}
+          {visible('equipment-conflicts') && (
           <DashCard span={4} title="تعارضات معدات" badge={String(conflicts.length)} tone={conflicts.length > 0 ? 'warning' : undefined}>
             {conflicts.length === 0 ? (
               <p className="py-2 text-[11px] text-[var(--text-muted)]">لا يوجد تعارضات.</p>
@@ -553,8 +669,10 @@ export default async function DashboardPage() {
               </ul>
             )}
           </DashCard>
+          )}
 
           {/* حمولة الفريق — top 5 */}
+          {visible('team-load') && (
           <DashCard span={6} title="حمولة الفريق · ١٤ يوم" link={{ href: '/team', label: 'الفريق' }}>
             {people.length === 0 ? (
               <p className="py-2 text-[11px] text-[var(--text-muted)]">لا توظيفات نشطة.</p>
@@ -586,8 +704,10 @@ export default async function DashboardPage() {
               </ul>
             )}
           </DashCard>
+          )}
 
           {/* Revenue forecast */}
+          {visible('mtd-revenue') && (
           <DashCard span={6} title="إيراد الشهر" badge={mtdRevenue > 0 ? 'MTD' : undefined} tone="success">
             <div className="flex items-end justify-between gap-3">
               <div>
@@ -619,25 +739,190 @@ export default async function DashboardPage() {
               ))}
             </div>
           </DashCard>
+          )}
+
+          {/* ── Email Intelligence cards ─────────────────────────────── */}
+
+          {/* Email inbox health */}
+          {visible('email-health') && (
+          <DashCard
+            span={4}
+            title="صحة الوارد"
+            badge={String(commHealth.active_threads)}
+            tone={commHealth.awaiting_our_reply > 0 ? 'warning' : undefined}
+            link={{ href: '/inbox', label: 'الوارد' }}
+          >
+            <div className="grid grid-cols-3 gap-2 py-1">
+              <div>
+                <p className="font-mono text-[20px] font-bold leading-none text-[var(--warning)]">
+                  {commHealth.awaiting_our_reply}
+                </p>
+                <p className="mt-1 text-[10px] text-[var(--text-dim)]">
+                  ينتظر ردنا
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[20px] font-bold leading-none text-[var(--text)]">
+                  {commHealth.awaiting_their_reply}
+                </p>
+                <p className="mt-1 text-[10px] text-[var(--text-dim)]">
+                  ننتظر ردهم
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-[20px] font-bold leading-none text-[var(--accent)]">
+                  {commHealth.active_threads}
+                </p>
+                <p className="mt-1 text-[10px] text-[var(--text-dim)]">
+                  محادثات نشطة
+                </p>
+              </div>
+            </div>
+            <p className="mt-1 text-[10px] text-[var(--text-dim)]">
+              آخر ٣٠ يوم · مصدر: v_email_communication_metrics
+            </p>
+          </DashCard>
+          )}
+
+          {/* AI suggestions queue */}
+          {visible('email-suggestions') && (
+          <DashCard
+            span={4}
+            title="اقتراحات AI من الإيميل"
+            badge={String(pendingSuggestions.length)}
+            link={{ href: '/inbox/suggestions', label: 'المراجعة' }}
+          >
+            {pendingSuggestions.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">
+                مفيش اقتراحات معلقة. لما تيجي إيميلات جديدة، الـ AI هيقترح إجراءات.
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {pendingSuggestions.slice(0, 4).map((s) => (
+                  <li key={s.id} className="py-1.5 text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <Brain size={10} className="text-[var(--accent)]" />
+                      <span className="font-mono text-[9px] uppercase text-[var(--text-dim)]">
+                        {s.suggestion_type.replace(/_/g, ' ')}
+                      </span>
+                      <span className="ms-auto font-mono text-[9px] text-[var(--text-muted)]">
+                        {(s.confidence * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[var(--text)]">
+                      {s.summary_ar ?? s.thread_subject ?? '—'}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DashCard>
+          )}
+
+          {/* Recent threads with AI summary */}
+          {visible('email-recent') && (
+          <DashCard
+            span={4}
+            title="آخر إيميلات"
+            badge={String(recentThreads.length)}
+            link={{ href: '/inbox', label: 'الوارد' }}
+          >
+            {recentThreads.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">
+                لا إيميلات نشطة في آخر أسبوعين.
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {recentThreads.slice(0, 4).map((t) => {
+                  const daysAgo = Math.floor(
+                    (Date.now() - new Date(t.last_message_at).getTime()) /
+                      86_400_000,
+                  );
+                  return (
+                    <li key={t.id} className="py-1.5 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <Mail size={10} className="text-[var(--text-dim)]" />
+                        <span className="truncate font-medium text-[var(--text)]">
+                          {t.subject ?? '(بدون عنوان)'}
+                        </span>
+                        <span className="ms-auto shrink-0 font-mono text-[9px] text-[var(--text-dim)]">
+                          {daysAgo === 0 ? 'اليوم' : `${daysAgo}ي`}
+                        </span>
+                      </div>
+                      {t.ai_summary && (
+                        <p className="mt-0.5 line-clamp-2 text-[10px] text-[var(--text-muted)]">
+                          {t.ai_summary}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </DashCard>
+          )}
+
+          {/* Stale follow-ups */}
+          {visible('email-followups') && (
+          <DashCard
+            span={4}
+            title="متابعات مستحقة"
+            badge={String(staleFollowups.length)}
+            tone={staleFollowups.length > 0 ? 'warning' : undefined}
+            link={{ href: '/inbox/suggestions', label: 'الاقتراحات' }}
+          >
+            {staleFollowups.length === 0 ? (
+              <p className="py-2 text-[11px] text-[var(--text-muted)]">
+                مفيش محادثات معلقة أكتر من ٥ أيام ✓
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {staleFollowups.slice(0, 4).map((s) => {
+                  const days = Math.floor(s.hours / 24);
+                  return (
+                    <li key={s.thread_id} className="flex items-center gap-2 py-1.5 text-[11px]">
+                      <Reply size={11} className="shrink-0 text-[var(--warning)]" />
+                      <span className="min-w-0 flex-1 truncate text-[var(--text)]">
+                        {s.subject ?? '(بدون عنوان)'}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-[var(--warning)]">
+                        {days}ي
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </DashCard>
+          )}
 
           {/* Mini stats */}
-          <MiniStat span={3} label="مشاريع نشطة" value={stats?.active_projects ?? 0} href="/projects" />
-          <MiniStat span={3} label="مهام مفتوحة" value={stats?.open_tasks ?? 0} href="/tasks" />
-          <MiniStat span={3} label="Leads" value={stats?.open_leads ?? 0} href="/crm" />
-          <MiniStat
-            span={3}
-            label="بانتظار مراجعة"
-            value={stats?.pending_review_count ?? 0}
-            tone={stats.pending_review_count > 0 ? 'warning' : 'default'}
-          />
+          {visible('mini-active') && (
+            <MiniStat span={3} label="مشاريع نشطة" value={stats?.active_projects ?? 0} href="/projects" />
+          )}
+          {visible('mini-tasks') && (
+            <MiniStat span={3} label="مهام مفتوحة" value={stats?.open_tasks ?? 0} href="/tasks" />
+          )}
+          {visible('mini-leads') && (
+            <MiniStat span={3} label="Leads" value={stats?.open_leads ?? 0} href="/crm" />
+          )}
+          {visible('mini-review') && (
+            <MiniStat
+              span={3}
+              label="بانتظار مراجعة"
+              value={stats?.pending_review_count ?? 0}
+              tone={stats.pending_review_count > 0 ? 'warning' : 'default'}
+            />
+          )}
 
-          {/* Add card placeholder */}
-          <div
-            data-span="12"
-            className="cursor-pointer rounded-xl border border-dashed border-[var(--line)] p-4 text-center text-[12px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:bg-[var(--surface)]/40"
-          >
-            + أضف كرت · ٨ كرت متاح في الـ catalog
-          </div>
+          {hidden.length === CARD_CATALOG.length && (
+            <div
+              data-span="12"
+              className="rounded-xl border border-dashed border-[var(--line)] p-6 text-center text-[12px] text-[var(--text-muted)]"
+            >
+              كل الكروت مخفية. اضغط <span className="text-[var(--accent)]">تخصيص</span> لاختيار اللي تظهر.
+            </div>
+          )}
         </div>
       </section>
 
