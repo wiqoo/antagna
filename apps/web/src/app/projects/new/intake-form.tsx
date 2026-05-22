@@ -340,6 +340,30 @@ export function IntakeForm({
           </Row>
         </div>
 
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Row label="اسم المشروع (عربي)">
+            <input
+              type="text"
+              name="titleAr"
+              value={titleAr}
+              onChange={(e) => setTitleAr(e.target.value)}
+              placeholder="فيديو إعلاني — حملة الصيف"
+              className="form-input"
+            />
+          </Row>
+          <Row label="Project Name (English)" required>
+            <input
+              type="text"
+              name="title"
+              required
+              value={titleEn}
+              onChange={(e) => setTitleEn(e.target.value)}
+              placeholder="Summer Campaign Video"
+              className="form-input"
+            />
+          </Row>
+        </div>
+
         <Row label="الميزانية (ر.س)" hint="ضع رقم تقريبي — الـ AI بيقترح bracket">
           <input
             type="number"
@@ -354,30 +378,6 @@ export function IntakeForm({
 
       {/* Section 2: Creative */}
       <Section eyebrow="٣. الإبداعي والمخرجات" icon={<Film size={14} />} hidden={step !== 2}>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Row label="العنوان (عربي)">
-            <input
-              type="text"
-              name="titleAr"
-              value={titleAr}
-              onChange={(e) => setTitleAr(e.target.value)}
-              placeholder="فيديو إعلاني — حملة الصيف"
-              className="form-input"
-            />
-          </Row>
-          <Row label="Title (English)" required>
-            <input
-              type="text"
-              name="title"
-              required
-              value={titleEn}
-              onChange={(e) => setTitleEn(e.target.value)}
-              placeholder="Summer Campaign Video"
-              className="form-input"
-            />
-          </Row>
-        </div>
-
         <Row label="الهدف من المشروع" hint="جملة واحدة — ليه هيتعمل؟">
           <textarea
             name="objective"
