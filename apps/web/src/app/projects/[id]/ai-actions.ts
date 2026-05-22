@@ -153,7 +153,7 @@ Output JSON only.`;
       model: ANTHROPIC_MODELS.sonnet,
       inputTokens: resp.usage.input_tokens,
       outputTokens: resp.usage.output_tokens,
-      userId: user.id,
+      authUserId: user.id,
     });
 
     await db.execute(sql`

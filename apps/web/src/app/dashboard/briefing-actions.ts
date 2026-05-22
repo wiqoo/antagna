@@ -176,7 +176,7 @@ export async function generateBriefing(): Promise<
       model: ANTHROPIC_MODELS.sonnet,
       inputTokens: resp.usage.input_tokens,
       outputTokens: resp.usage.output_tokens,
-      userId: user.id,
+      authUserId: user.id,
     });
 
     const text = resp.content.find((b) => b.type === 'text');
