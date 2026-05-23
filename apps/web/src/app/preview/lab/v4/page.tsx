@@ -153,7 +153,7 @@ export default function WorkbenchDashboard() {
                   when="اليوم · 21:33"
                   duration="04:00:00"
                   pct={45}
-                  ref="PRJ-0007"
+                  code="PRJ-0007"
                   status="shooting"
                   isToday
                 />
@@ -164,7 +164,7 @@ export default function WorkbenchDashboard() {
                   when="غداً · 09:00"
                   duration="08:00:00"
                   pct={78}
-                  ref="PRJ-0006"
+                  code="PRJ-0006"
                   status="editing"
                   urgent
                 />
@@ -175,7 +175,7 @@ export default function WorkbenchDashboard() {
                   when="الأحد · 10:00"
                   duration="06:00:00"
                   pct={92}
-                  ref="PRJ-0005"
+                  code="PRJ-0005"
                   status="review"
                 />
                 <ShootCard
@@ -185,7 +185,7 @@ export default function WorkbenchDashboard() {
                   when="الإثنين · 07:30"
                   duration="03:00:00"
                   pct={12}
-                  ref="PRJ-0004"
+                  code="PRJ-0004"
                   status="brief"
                 />
               </div>
@@ -285,20 +285,20 @@ export default function WorkbenchDashboard() {
                 {[
                   {
                     num: '01',
-                    ref: 'PRJ-0005',
+                    label: 'PRJ-0005',
                     text: 'رولز رويس: تسليم ٣ أيام، إنجاز ٤٥٪',
                     action: 'راجع الفريق قبل نهاية اليوم',
                     urgent: true,
                   },
                   {
                     num: '02',
-                    ref: 'BMW thread',
+                    label: 'BMW thread',
                     text: 'إيميل متأخر ٥٢ ساعة',
                     action: 'الـ draft عند خالد · افتح',
                   },
                   {
                     num: '03',
-                    ref: 'CAPACITY',
+                    label: 'CAPACITY',
                     text: 'خالد على ٣ مشاريع',
                     action: 'وزّع MG لـ فادي قبل الإثنين',
                   },
@@ -316,7 +316,7 @@ export default function WorkbenchDashboard() {
                     </span>
                     <div>
                       <p className="font-mono text-[9px] uppercase tracking-wider text-white/40">
-                        {p.ref}
+                        {p.label}
                       </p>
                       <p className="mt-0.5 text-[12px] leading-snug text-white/90">{p.text}</p>
                       <p className="mt-1 text-[11px] leading-snug text-white/55">↳ {p.action}</p>
@@ -557,7 +557,7 @@ function ShootCard({
   when,
   duration,
   pct,
-  ref,
+  code,
   status,
   isToday,
   urgent,
@@ -568,7 +568,7 @@ function ShootCard({
   when: string;
   duration: string;
   pct: number;
-  ref: string;
+  code: string;
   status: string;
   isToday?: boolean;
   urgent?: boolean;
@@ -629,7 +629,7 @@ function ShootCard({
       <div className="p-3">
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="truncate text-[13px] font-medium text-white">{title}</h3>
-          <span className="shrink-0 font-mono text-[9px] text-white/35">{ref}</span>
+          <span className="shrink-0 font-mono text-[9px] text-white/35">{code}</span>
         </div>
         <p className="mt-0.5 truncate text-[11px] text-white/55">
           {client} · {city}
