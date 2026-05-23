@@ -82,6 +82,33 @@ export default function PreviewLabIndex() {
           </p>
         </header>
 
+        {/* V5 — Bento + AI cards */}
+        <Link
+          href="/preview/lab/v5"
+          className="group mb-4 block overflow-hidden rounded-xl border border-[var(--accent)] bg-[var(--surface)] p-5 transition-all hover:bg-[var(--bg-elevated)]"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="mb-2 inline-block rounded bg-[var(--accent)] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-black">
+                V5 · BENTO · 28 AI CARDS
+              </p>
+              <h2
+                className="text-[24px] font-bold leading-[1.15] tracking-[-0.02em]"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                داش بورد كله كروت ذكية + مكتبة ٢٨ كرت
+              </h2>
+              <p className="mt-2 max-w-xl text-[12px] text-[var(--text-muted)]">
+                ١١ كرت AI-heavy (AI بيقترح إجراءات) · ٩ كرت AI-medium (AI يثري البيانات) ·
+                ٥ كرت AI-light · ٣ بدون AI. تخصيص بالحجم والمكان، شريط برتقالي فوق كل كرت AI.
+              </p>
+            </div>
+            <span className="font-mono text-[14px] text-[var(--accent)] transition-transform group-hover:-translate-x-1 rtl:rotate-180">
+              ▸ افتح
+            </span>
+          </div>
+        </Link>
+
         {/* V4 — Workbench / Frame.io style */}
         <Link
           href="/preview/lab/v4"
