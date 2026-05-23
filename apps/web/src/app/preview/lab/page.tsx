@@ -82,6 +82,34 @@ export default function PreviewLabIndex() {
           </p>
         </header>
 
+        {/* V4 — Workbench / Frame.io style */}
+        <Link
+          href="/preview/lab/v4"
+          className="group mb-4 block overflow-hidden rounded-xl border border-[var(--accent)] bg-[#0F0F12] p-5 transition-all hover:bg-[#17171C]"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="mb-2 inline-block rounded bg-[var(--accent)] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-black">
+                V4 · WORKBENCH · pro tool feel
+              </p>
+              <h2
+                className="text-[24px] font-bold leading-[1.15] tracking-[-0.02em]"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                صفحة واحدة بـ feel أداة فيديو احترافية — Frame.io / Final Cut Pro
+              </h2>
+              <p className="mt-2 max-w-xl text-[12px] text-[var(--text-muted)]">
+                Sidebar workspace nav · HUD strip · clip-style shoot browser بـ thumbnails ·
+                AI inspector جانبي · capacity heatmap بأسلوب timeline · status bar أسفل.
+                البرتقالي الحالي بس، مفيش purple/cyan/glow.
+              </p>
+            </div>
+            <span className="font-mono text-[14px] text-[var(--accent)] transition-transform group-hover:-translate-x-1 rtl:rotate-180">
+              ▸ افتح
+            </span>
+          </div>
+        </Link>
+
         {/* V3 hero — restrained, single accent */}
         <Link
           href="/preview/lab/v3"
