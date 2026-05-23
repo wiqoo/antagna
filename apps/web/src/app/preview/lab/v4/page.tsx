@@ -121,7 +121,7 @@ export default function WorkbenchDashboard() {
             </div>
           </div>
 
-          {/* HUD strip — 4 metrics, very small */}
+          {/* HUD strip — 4 metrics, compact */}
           <div className="grid grid-cols-4 border-b border-white/[0.06]">
             <Hud label="revenue.mtd" value="410.2" unit="K SAR" delta="+18%" sparkUp />
             <Hud label="projects.active" value="12" delta="+2 this week" />
@@ -129,27 +129,29 @@ export default function WorkbenchDashboard() {
             <Hud label="capacity.over" value="1" unit="من ٧" delta="خالد" warning last />
           </div>
 
+          {/* Inline density toggle */}
+          <div className="hidden">density-mode-marker</div>
+
           {/* Two-column workbench: shoot browser + AI inspector */}
-          <div className="grid grid-cols-[1fr,340px]">
+          <div className="grid grid-cols-[1fr,320px]">
             {/* Center — shoot/project browser */}
-            <section className="border-e border-white/[0.06] p-4">
-              <header className="mb-3 flex items-baseline justify-between">
-                <div>
-                  <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+            <section className="border-e border-white/[0.06] p-3">
+              <header className="mb-2 flex items-baseline justify-between">
+                <div className="flex items-baseline gap-3">
+                  <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
                     // upcoming_shoots
                   </h2>
-                  <p className="mt-1 text-[12px] text-white/45">٤ لقطات · أسبوع قادم</p>
+                  <span className="text-[10px] text-white/40">٤ · أسبوع قادم</span>
                 </div>
-                <button className="text-[11px] text-white/45 hover:text-[#FF6B1A]">
+                <button className="text-[10px] text-white/45 hover:text-[#FF6B1A]">
                   view all →
                 </button>
               </header>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
                 <ShootCard
                   title="جولة الشوروم — MG"
                   client="إم تي إن للسيارات"
-                  city="الرياض"
                   when="اليوم · 21:33"
                   duration="04:00:00"
                   pct={45}
@@ -160,7 +162,6 @@ export default function WorkbenchDashboard() {
                 <ShootCard
                   title="BMW Summer Campaign"
                   client="BMW السعودية"
-                  city="جدة"
                   when="غداً · 09:00"
                   duration="08:00:00"
                   pct={78}
@@ -171,7 +172,6 @@ export default function WorkbenchDashboard() {
                 <ShootCard
                   title="Rolls Royce interior"
                   client="رولز رويس"
-                  city="الرياض"
                   when="الأحد · 10:00"
                   duration="06:00:00"
                   pct={92}
@@ -181,7 +181,6 @@ export default function WorkbenchDashboard() {
                 <ShootCard
                   title="لكزس LX social"
                   client="لكزس"
-                  city="جدة"
                   when="الإثنين · 07:30"
                   duration="03:00:00"
                   pct={12}
@@ -190,22 +189,90 @@ export default function WorkbenchDashboard() {
                 />
               </div>
 
+              {/* All projects — compact list, like FCP project bin */}
+              <header className="mb-2 mt-5 flex items-baseline justify-between">
+                <div className="flex items-baseline gap-3">
+                  <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+                    // active_projects
+                  </h2>
+                  <span className="text-[10px] text-white/40">١٢ مشروع</span>
+                </div>
+                <button className="text-[10px] text-white/45 hover:text-[#FF6B1A]">
+                  open browser →
+                </button>
+              </header>
+
+              <div className="overflow-hidden rounded-md border border-white/[0.06]">
+                <div className="grid grid-cols-[28px,1fr,72px,90px,60px,28px] gap-2 border-b border-white/[0.06] bg-white/[0.02] px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-white/35">
+                  <span></span>
+                  <span>project</span>
+                  <span>stage</span>
+                  <span>due</span>
+                  <span className="text-end">progress</span>
+                  <span></span>
+                </div>
+                {[
+                  ['PRJ-0007', 'جولة الشوروم — MG', 'shooting', 'اليوم', 45, '#FF6B1A', false],
+                  ['PRJ-0006', 'BMW Summer Campaign', 'editing', 'متأخر يوم', 78, '#FF6B1A', true],
+                  ['PRJ-0005', 'Rolls Royce — interior', 'review', 'بكرة', 92, 'rgba(255,255,255,0.7)', false],
+                  ['PRJ-0004', 'لكزس LX — social', 'brief', '+14 يوم', 12, 'rgba(255,255,255,0.3)', false],
+                  ['PRJ-0003', 'TOYOTA Land Cruiser', 'editing', '+5 يوم', 55, 'rgba(255,255,255,0.55)', false],
+                  ['PRJ-0002', 'KIA — promo reel', 'delivered', '—', 100, 'rgba(255,255,255,0.4)', false],
+                ].map(([code, title, stage, due, pct, color, urgent]) => (
+                  <div
+                    key={code as string}
+                    className="grid cursor-pointer grid-cols-[28px,1fr,72px,90px,60px,28px] items-center gap-2 border-b border-white/[0.04] px-3 py-2 text-[11px] last:border-0 hover:bg-white/[0.025]"
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: color as string }}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-white/90">{title as string}</p>
+                      <p className="truncate font-mono text-[9px] text-white/35">{code as string}</p>
+                    </div>
+                    <span className="font-mono text-[10px] text-white/55">{stage as string}</span>
+                    <span
+                      className={
+                        'text-[10px] ' +
+                        ((urgent as boolean) ? 'text-[#FF6B1A]' : 'text-white/55')
+                      }
+                    >
+                      {due as string}
+                    </span>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <div className="h-0.5 w-10 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div
+                          className="h-full"
+                          style={{
+                            width: `${pct as number}%`,
+                            background: (urgent as boolean) ? '#FF6B1A' : 'rgba(255,255,255,0.7)',
+                          }}
+                        />
+                      </div>
+                      <span className="font-mono text-[9px] text-white/45">{pct as number}</span>
+                    </div>
+                    <MoreHorizontal size={11} className="text-white/30" />
+                  </div>
+                ))}
+              </div>
+
               {/* Capacity heatmap row — like FCP timeline */}
-              <header className="mb-3 mt-8 flex items-baseline justify-between">
-                <div>
-                  <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/55">
+              <header className="mb-2 mt-5 flex items-baseline justify-between">
+                <div className="flex items-baseline gap-3">
+                  <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/55">
                     // team.capacity
                   </h2>
-                  <p className="mt-1 text-[12px] text-white/45">١٤ يوم قادم</p>
+                  <span className="text-[10px] text-white/40">١٤ يوم</span>
                 </div>
-                <button className="text-[11px] text-white/45 hover:text-[#FF6B1A]">
-                  open team →
+                <button className="text-[10px] text-white/45 hover:text-[#FF6B1A]">
+                  team →
                 </button>
               </header>
 
               <div className="rounded-md border border-white/[0.06] bg-white/[0.015]">
                 {/* Timeline ruler */}
-                <div className="grid grid-cols-[80px,1fr] border-b border-white/[0.06] px-3 py-1.5">
+                <div className="grid grid-cols-[68px,1fr] border-b border-white/[0.06] px-3 py-1">
                   <span className="font-mono text-[9px] uppercase tracking-wider text-white/30">
                     member
                   </span>
@@ -214,7 +281,7 @@ export default function WorkbenchDashboard() {
                       <span
                         key={i}
                         className={
-                          'text-center font-mono text-[9px] ' +
+                          'text-center font-mono text-[8px] ' +
                           (i === 0 ? 'text-[#FF6B1A]' : 'text-white/25')
                         }
                       >
@@ -232,14 +299,14 @@ export default function WorkbenchDashboard() {
                 ].map(([name, days]) => (
                   <div
                     key={name as string}
-                    className="grid grid-cols-[80px,1fr] items-center border-b border-white/[0.04] px-3 py-1.5 last:border-0"
+                    className="grid grid-cols-[68px,1fr] items-center border-b border-white/[0.04] px-3 py-1 last:border-0"
                   >
-                    <span className="font-mono text-[11px] text-white/75">{name as string}</span>
+                    <span className="font-mono text-[10px] text-white/75">{name as string}</span>
                     <div className="grid grid-cols-14 gap-0.5">
                       {(days as number[]).map((v, j) => (
                         <div
                           key={j}
-                          className="h-3.5 rounded-sm"
+                          className="h-2.5 rounded-sm"
                           style={{
                             background:
                               v === 0
@@ -522,19 +589,19 @@ function Hud({
   return (
     <div
       className={
-        'p-4 ' + (last ? '' : 'border-e border-white/[0.06]')
+        'px-4 py-2.5 ' + (last ? '' : 'border-e border-white/[0.06]')
       }
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">{label}</p>
-      <div className="mt-1.5 flex items-baseline gap-2">
-        <span className="font-mono text-[26px] font-semibold tracking-tight text-white">
+      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">{label}</p>
+      <div className="mt-0.5 flex items-baseline gap-2">
+        <span className="font-mono text-[18px] font-semibold tracking-tight text-white">
           {value}
         </span>
-        {unit && <span className="font-mono text-[10px] text-white/40">{unit}</span>}
+        {unit && <span className="font-mono text-[9px] text-white/40">{unit}</span>}
         {sparkUp && (
-          <svg viewBox="0 0 40 12" className="ms-auto h-3 w-10">
+          <svg viewBox="0 0 40 10" className="ms-auto h-2.5 w-10">
             <path
-              d="M 0,10 L 8,8 L 16,9 L 24,6 L 32,4 L 40,2"
+              d="M 0,8 L 8,6 L 16,7 L 24,5 L 32,3 L 40,2"
               fill="none"
               stroke="white"
               strokeOpacity="0.6"
@@ -543,7 +610,7 @@ function Hud({
           </svg>
         )}
       </div>
-      <p className={'mt-1 font-mono text-[10px] ' + (warning ? 'text-[#FF6B1A]' : 'text-white/45')}>
+      <p className={'mt-0.5 font-mono text-[9px] ' + (warning ? 'text-[#FF6B1A]' : 'text-white/45')}>
         {delta}
       </p>
     </div>
@@ -553,7 +620,6 @@ function Hud({
 function ShootCard({
   title,
   client,
-  city,
   when,
   duration,
   pct,
@@ -564,7 +630,6 @@ function ShootCard({
 }: {
   title: string;
   client: string;
-  city: string;
   when: string;
   duration: string;
   pct: number;
@@ -575,17 +640,17 @@ function ShootCard({
 }) {
   const STATUS_COLORS: Record<string, string> = {
     shooting: '#FF6B1A',
-    editing: 'rgba(255,255,255,0.45)',
-    review: 'rgba(255,255,255,0.75)',
-    brief: 'rgba(255,255,255,0.25)',
+    editing: 'rgba(255,255,255,0.55)',
+    review: 'rgba(255,255,255,0.8)',
+    brief: 'rgba(255,255,255,0.3)',
   };
   return (
     <article className="overflow-hidden rounded-md border border-white/[0.08] bg-white/[0.015] hover:border-white/[0.16]">
-      {/* Thumbnail placeholder — like Frame.io clip preview */}
-      <div className="relative aspect-video border-b border-white/[0.06] bg-[#0F0F12]">
+      {/* Tight thumbnail — 16:9 but inside a small card so it stays compact */}
+      <div className="relative border-b border-white/[0.06] bg-[#0F0F12]" style={{ aspectRatio: '16/9' }}>
         <div
           aria-hidden
-          className="absolute inset-0 opacity-30"
+          className="absolute inset-0 opacity-25"
           style={{
             backgroundImage: `
               repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 8px),
@@ -594,50 +659,45 @@ function ShootCard({
           }}
         />
         <div className="absolute inset-0 grid place-items-center">
-          <div className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/40 backdrop-blur-sm">
-            <Play size={13} className="text-white/75" />
+          <div className="grid h-7 w-7 place-items-center rounded-full border border-white/15 bg-black/40 backdrop-blur-sm">
+            <Play size={10} className="text-white/75" />
           </div>
         </div>
         {/* Status badge top-start */}
-        <span
-          className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-sm bg-black/60 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white/85 backdrop-blur-sm"
-        >
-          <span
-            className="h-1 w-1 rounded-full"
-            style={{ background: STATUS_COLORS[status] }}
-          />
+        <span className="absolute start-1.5 top-1.5 inline-flex items-center gap-1 rounded-sm bg-black/65 px-1 py-0.5 font-mono text-[8px] uppercase tracking-wider text-white/85 backdrop-blur-sm">
+          <span className="h-1 w-1 rounded-full" style={{ background: STATUS_COLORS[status] }} />
           {status}
         </span>
-        {/* Time badge end */}
-        <span className="absolute end-2 top-2 rounded-sm bg-black/60 px-1.5 py-0.5 font-mono text-[9px] text-white/85 backdrop-blur-sm">
+        {/* Duration badge end */}
+        <span className="absolute end-1.5 top-1.5 rounded-sm bg-black/65 px-1 py-0.5 font-mono text-[8px] text-white/85 backdrop-blur-sm">
           {duration}
         </span>
-        {/* Today flag */}
+        {/* Today / Urgent flag */}
         {isToday && (
-          <span className="absolute start-2 bottom-2 rounded-sm bg-[#FF6B1A] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-black">
+          <span className="absolute start-1.5 bottom-1.5 rounded-sm bg-[#FF6B1A] px-1 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-black">
             ON AIR
           </span>
         )}
         {urgent && !isToday && (
-          <span className="absolute start-2 bottom-2 rounded-sm border border-[#FF6B1A]/60 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[#FF6B1A]">
+          <span className="absolute start-1.5 bottom-1.5 rounded-sm border border-[#FF6B1A]/60 bg-black/40 px-1 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-[#FF6B1A] backdrop-blur-sm">
             urgent
           </span>
         )}
       </div>
 
-      {/* Card body */}
-      <div className="p-3">
+      {/* Card body — tight */}
+      <div className="p-2">
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="truncate text-[13px] font-medium text-white">{title}</h3>
-          <span className="shrink-0 font-mono text-[9px] text-white/35">{code}</span>
+          <h3 className="truncate text-[11.5px] font-medium text-white">{title}</h3>
         </div>
-        <p className="mt-0.5 truncate text-[11px] text-white/55">
-          {client} · {city}
-        </p>
+        <div className="mt-0.5 flex items-baseline justify-between gap-2">
+          <p className="truncate text-[10px] text-white/55">{client}</p>
+          <span className="shrink-0 font-mono text-[8px] text-white/35">{code}</span>
+        </div>
 
-        {/* Progress bar */}
-        <div className="mt-3">
-          <div className="mb-1 flex items-center justify-between font-mono text-[9px]">
+        {/* Progress bar — hairline */}
+        <div className="mt-2">
+          <div className="mb-0.5 flex items-center justify-between font-mono text-[8px]">
             <span className="text-white/45">{when}</span>
             <span className="text-white/65">{pct}%</span>
           </div>
@@ -647,23 +707,6 @@ function ShootCard({
               style={{ width: `${pct}%` }}
             />
           </div>
-        </div>
-
-        {/* Tool row */}
-        <div className="mt-3 flex items-center gap-1">
-          <button className="grid h-6 w-6 place-items-center rounded text-white/40 hover:bg-white/[0.04] hover:text-white">
-            <MessageSquare size={11} />
-          </button>
-          <button className="grid h-6 w-6 place-items-center rounded text-white/40 hover:bg-white/[0.04] hover:text-white">
-            <Users size={11} />
-          </button>
-          <button className="grid h-6 w-6 place-items-center rounded text-white/40 hover:bg-white/[0.04] hover:text-white">
-            <Camera size={11} />
-          </button>
-          <span className="ms-auto inline-flex items-center gap-1 text-[9px] text-white/35">
-            <GripVertical size={9} />
-            drag to reorder
-          </span>
         </div>
       </div>
     </article>
