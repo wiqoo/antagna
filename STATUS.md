@@ -3,12 +3,13 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-25 (Design system exploration · V5 bento direction picked · Stitch MCP wired)
-**Phase:** Phase 1 features live in prod. **Major design exploration just
-finished** — V1→V5 preview labs at `/preview/lab/*`. User landed on V5
-(bento + 28 AI cards). Next step is **porting V5 to the production
-`/dashboard`**: rebuild the catalog with this aesthetic, replace existing
-cards, expose customize drawer with size+position controls.
+**Last updated:** 2026-05-26 (V5 bento ported to production `/dashboard` — on branch `feat/dashboard-v5-port`)
+**Phase:** Phase 1 features live in prod. V5 bento dashboard **ported**
+(D-033): shared `dashboard/cards/` module, 10 live cards wired to real
+Supabase queries, customize drawer with size-cycle + drag/▲▼ reorder +
+add-card + hide, layout persisted in `dash_layout` cookie. Awaiting visual
+review + preview deploy before merge to `main`. Next: spread the V5
+hairline/monospace language to `/projects`, `/inbox`, `/equipment`, `/team`.
 
 **Live URLs:**
 - App: <https://antagna-v2.vercel.app> (custom domain `antagna.me` zone added on Cloudflare 2026-05-21)
@@ -18,26 +19,27 @@ cards, expose customize drawer with size+position controls.
 
 ## 🎯 Next concrete action
 
-> **Port V5 bento → production dashboard (D-033).** The user chose this
-> direction after rejecting V1, V2 (too over-the-top), V3 (still meh),
-> and V4 (workbench layout, only ~30% liked). V5 lives at
-> `/preview/lab/v5/dashboard` + `/preview/lab/v5/library` and ships
-> 28 AI-aware cards in 4 AI-density tiers. PWA attendance (D-031)
-> waits behind this.
+> **Review + ship the V5 dashboard port, then spread the language.**
+> The port (D-033) is done on branch `feat/dashboard-v5-port` (commit
+> `469d3fc`). Steps 1–4 below are ✅; remaining work:
 >
-> Concrete steps:
-> 1. Move `apps/web/src/app/preview/lab/v5/cards.tsx` to a shared
->    `dashboard/cards/` directory and wire each card to real Supabase
->    queries (most have data — see `pendingSuggestions`, `recentThreads`
->    etc. already in current `/dashboard/page.tsx`).
-> 2. Replace existing dashboard layout with V5 bento (12-col grid + size
->    spans sm/md/lg/xl/full).
-> 3. Upgrade `dashboard-customize.tsx` to support **size cycling per
->    card** (currently only show/hide) and **drag-to-reorder**.
-> 4. Carry the 1-px AI stripe + AI badge into production.
-> 5. Apply same hairline-border + monospaced-meta language to
+> 1. ✅ Shared `dashboard/cards/` module (shell + 28 cards + catalog);
+>    `preview/lab/v5` re-exports it (one source of truth).
+> 2. ✅ V5 bento on `/dashboard` (12-col grid, size spans sm→full),
+>    BriefingCard kept as hero, 10 cards wired to real Supabase rows.
+> 3. ✅ Customize: per-card size cycling + drag/▲▼ reorder + add-card
+>    picker + hide; persisted in `dash_layout` cookie (server action).
+> 4. ✅ 1-px AI stripe + AI badge carried into production.
+> 5. ⏳ **Visual review + preview deploy** of the branch, then merge to
+>    `main`. (project_health / at_risk scoring is a deterministic
+>    heuristic for now — real LLM scoring is a follow-up.)
+> 6. ⏳ Apply the hairline-border + monospaced-meta language to
 >    `/projects`, `/inbox`, `/equipment`, `/team` so the dashboard
 >    doesn't look like an island.
+> 7. ⏳ Wire the remaining catalog cards (hot_leads, lead_temp, ai_cost,
+>    oauth_health, activity, open_tasks, …) to real queries as we go.
+>
+> PWA attendance (D-031) still waits behind this.
 
 ---
 
@@ -171,6 +173,13 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-26** — **V5 bento ported to production `/dashboard`** (D-033)
+  on branch `feat/dashboard-v5-port`. New shared `dashboard/cards/` module
+  is the single source of truth (preview labs re-export it). 10 cards wired
+  to the existing Supabase queries; `DashboardGrid` adds size-cycle +
+  drag/▲▼ reorder + add-card + hide, persisted in a `dash_layout` cookie.
+  Old `dashboard-customize.*` (show/hide-only) removed. Typecheck + prod
+  build green. Not merged — pending visual review + preview deploy.
 - **2026-05-25** — Design system journey + Stitch MCP. Built five
   preview labs (`/preview/lab/v1..v5`) exploring eight aesthetic
   directions over a long session. User rejected V1 (boring variants),
