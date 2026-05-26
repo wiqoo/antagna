@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1 done, starting A0 (i18n).**
+> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1 + A0-framework done (i18n toggle verified); next A2.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
@@ -15,8 +15,8 @@
 
 ## Phase A — Foundation (cross-cutting)
 - [x] **A1** RBAC helper `authz.ts` (`can`/`requirePermission`/`requireCapability`) + reconciled phantom `system_manager`→`general_manager`
-- [~] **A0** i18n: wire `next-intl` (cookie/profile locale), `ar.json`/`en.json`, dynamic dir/font, language switch
-- [ ] **A0** copy: rewrite **all** UI strings → فصحى بسيطة + professional English (incl. dashboard cards)
+- [x] **A0** i18n framework: `next-intl` wired (cookie locale, `ar`/`en` catalogs, dynamic dir, topbar language switch) — toggle verified flipping chrome + RTL/LTR
+- [~] **A0** copy: nav/chrome done in فصحى بسيطة + English; per-page strings converted as each page is rebuilt (B/C)
 - [ ] **A0** tone/channel: notifications + emails + WhatsApp in recipient's language
 - [ ] **A2** seed new permission keys (`admin.access.manage`, `suggestions.approve`, per-domain)
 - [ ] **A2** Access admin UI — users+roles, role×permission matrix, per-user overrides, capabilities

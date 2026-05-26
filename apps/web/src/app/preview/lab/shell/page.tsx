@@ -3,7 +3,9 @@
  * dashboard so the nav + container can be iterated visually (Playwright) without
  * logging in. Not linked anywhere; safe to delete.
  */
+import { getTranslations } from 'next-intl/server';
 import { AppShell } from '@antagna/ui';
+import { LocaleSwitch } from '@/components/LocaleSwitch';
 import {
   CardSkin, CARD_BY_ID, type CardId,
   CardGlance, CardEmailTriage, CardSmartSuggestions, CardProjectHealth,
@@ -25,9 +27,19 @@ const ITEMS: { id: CardId; size: CardSize; Comp: React.ComponentType<{ size?: Ca
   { id: 'mtd_revenue', size: 'sm', Comp: CardMTDRevenue },
 ];
 
-export default function ShellHarness() {
+export default async function ShellHarness() {
+  const tNav = await getTranslations('nav');
+  const tTop = await getTranslations('topbar');
+  const navKeys = ['dashboard', 'projects', 'tasks', 'inbox', 'calendar', 'clients', 'equipment', 'social', 'team', 'kpis', 'reports', 'admin', 'settings', 'groupWork', 'groupAnalytics', 'more', 'sidebar', 'bottomNav'] as const;
+  const labels: Record<string, string> = Object.fromEntries(navKeys.map((k) => [k, tNav(k)]));
+  labels.newProject = tTop('newProject');
   return (
-    <AppShell user={{ email: 'mohammed@voltsaudi.com', displayName: 'محمد غريب' }} activePath="/dashboard">
+    <AppShell
+      user={{ email: 'mohammed@voltsaudi.com', displayName: 'محمد غريب' }}
+      activePath="/dashboard"
+      labels={labels}
+      localeSwitch={<LocaleSwitch />}
+    >
       <h1 className="text-[20px] font-bold" style={{ fontFamily: 'var(--font-display)' }}>اللوحة</h1>
       <div className="grid grid-flow-row-dense grid-cols-12 items-start gap-3 md:grid-flow-row">
         {ITEMS.map(({ id, size, Comp }) => (

@@ -5,6 +5,8 @@ import {
   Vazirmatn,
   IBM_Plex_Sans_Arabic,
 } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale } from 'next-intl/server';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 
@@ -65,18 +67,22 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
   return (
     <html
-      lang="ar"
-      dir="rtl"
-      className={`${geist.variable} ${geistMono.variable} ${vazirmatn.variable} ${plexArabic.variable} h-full antialiased`}
+      lang={locale}
+      dir={dir}
+      className={`${geist.variable} ${geistMono.variable} ${vazirmatn.variable} ${plexArabic.variable} locale-${locale} h-full antialiased`}
     >
       <body className="min-h-full bg-[var(--bg)] text-[var(--text)]">
-        {children}
-        <PWARegister />
+        <NextIntlClientProvider>
+          {children}
+          <PWARegister />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

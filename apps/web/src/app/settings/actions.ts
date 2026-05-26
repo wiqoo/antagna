@@ -1,10 +1,12 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { eq, sql } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { LOCALE_COOKIE, LOCALES } from '@/i18n/request';
 
 export async function updateSettings(formData: FormData) {
   const supabase = await getSupabaseServerClient();
@@ -40,7 +42,15 @@ export async function updateSettings(formData: FormData) {
     WHERE auth_user_id = ${user.id}::uuid
   `);
 
-  revalidatePath('/settings');
+  // Keep the i18n locale cookie in sync so the chosen language switches the UI.
+  if ((LOCALES as readonly string[]).includes(uiLanguage)) {
+    const jar = await cookies();
+    jar.set(LOCALE_COOKIE, uiLanguage, {
+      httpOnly: false, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365, path: '/',
+    });
+  }
+
+  revalidatePath('/', 'layout');
   void profiles;
   void eq;
 }

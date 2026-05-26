@@ -1,5 +1,9 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
+import createNextIntlPlugin from 'next-intl/plugin';
+
+// Cookie-based locale (no [locale] URL segment) — see src/i18n/request.ts.
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   // Skip ESLint during Vercel builds — we lint via turbo + CI separately.
@@ -13,7 +17,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
 };
 
-export default withSentryConfig(nextConfig, {
+export default withSentryConfig(withNextIntl(nextConfig), {
   org: process.env.SENTRY_ORG ?? 'antagna',
   project: process.env.SENTRY_PROJECT ?? 'antagna-web',
 

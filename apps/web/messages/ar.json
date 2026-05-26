@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "dashboard": "الرئيسية",
+    "projects": "المشاريع",
+    "tasks": "المهام",
+    "inbox": "الوارد",
+    "calendar": "التقويم",
+    "clients": "العملاء",
+    "equipment": "المعدات",
+    "social": "التواصل الاجتماعي",
+    "team": "الفريق",
+    "kpis": "مؤشرات الأداء",
+    "reports": "التقارير",
+    "admin": "الإدارة",
+    "settings": "الإعدادات",
+    "groupWork": "العمل",
+    "groupAnalytics": "التحليلات والإدارة",
+    "more": "المزيد",
+    "sidebar": "القائمة الجانبية",
+    "bottomNav": "شريط التنقّل"
+  },
+  "topbar": {
+    "newProject": "مشروع",
+    "search": "بحث",
+    "logout": "تسجيل الخروج",
+    "greeting": "مرحباً"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "loading": "جارٍ التحميل",
+    "language": "اللغة",
+    "arabic": "العربية",
+    "english": "الإنجليزية",
+    "all": "الكل",
+    "open": "فتح",
+    "review": "مراجعة"
+  },
+  "dashboard": {
+    "board": "اللوحة",
+    "customize": "تخصيص",
+    "done": "تم",
+    "addCard": "إضافة بطاقة",
+    "reset": "إعادة ضبط",
+    "cards": "بطاقة",
+    "rearrangeHint": "اسحب لإعادة الترتيب · غيّر الحجم · أخفِ"
+  }
+}
