@@ -144,6 +144,41 @@ single orange `#FF6B1A`, hairlines, Vazirmatn, clean cards, tasteful motion).
   email suggestions) to equipment/CRM/tasks. Add an **"AI activity" trail** so
   Mohammed always sees what the system did and can undo.
 
+### 3.1.5 AI Memory & Monitoring Engine — the system's brain  ⭐
+This is the layer that makes Antagna feel intelligent. Three parts, mostly on
+tables that **already exist but are empty/unused**:
+
+**(a) System-wide AI memory ("knows everything that happens").**
+Every meaningful event — `activity_events`, `audit_log`, email/WhatsApp,
+status changes, approvals, check-ins — plus periodic entity snapshots get
+embedded into **`ai_memory_chunks` (pgvector, currently empty)** via OpenAI
+embeddings (already our stack). The AI then **retrieves across the whole graph
+(RAG)** to ground the daily brief, suggestions, the WhatsApp bot, and advice.
+*Result: one memory the whole system reads from — nothing happens that it
+doesn't "remember."*
+
+**(b) Monitoring & oversight engine (configurable logic).**
+A watcher over **workflow progress, employee performance, client satisfaction,
+attendance, equipment, and finance refs** — built on the existing
+`kpi_definitions`/`kpi_snapshots`, `alert_rules`/`alert_fires`,
+`project_insights`, `client_health_snapshots`, and the `insights-scanner`
+worker. **Crucially the rules become editable in an admin UI** (thresholds,
+conditions, cadence, severity) so the logic *evolves without code changes*.
+Outputs: **advice** (as suggestions), **notifications** (in-app + WhatsApp),
+and cleaner downstream data.
+
+**(c) Learning loop (improves itself from usage).**
+Capture real usage signals — **`decision_outcomes`** (suggestion accepted /
+rejected / edited), `ai_action_log`, `template_edit_patterns`,
+`project_learnings`, `compatibility_feedback` (all tables exist). Feed them back:
+acceptance rates tune suggestion **confidence + ranking**, rejected advice is
+suppressed/learned, edit patterns refine templates, outcomes refine KPIs/alerts.
+*The more the team uses it, the sharper it gets* — while every action stays
+human-approved (the human's choice IS the training signal).
+
+This brain powers the WhatsApp bot's "knowledge" (§3.4), the dashboard's
+"what needs you" (§2.0), and per-entity advice everywhere.
+
 ### 3.2 Permissions / RBAC  ❓
 - **Today:** real at DB (RLS) for anon-key, but the app uses service-role +
   coarse admin gate; no app `can()`; no UI.
