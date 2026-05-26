@@ -29,7 +29,7 @@
 - [x] **A5** WhatsApp LID fix: webhook extracts real phone (`senderPn`/`sender.id`/group `author`), persists LID↔e164 mapping both ways + resolves known LIDs; bot gets RAG via `retrieveMemory`. Bot-action propose→approve folds into C4 team inbox.
 - [x] **A6** auth: password reset (`/auth/forgot`→email→`/auth/callback`→`/auth/reset`) + email-verify via `emailRedirectTo`→`/auth/callback` (PKCE exchange) + login/register/forgot/reset re-skinned to DNA via shared `AuthCard`. Invite-vs-self-signup = your call (manual item Q1; register stays open for now).
 - [x] **A6** PWA: `beforeinstallprompt` custom install card (`InstallPrompt`) + real `/offline` shell (precached by sw.js v2, added to public allowlist)
-- [ ] **A7** Account control panel (profile, WhatsApp link, **language toggle**, per-event channel prefs, security, view-as)
+- [x] **A7** Account hub `/settings` rebuilt: profile, **language toggle** (switches whole system + syncs locale cookie), per-event×per-channel **notification matrix** (in-app/email/WhatsApp chips → feeds unified notif service), **security** (change password), WhatsApp-link card, admin-tools card (admin-only). Reshaped `notification_prefs` → `{channels:{event:{inApp,email,whatsapp}}}` (no other consumer yet).
 - [ ] **cross** wire `write_activity` into all server-action mutations
 
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
