@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
 
 async function withActor() {
   const supabase = await getSupabaseServerClient();
@@ -52,12 +53,21 @@ export async function createClient(formData: FormData) {
   const newId = (res as unknown as Array<{ id: string }>)[0]?.id;
   if (!newId) throw new Error('insert failed');
 
+  await writeActivity({
+    actorId,
+    entityType: 'client',
+    entityId: newId,
+    action: 'client_created',
+    summaryAr: `أُضيف عميل جديد: ${nameAr} (${code})`,
+    summaryEn: `New client added: ${nameEn ?? nameAr} (${code})`,
+  });
+
   revalidatePath('/crm');
   redirect(`/clients/${newId}`);
 }
 
 export async function updateClient(clientId: string, formData: FormData) {
-  await withActor();
+  const actorId = await withActor();
 
   const nameAr = formData.get('nameAr')?.toString().trim();
   const nameEn = formData.get('nameEn')?.toString().trim() || null;
@@ -88,13 +98,22 @@ export async function updateClient(clientId: string, formData: FormData) {
     WHERE id = ${clientId}::uuid
   `);
 
+  await writeActivity({
+    actorId,
+    entityType: 'client',
+    entityId: clientId,
+    action: 'client_updated',
+    summaryAr: `حُدّثت بيانات العميل${nameAr ? `: ${nameAr}` : ''}`,
+    summaryEn: 'Client details updated',
+  });
+
   revalidatePath(`/clients/${clientId}`);
   revalidatePath('/crm');
   redirect(`/clients/${clientId}`);
 }
 
 export async function addContact(clientId: string, formData: FormData) {
-  await withActor();
+  const actorId = await withActor();
 
   const fullName = formData.get('fullName')?.toString().trim();
   const fullNameAr = formData.get('fullNameAr')?.toString().trim() || null;
@@ -142,14 +161,31 @@ export async function addContact(clientId: string, formData: FormData) {
     }
   }
 
+  await writeActivity({
+    actorId,
+    entityType: 'client',
+    entityId: clientId,
+    action: 'contact_added',
+    summaryAr: `أُضيفت جهة اتصال: ${fullName}`,
+    summaryEn: `Contact added: ${fullName}`,
+  });
+
   revalidatePath(`/clients/${clientId}`);
 }
 
 export async function archiveClient(clientId: string) {
-  await withActor();
+  const actorId = await withActor();
   await db.execute(sql`
     UPDATE clients SET archived_at = now() WHERE id = ${clientId}::uuid
   `);
+  await writeActivity({
+    actorId,
+    entityType: 'client',
+    entityId: clientId,
+    action: 'client_archived',
+    summaryAr: 'أُرشِف العميل',
+    summaryEn: 'Client archived',
+  });
   revalidatePath('/crm');
   redirect('/crm');
 }

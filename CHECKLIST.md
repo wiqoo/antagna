@@ -30,12 +30,12 @@
 - [x] **A6** auth: password reset (`/auth/forgot`→email→`/auth/callback`→`/auth/reset`) + email-verify via `emailRedirectTo`→`/auth/callback` (PKCE exchange) + login/register/forgot/reset re-skinned to DNA via shared `AuthCard`. Invite-vs-self-signup = your call (manual item Q1; register stays open for now).
 - [x] **A6** PWA: `beforeinstallprompt` custom install card (`InstallPrompt`) + real `/offline` shell (precached by sw.js v2, added to public allowlist)
 - [x] **A7** Account hub `/settings` rebuilt: profile, **language toggle** (switches whole system + syncs locale cookie), per-event×per-channel **notification matrix** (in-app/email/WhatsApp chips → feeds unified notif service), **security** (change password), WhatsApp-link card, admin-tools card (admin-only). Reshaped `notification_prefs` → `{channels:{event:{inApp,email,whatsapp}}}` (no other consumer yet).
-- [~] **cross** wire `write_activity` into all server-action mutations — `lib/activity.ts` helper done + all project mutations wired; remaining domains (crm/tasks/equipment/people) as each is built in B/C
+- [~] **cross** wire `write_activity` into all server-action mutations — `lib/activity.ts` helper done; **projects (9)** + **clients (4: create/update/contact/archive)** wired; remaining domains (tasks/equipment/people) as each is built in B/C
 
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
 - [x] **B1** `/projects`: list strong+on-DNA (AIHints, stat tiles, filters, relational table) + **board/table toggle** (`?view=board` kanban by stage); detail page comprehensive (header, tasks, team, comments, stage-log, deliverables, equipment, approval pipeline) + new **Activity timeline** (reads `activity_events`); `write_activity` in all 9 project mutations → feeds A4 brain. **Polish later:** reorganize detail sections into tabs, drag-to-advance-stage (need visual QA on the auth-gated page).
 - [x] **B2** `/inbox` strong+on-DNA (AIHints, thread list w/ AI summary+status, WhatsApp + drafts sections); `/inbox/suggestions` queue is domain-agnostic (status/expiry filter, not email-only) + gated server-side (A3) + now shows **human-readable labeled proposed-data** (Arabic field view) instead of raw JSON, so approvals are reviewable. Reply-draft compose exists. **Later:** richer per-type cards, inline thread reply.
-- [ ] **B3** `/crm` lead pipeline + `/clients/[id]` 360° + lead→client/project conversion
+- [~] **B3** `/crm` + `/clients/[id]` already built+on-DNA (AIHints, leads+clients, client 360). **Done:** `write_activity` in all client mutations. **Next:** lead pipeline board (by status, reuse projects-board pattern), lead→client/project conversion action.
 - [ ] **B4** `/tasks` — "my work" + per-project board + quick-create from a message
 
 ## Phase C — Big systems
