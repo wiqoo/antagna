@@ -10,6 +10,7 @@ import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { memoryIndexer } from './memory-indexer';
 
 const SYSTEM_PROMPT = `You are Antagna's project risk analyzer.
 Given a project's stage, dates, latest activity and assignments, output strict JSON:
@@ -133,6 +134,11 @@ Output JSON only.`;
         console.error(`[insights-scanner] failed for ${proj.code}:`, err);
       }
     }
+
+    // Refresh the system AI memory after analysis (fire-and-forget).
+    await memoryIndexer.trigger({}).catch((e) =>
+      console.error('[insights-scanner] memory-indexer trigger failed', e),
+    );
 
     return {
       ranId: ctx.run.id,

@@ -21,9 +21,9 @@
 - [x] **A2** seeded `access.manage` key (migration 042); reuse existing keys elsewhere (`ai_suggestion.approve`, `user.update_role`…)
 - [x] **A2** Access admin UI `/admin/access` — users+roles, role×permission matrix, per-user overrides + capabilities (gated by `access.manage`; builds clean)
 - [x] **A3** approve route gated by `ai_suggestion.approve` + writes `ai_action_log` on every decision (seeds A4 learning loop); inbox already domain-agnostic. Executor file-relocation → when first non-email domain lands (C).
-- [ ] **A4** fix `ai_memory_chunks` drift + unique `(source,source_id)`
-- [ ] **A4** `retrieveMemory` (RAG) + wire into daily-brief / insights / email-intel
-- [ ] **A4** `memory-indexer` worker (backfill `audit_log` + stream `activity_events`)
+- [x] **A4** fixed `ai_memory_chunks` Drizzle drift + unique `(source,source_id)` (migration 043)
+- [x] **A4** `retrieveMemory`/`indexMemory`/`markChunkUseful` in `@antagna/ai` (RAG); wiring into brief/email = when those are reworked
+- [x] **A4** `memory-indexer` worker (backfills `audit_log` + streams `activity_events`), triggered from insights-scanner
 - [ ] **A4** editable `alert_rules`/`kpi_definitions` admin (compute_sql locked)
 - [ ] **A4** learning loop (`ai_action_log`→`project_learnings`→`adjustConfidence`)
 - [ ] **A5** WhatsApp LID capture (`senderPn`) + LID↔e164 mapping + webhook upgrade (perms/RAG/groups)

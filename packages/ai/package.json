@@ -10,7 +10,8 @@
     "./anthropic": "./src/anthropic.ts",
     "./openai": "./src/openai.ts",
     "./models": "./src/models.ts",
-    "./cost": "./src/cost.ts"
+    "./cost": "./src/cost.ts",
+    "./memory": "./src/memory.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"
@@ -18,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@antagna/db": "workspace:*",
+    "drizzle-orm": "^0.36.4",
     "openai": "^4.77.0"
   },
   "devDependencies": {
