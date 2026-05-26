@@ -18,3 +18,4 @@ export { emailSendScanner } from './email-send-scanner';
 export { emailFollowupScanner } from './email-followup-scanner';
 export { smartSuggestionsScanner } from './smart-suggestions-scanner';
 export { memoryIndexer } from './memory-indexer';
+export { learningAggregator } from './learning-aggregator';
