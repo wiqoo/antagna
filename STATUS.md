@@ -3,13 +3,14 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-26 (V5 bento ported to production `/dashboard` — on branch `feat/dashboard-v5-port`)
-**Phase:** Phase 1 features live in prod. V5 bento dashboard **ported**
-(D-033): shared `dashboard/cards/` module, 10 live cards wired to real
-Supabase queries, customize drawer with size-cycle + drag/▲▼ reorder +
-add-card + hide, layout persisted in `dash_layout` cookie. Awaiting visual
-review + preview deploy before merge to `main`. Next: spread the V5
-hairline/monospace language to `/projects`, `/inbox`, `/equipment`, `/team`.
+**Last updated:** 2026-05-26 (V6 clean-skin dashboard merged to `main` + deployed to production — D-036)
+**Phase:** Phase 1 features live in prod. **New dashboard shipped** (D-033 →
+D-036): shared `dashboard/cards/` module, 10 live cards wired to real Supabase
+queries, customize (size-cycle + drag/▲▼ reorder + add/hide, `dash_layout`
+cookie). After review, the look moved to a **"clean" skin** — Arabic titles
+(not `// code`), Vazirmatn body, higher contrast, per-card quick actions, and
+Framer Motion (spring entrance, hover lift, layout reflow). Next: spread the
+clean skin to `/projects`, `/inbox`, `/equipment`, `/team`; then PWA attendance.
 
 **Live URLs:**
 - App: <https://antagna-v2.vercel.app> (custom domain `antagna.me` zone added on Cloudflare 2026-05-21)
@@ -19,27 +20,19 @@ hairline/monospace language to `/projects`, `/inbox`, `/equipment`, `/team`.
 
 ## 🎯 Next concrete action
 
-> **Review + ship the V5 dashboard port, then spread the language.**
-> The port (D-033) is done on branch `feat/dashboard-v5-port` (commit
-> `469d3fc`). Steps 1–4 below are ✅; remaining work:
+> **Spread the clean skin to the other top routes.** The dashboard
+> (D-033 → D-036) is merged to `main` and live in production. Remaining:
 >
-> 1. ✅ Shared `dashboard/cards/` module (shell + 28 cards + catalog);
->    `preview/lab/v5` re-exports it (one source of truth).
-> 2. ✅ V5 bento on `/dashboard` (12-col grid, size spans sm→full),
->    BriefingCard kept as hero, 10 cards wired to real Supabase rows.
-> 3. ✅ Customize: per-card size cycling + drag/▲▼ reorder + add-card
->    picker + hide; persisted in `dash_layout` cookie (server action).
-> 4. ✅ 1-px AI stripe + AI badge carried into production.
-> 5. ⏳ **Visual review + preview deploy** of the branch, then merge to
->    `main`. (project_health / at_risk scoring is a deterministic
->    heuristic for now — real LLM scoring is a follow-up.)
-> 6. ⏳ Apply the hairline-border + monospaced-meta language to
->    `/projects`, `/inbox`, `/equipment`, `/team` so the dashboard
->    doesn't look like an island.
-> 7. ⏳ Wire the remaining catalog cards (hot_leads, lead_temp, ai_cost,
->    oauth_health, activity, open_tasks, …) to real queries as we go.
+> 1. ⏳ Apply the V6 clean-skin language (Arabic titles, Vazirmatn,
+>    hairlines, quick actions, restrained motion) to `/projects`,
+>    `/inbox`, `/equipment`, `/team` so the dashboard isn't an island.
+> 2. ⏳ Wire the remaining catalog cards (hot_leads, lead_temp, ai_cost,
+>    oauth_health, activity, open_tasks, …) to real queries.
+> 3. ⏳ Replace the heuristic project_health / at_risk scoring with a
+>    real LLM/AI scorer.
+> 4. ⏳ PWA attendance check-in (D-031).
 >
-> PWA attendance (D-031) still waits behind this.
+> V6 motion exploration + Stitch concept live at `/preview/lab/v6`.
 
 ---
 
@@ -173,6 +166,11 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-26 (eve)** — **Dashboard shipped to production** (D-036). Applied
+  the V6 "clean" skin to the real `/dashboard`: Arabic card titles (not `//`
+  code), Vazirmatn body, higher contrast, per-card quick actions, Framer
+  Motion (entrance/hover/reflow). Merged `feat/dashboard-v5-port` → `main`
+  and `vercel deploy --prod`. Mono skin kept only in `/preview/lab/v5`.
 - **2026-05-26 (pm)** — **V6 motion preview + Stitch concept** on branch
   `feat/dashboard-v5-port`. `/preview/lab/v6/dashboard` = V5 bento + Framer
   Motion (spring entrance, weightless hover, drag-float-snapback, layout
