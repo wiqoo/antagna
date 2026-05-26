@@ -15,7 +15,7 @@
  */
 import { db, whatsappMessages, profiles, projects, projectTasks, dailyTasks } from '@antagna/db';
 import { eq, and, or, desc, sql, isNull, gte } from 'drizzle-orm';
-import { getAnthropic, getOpenAI, ANTHROPIC_MODELS } from '@antagna/ai';
+import { getAnthropic, getOpenAI, ANTHROPIC_MODELS, retrieveMemory } from '@antagna/ai';
 import { sendText, setTyping } from './whatsapp';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -324,9 +324,34 @@ export async function handleInboundForBot(
     void setTyping(senderProfile.whatsappE164, true);
   }
 
+  // RAG: recall relevant company memory (recent activity/audit) so the bot can
+  // answer from what actually happened — not only the chat window. Best-effort.
+  let memoryContext = '';
+  const queryText =
+    unansweredInbound.length > 0
+      ? [...unansweredInbound].reverse().join('\n')
+      : (priorContext[0]?.bodyText ?? '');
+  if (queryText.trim()) {
+    try {
+      const recalled = await retrieveMemory({
+        query: queryText,
+        limit: 5,
+        minSimilarity: 0.3,
+      });
+      if (recalled.length > 0) {
+        memoryContext =
+          '\n\n## Relevant company memory (recent — use only if it helps)\n' +
+          recalled.map((m) => `- ${m.content}`).join('\n');
+      }
+    } catch (e) {
+      console.error('[whatsapp-bot] memory recall failed', e);
+    }
+  }
+
   const systemFull =
     SYSTEM_PROMPT +
-    `\n\n## Current user\n${senderProfile.displayName} — role: ${senderProfile.role} — profile_id: ${senderProfile.id}`;
+    `\n\n## Current user\n${senderProfile.displayName} — role: ${senderProfile.role} — profile_id: ${senderProfile.id}` +
+    memoryContext;
 
   let reply = '';
   let confidence: 'high' | 'low' = 'high';

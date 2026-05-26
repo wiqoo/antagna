@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1, A0-framework, A2 done; next A3.**
+> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1·A0·A2·A3·A4-memory·A5 done; next A4 rules+learning, then A6/A7.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
@@ -26,7 +26,7 @@
 - [x] **A4** `memory-indexer` worker (backfills `audit_log` + streams `activity_events`), triggered from insights-scanner
 - [ ] **A4** editable `alert_rules`/`kpi_definitions` admin (compute_sql locked)
 - [ ] **A4** learning loop (`ai_action_log`→`project_learnings`→`adjustConfidence`)
-- [ ] **A5** WhatsApp LID capture (`senderPn`) + LID↔e164 mapping + webhook upgrade (perms/RAG/groups)
+- [x] **A5** WhatsApp LID fix: webhook extracts real phone (`senderPn`/`sender.id`/group `author`), persists LID↔e164 mapping both ways + resolves known LIDs; bot gets RAG via `retrieveMemory`. Bot-action propose→approve folds into C4 team inbox.
 - [ ] **A6** auth: password reset + email-verify `/auth/callback` + invite/self-signup decision
 - [ ] **A6** PWA: install prompt + real offline shell
 - [ ] **A7** Account control panel (profile, WhatsApp link, **language toggle**, per-event channel prefs, security, view-as)
