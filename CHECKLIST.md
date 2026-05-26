@@ -33,7 +33,7 @@
 - [~] **cross** wire `write_activity` into all server-action mutations — `lib/activity.ts` helper done + all project mutations wired; remaining domains (crm/tasks/equipment/people) as each is built in B/C
 
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
-- [~] **B1** `/projects`: list already strong+on-DNA (AIHints, stat tiles, filters, relational table). **Done:** `write_activity` wired into all 9 project mutations (stage/comment/create/deliverable add+status/reservation/submit/approve/revisions) → feeds A4 brain + Activity tab. **Next:** board-by-stage toggle, detail-page clean tabs (Overview/Tasks/Deliverables/Team/Equipment/Messages/Activity).
+- [~] **B1** `/projects`: list strong+on-DNA (AIHints, stat tiles, filters, relational table). **Done:** `write_activity` in all 9 project mutations → feeds A4 brain + Activity tab; **board-by-stage / table toggle** (`?view=board`, read-only kanban by stage with risk dots + PM). **Next:** detail-page clean tabs (Overview/Tasks/Deliverables/Team/Equipment/Messages/Activity), drag-to-advance-stage (optional).
 - [ ] **B2** `/inbox` + `/inbox/suggestions` (generalized queue)
 - [ ] **B3** `/crm` lead pipeline + `/clients/[id]` 360° + lead→client/project conversion
 - [ ] **B4** `/tasks` — "my work" + per-project board + quick-create from a message
