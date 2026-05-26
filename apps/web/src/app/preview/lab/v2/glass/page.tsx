@@ -85,7 +85,7 @@ export default function GlassDashboard() {
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15), 0 20px 60px rgba(0,0,0,0.4)',
           }}
         >
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr,1fr]">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr_1fr]">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1" style={{ background: 'rgba(255,255,255,0.05)' }}>
                 <Sparkles size={11} className="text-cyan-300" />

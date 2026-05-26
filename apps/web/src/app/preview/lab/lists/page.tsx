@@ -153,7 +153,7 @@ export default function ListsLab() {
         >
           <ul className="space-y-0.5 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-2">
             {SAMPLE.map((p) => (
-              <li key={p.id} className="grid grid-cols-[8px,1fr,auto,auto] items-center gap-3 rounded px-3 py-2 hover:bg-[var(--surface-hover)] text-[12px]">
+              <li key={p.id} className="grid grid-cols-[8px_1fr_auto_auto] items-center gap-3 rounded px-3 py-2 hover:bg-[var(--surface-hover)] text-[12px]">
                 <span
                   className="h-1.5 w-1.5 rounded-full"
                   style={{ background: p.stage === 'review' ? '#22C55E' : p.stage === 'editing' ? '#A855F7' : '#FF8442' }}

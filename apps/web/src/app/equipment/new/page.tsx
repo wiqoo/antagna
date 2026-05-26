@@ -39,7 +39,7 @@ export default async function NewEquipmentPage() {
 
         <Card>
           <form action={createEquipment} className="space-y-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px,1fr]">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_1fr]">
               <Field label="Code" required>
                 <input
                   type="text"

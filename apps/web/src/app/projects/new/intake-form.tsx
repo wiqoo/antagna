@@ -432,7 +432,7 @@ export function IntakeForm({
           ) : (
             <div className="space-y-2">
               {deliverables.map((d, i) => (
-                <div key={i} className="grid grid-cols-[1.2fr,0.8fr,0.6fr,0.5fr,1fr,auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
+                <div key={i} className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.5fr_1fr_auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
                   <select value={d.format} onChange={(e) => patchDeliverable(i, { format: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px]">
                     {FORMATS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
                   </select>
@@ -500,7 +500,7 @@ export function IntakeForm({
           {locations.length > 0 && (
             <div className="space-y-2">
               {locations.map((loc, i) => (
-                <div key={i} className="grid grid-cols-[1fr,1.5fr,auto,auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
+                <div key={i} className="grid grid-cols-[1fr_1.5fr_auto_auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
                   <input
                     type="text"
                     placeholder="المدينة"
@@ -634,7 +634,7 @@ export function IntakeForm({
           {crew.length > 0 && (
             <div className="space-y-2">
               {crew.map((c, i) => (
-                <div key={i} className="grid grid-cols-[1.4fr,1fr,auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
+                <div key={i} className="grid grid-cols-[1.4fr_1fr_auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
                   <select value={c.profile_id} onChange={(e) => patchCrew(i, { profile_id: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px]">
                     <option value="">— اختار شخص —</option>
                     {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}

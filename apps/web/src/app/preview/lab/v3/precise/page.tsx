@@ -52,7 +52,7 @@ export default function PreciseDashboard() {
               ['02', 'BMW-thread', 'إيميل متأخر ٥٢ ساعة، الـ draft جاهز', 'pending'],
               ['03', 'CAPACITY', 'خالد على ٣ مشاريع — وزّع MG لفادي', 'plan'],
             ].map(([num, ref, text, tag]) => (
-              <li key={num as string} className="grid grid-cols-[36px,1fr,auto] items-center gap-4 px-4 py-3 hover:bg-white/[0.02]">
+              <li key={num as string} className="grid grid-cols-[36px_1fr_auto] items-center gap-4 px-4 py-3 hover:bg-white/[0.02]">
                 <span className={'font-mono text-[11px] ' + ((tag as string) === 'urgent' ? 'text-[#FF6B1A]' : 'text-white/35')}>
                   {num as string}
                 </span>
@@ -89,7 +89,7 @@ export default function PreciseDashboard() {
         </section>
 
         {/* Two columns: data table + sparkline column */}
-        <section className="grid grid-cols-1 gap-6 md:grid-cols-[1.4fr,1fr]">
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-[1.4fr_1fr]">
           {/* Shoots table */}
           <div className="overflow-hidden rounded-md border border-white/10">
             <header className="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-2.5 font-mono text-[11px]">
@@ -192,7 +192,7 @@ export default function PreciseDashboard() {
               ['14:45:18', 'EQ-0001', 'reserved canon.r5 for sun'],
               ['14:22:00', 'GMAIL', 'ai summarized 7 threads'],
             ].map(([time, ref, what]) => (
-              <li key={(time as string) + (ref as string)} className="grid grid-cols-[88px,120px,1fr] gap-4 px-4 py-2 hover:bg-white/[0.02]">
+              <li key={(time as string) + (ref as string)} className="grid grid-cols-[88px_120px_1fr] gap-4 px-4 py-2 hover:bg-white/[0.02]">
                 <span className="text-white/40">{time as string}</span>
                 <span className="text-[#FF6B1A]">{ref as string}</span>
                 <span className="text-white/80">{what as string}</span>

@@ -133,7 +133,7 @@ export default function WorkbenchDashboard() {
           <div className="hidden">density-mode-marker</div>
 
           {/* Two-column workbench: shoot browser + AI inspector */}
-          <div className="grid grid-cols-[1fr,320px]">
+          <div className="grid grid-cols-[1fr_320px]">
             {/* Center — shoot/project browser */}
             <section className="border-e border-white/[0.06] p-3">
               <header className="mb-2 flex items-baseline justify-between">
@@ -203,7 +203,7 @@ export default function WorkbenchDashboard() {
               </header>
 
               <div className="overflow-hidden rounded-md border border-white/[0.06]">
-                <div className="grid grid-cols-[28px,1fr,72px,90px,60px,28px] gap-2 border-b border-white/[0.06] bg-white/[0.02] px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-white/35">
+                <div className="grid grid-cols-[28px_1fr_72px_90px_60px_28px] gap-2 border-b border-white/[0.06] bg-white/[0.02] px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider text-white/35">
                   <span></span>
                   <span>project</span>
                   <span>stage</span>
@@ -221,7 +221,7 @@ export default function WorkbenchDashboard() {
                 ].map(([code, title, stage, due, pct, color, urgent]) => (
                   <div
                     key={code as string}
-                    className="grid cursor-pointer grid-cols-[28px,1fr,72px,90px,60px,28px] items-center gap-2 border-b border-white/[0.04] px-3 py-2 text-[11px] last:border-0 hover:bg-white/[0.025]"
+                    className="grid cursor-pointer grid-cols-[28px_1fr_72px_90px_60px_28px] items-center gap-2 border-b border-white/[0.04] px-3 py-2 text-[11px] last:border-0 hover:bg-white/[0.025]"
                   >
                     <span
                       className="h-1.5 w-1.5 rounded-full"
@@ -272,7 +272,7 @@ export default function WorkbenchDashboard() {
 
               <div className="rounded-md border border-white/[0.06] bg-white/[0.015]">
                 {/* Timeline ruler */}
-                <div className="grid grid-cols-[68px,1fr] border-b border-white/[0.06] px-3 py-1">
+                <div className="grid grid-cols-[68px_1fr] border-b border-white/[0.06] px-3 py-1">
                   <span className="font-mono text-[9px] uppercase tracking-wider text-white/30">
                     member
                   </span>
@@ -299,7 +299,7 @@ export default function WorkbenchDashboard() {
                 ].map(([name, days]) => (
                   <div
                     key={name as string}
-                    className="grid grid-cols-[68px,1fr] items-center border-b border-white/[0.04] px-3 py-1 last:border-0"
+                    className="grid grid-cols-[68px_1fr] items-center border-b border-white/[0.04] px-3 py-1 last:border-0"
                   >
                     <span className="font-mono text-[10px] text-white/75">{name as string}</span>
                     <div className="grid grid-cols-14 gap-0.5">
@@ -372,7 +372,7 @@ export default function WorkbenchDashboard() {
                 ].map((p) => (
                   <li
                     key={p.num}
-                    className="grid grid-cols-[28px,1fr] gap-2 border-b border-white/[0.06] py-2.5 last:border-0"
+                    className="grid grid-cols-[28px_1fr] gap-2 border-b border-white/[0.06] py-2.5 last:border-0"
                   >
                     <span
                       className={
@@ -464,7 +464,7 @@ export default function WorkbenchDashboard() {
               ].map(([time, ref, what, detail]) => (
                 <li
                   key={(time as string) + (ref as string)}
-                  className="grid grid-cols-[88px,120px,1fr,auto] gap-3 px-2 py-2 hover:bg-white/[0.02]"
+                  className="grid grid-cols-[88px_120px_1fr_auto] gap-3 px-2 py-2 hover:bg-white/[0.02]"
                 >
                   <span className="text-white/40">{time as string}</span>
                   <span className="truncate text-[#FF6B1A]">{ref as string}</span>

@@ -51,7 +51,7 @@ export default function EditorialDashboard() {
         </header>
 
         {/* Hero — AI brief as an opening article */}
-        <section className="mb-14 grid grid-cols-1 gap-10 lg:grid-cols-[2fr,1fr]">
+        <section className="mb-14 grid grid-cols-1 gap-10 lg:grid-cols-[2fr_1fr]">
           <article>
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-amber-700">
               — افتتاحية AI

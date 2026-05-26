@@ -228,7 +228,7 @@ export default async function SocialPage() {
                 return (
                   <li
                     key={p.id}
-                    className="grid grid-cols-[auto,1fr,auto,auto] items-center gap-4 px-6 py-3"
+                    className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-6 py-3"
                   >
                     <Icon size={14} className="text-[var(--text-dim)]" />
                     <div className="min-w-0">

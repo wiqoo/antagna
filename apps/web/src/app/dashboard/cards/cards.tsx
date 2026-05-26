@@ -63,7 +63,7 @@ export function CardAIBrief({ size = 'lg', editable }: CardProps) {
           ['02', 'إيميل BMW متأخر ٥٢س — الـ draft جاهز.', false],
           ['03', 'وزّع MG لـ فادي قبل الإثنين.', false],
         ].map(([num, text, urgent]) => (
-          <li key={num as string} className="grid grid-cols-[20px,1fr] gap-2 text-[12px]">
+          <li key={num as string} className="grid grid-cols-[20px_1fr] gap-2 text-[12px]">
             <span className={'font-mono ' + ((urgent as boolean) ? 'text-[#FF6B1A]' : 'text-white/35')}>
               {num as string}
             </span>
@@ -250,7 +250,7 @@ export function CardProjectHealth({ size = 'lg', editable, data }: CardProps & {
       ) : (
         <ul className="space-y-2">
           {d.items.map((it) => (
-            <li key={it.name} className="grid grid-cols-[8px,1fr,80px,40px] items-center gap-2.5 text-[11.5px]">
+            <li key={it.name} className="grid grid-cols-[8px_1fr_80px_40px] items-center gap-2.5 text-[11.5px]">
               <span
                 className="h-2 w-2 rounded-full"
                 style={{
@@ -340,7 +340,7 @@ export function CardCapacityForecast({ size = 'lg', editable, data }: CardProps 
       ) : (
         <div className="space-y-1">
           {d.people.map((p) => (
-            <div key={p.name} className="grid grid-cols-[48px,1fr] items-center gap-2">
+            <div key={p.name} className="grid grid-cols-[48px_1fr] items-center gap-2">
               <span className="truncate font-mono text-[10px] text-white/65">{p.name}</span>
               <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}>
                 {p.days.map((v, j) => (
@@ -734,7 +734,7 @@ export function CardVelocity({ size = 'md', editable }: CardProps) {
           ['مونتاج', 7, 5, false],
           ['مراجعة', 14, 7, false],
         ].map(([stage, actual, baseline, ok]) => (
-          <li key={stage as string} className="grid grid-cols-[80px,1fr,40px] items-center gap-2 text-[11px]">
+          <li key={stage as string} className="grid grid-cols-[80px_1fr_40px] items-center gap-2 text-[11px]">
             <span className="text-white/75">{stage as string}</span>
             <div className="flex items-center gap-1.5">
               <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">

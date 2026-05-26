@@ -32,7 +32,7 @@ export default async function NewClientPage() {
 
         <Card>
           <form action={createClient} className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px,1fr]">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_1fr]">
               <Field label="Code" required>
                 <input
                   type="text"

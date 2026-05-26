@@ -672,7 +672,7 @@ export default async function ProjectDetailPage({
             />
             <form
               action={addProjectTask.bind(null, id)}
-              className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,140px,120px,auto]"
+              className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_120px_auto]"
             >
               <input
                 type="text"
@@ -758,7 +758,7 @@ export default async function ProjectDetailPage({
             />
             <form
               action={addAssignment.bind(null, id)}
-              className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,140px,auto]"
+              className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]"
             >
               <select
                 name="profileId"
@@ -1012,7 +1012,7 @@ export default async function ProjectDetailPage({
           />
           <form
             action={addDeliverableGroup.bind(null, id)}
-            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,140px,auto]"
+            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]"
           >
             <input
               type="text"
@@ -1118,7 +1118,7 @@ export default async function ProjectDetailPage({
           />
           <form
             action={addReservation.bind(null, id)}
-            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr,1fr,1fr,auto]"
+            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_1fr_auto]"
           >
             <select
               name="equipmentId"

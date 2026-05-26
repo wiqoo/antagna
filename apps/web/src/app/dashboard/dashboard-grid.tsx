@@ -239,7 +239,7 @@ export function DashboardGrid({
           كل الكروت مخفية. افتح <span className="text-[#FF6B1A]">تخصيص → إضافة كرت</span> لإظهار اللي تحب.
         </div>
       ) : (
-        <motion.div variants={gridContainer} initial="hidden" animate="show" className="grid grid-cols-12 gap-3">
+        <motion.div variants={gridContainer} initial="hidden" animate="show" className="grid grid-cols-12 items-start gap-3">
           {visible.map((id) => {
             const size = layout.sizes[id] ?? CARD_BY_ID[id]?.defaultSize ?? 'md';
             const isDragTarget = overId === id && dragId !== null && dragId !== id;

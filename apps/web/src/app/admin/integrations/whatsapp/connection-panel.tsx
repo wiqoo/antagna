@@ -126,7 +126,7 @@ export function ConnectionPanel({
       </div>
 
       {state === 'connecting' && qr?.base64 && (
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[auto,1fr]">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
           <div className="rounded-md border border-[var(--line)] bg-white p-2">
             <img
               src={
@@ -251,7 +251,7 @@ function TestSend() {
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
         اختبار إرسال
       </p>
-      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[200px,1fr,auto]">
+      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[200px_1fr_auto]">
         <input
           dir="ltr"
           value={to}

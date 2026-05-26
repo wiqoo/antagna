@@ -159,7 +159,7 @@ function Section({
       </header>
 
       {/* Live sample */}
-      <div className="grid grid-cols-1 gap-0 md:grid-cols-[1fr,300px]">
+      <div className="grid grid-cols-1 gap-0 md:grid-cols-[1fr_300px]">
         <div className="space-y-3 p-6 md:p-8">
           <h3 className="text-[22px] font-bold tracking-[-0.018em]" style={{ color: text, fontFamily: 'var(--font-display)' }}>
             مشروع BMW — تسليم خلال ٣ أيام

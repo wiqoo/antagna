@@ -236,7 +236,7 @@ export default async function ClientDetailPage({
           />
           <form
             action={addContact.bind(null, id)}
-            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1.5fr,1fr,1fr,auto]"
+            className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1.5fr_1fr_1fr_auto]"
           >
             <input
               type="text"

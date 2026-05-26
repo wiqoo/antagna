@@ -422,7 +422,7 @@ function Heatmap() {
   const seed = (i: number, j: number) => (i * 31 + j * 7) % 5;
   return (
     <div>
-      <div className="grid grid-cols-[64px,1fr] gap-2">
+      <div className="grid grid-cols-[64px_1fr] gap-2">
         <div />
         <div className="mb-1 grid grid-cols-14 gap-1">
           {Array.from({ length: 14 }, (_, j) => (

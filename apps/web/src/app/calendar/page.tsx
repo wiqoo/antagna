@@ -387,7 +387,7 @@ export default async function CalendarPage({
               <div
                 key={d.date}
                 className={
-                  'grid grid-cols-[88px,1fr] gap-5 border-b border-[var(--line)] px-2 py-4 ' +
+                  'grid grid-cols-[88px_1fr] gap-5 border-b border-[var(--line)] px-2 py-4 ' +
                   (isEmpty ? 'opacity-40' : '') +
                   (isToday ? ' bg-[var(--accent)]/[0.03]' : '')
                 }
