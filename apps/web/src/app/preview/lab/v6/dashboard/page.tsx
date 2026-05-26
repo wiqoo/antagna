@@ -166,7 +166,7 @@ export default function V6Dashboard() {
             : 'مرّر بالماوس على أي كرت تظهر الأكشنز السريعة. اضغط "ترتيب" لإعادة التنظيم.'}
         </p>
 
-        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-12 items-start gap-3">
+        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-flow-row-dense grid-cols-12 items-start gap-3 md:grid-flow-row">
           {visible.map(({ id, size, Comp }) => (
             <motion.div
               key={id}

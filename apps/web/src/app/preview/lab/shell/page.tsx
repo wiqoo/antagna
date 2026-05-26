@@ -29,7 +29,7 @@ export default function ShellHarness() {
   return (
     <AppShell user={{ email: 'mohammed@voltsaudi.com', displayName: 'محمد غريب' }} activePath="/dashboard">
       <h1 className="text-[20px] font-bold" style={{ fontFamily: 'var(--font-display)' }}>اللوحة</h1>
-      <div className="grid grid-cols-12 items-start gap-3">
+      <div className="grid grid-flow-row-dense grid-cols-12 items-start gap-3 md:grid-flow-row">
         {ITEMS.map(({ id, size, Comp }) => (
           <div key={id} className={cardSpanClass(size)}>
             <CardSkin variant="clean" title={CARD_BY_ID[id]?.titleAr}>
