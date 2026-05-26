@@ -59,18 +59,14 @@ export default function V5Library() {
 
               <div className="grid grid-cols-12 gap-3">
                 {cards.map((c) => {
-                  const Component = c.component as React.ComponentType<{
-                    size?: typeof c.defaultSize;
-                  }>;
+                  const Component = c.component;
                   return (
                     <div key={c.id} className="col-span-12 md:col-span-6 lg:col-span-4 space-y-2">
                       <div className="px-1 text-[11px] text-white/55">
                         <span className="font-mono text-[10px] text-white/35">#{c.id}</span>
                         <span className="ms-2">{c.desc}</span>
                       </div>
-                      <div className="grid grid-cols-12 gap-0">
-                        <Component size="full" />
-                      </div>
+                      <Component />
                     </div>
                   );
                 })}

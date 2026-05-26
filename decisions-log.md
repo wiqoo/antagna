@@ -312,6 +312,38 @@ entry #29 when shipped).
 
 ---
 
+### D-036 — Dashboard shipped: V5 bento → production + V6 "clean" skin & motion
+
+**2026-05-26.** Executed D-033 and iterated. Production `/dashboard` now
+renders the bento from a shared module `apps/web/src/app/dashboard/cards/`
+(shell + 28 cards + catalog), wired to the real Supabase queries, with a
+customize system (per-card size cycle, drag/▲▼ reorder, add/hide) persisted
+in a `dash_layout` cookie.
+
+After review, Mohammed steered the look toward a **"clean" card skin**, which
+**supersedes the monospace `// snake_case` card-title aesthetic** from D-034 /
+D-035 (the palette discipline of D-034 — single orange, dark, hairlines, no
+chromatic gradients — still holds). Changes:
+
+- Card titles are clean human Arabic (catalog `titleAr`) in the display font,
+  not `// code` mono labels. The mono skin survives only in `/preview/lab/v5`.
+- Body text unified on **Vazirmatn** (the display font) with higher contrast;
+  numbers/timecodes stay mono.
+- Per-card **quick actions** on hover (رد / موافقة / مراجعة …) linking to the
+  relevant section.
+- **Framer Motion** added (`framer-motion`): spring entrance stagger, hover
+  lift, layout-spring reflow. Drag is gated behind the customize ("ترتيب")
+  mode so it never hijacks scrolling.
+
+V6 motion/skin exploration lives at `/preview/lab/v6` + a Google Stitch
+concept at `/preview/lab/v6/stitch`. project_health / at_risk scoring is a
+deterministic heuristic for now (real LLM scoring is a follow-up).
+
+**Affects:** Pillar 12 (UI), the dashboard customize drawer, future per-role
+default layouts.
+
+---
+
 ## Pending Decisions (to revisit in later pillars)
 
 - **Inngest tier**: free vs paid — depends on background workflow volume (decided in Pillar 10)

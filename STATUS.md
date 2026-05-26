@@ -3,12 +3,14 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-25 (Design system exploration · V5 bento direction picked · Stitch MCP wired)
-**Phase:** Phase 1 features live in prod. **Major design exploration just
-finished** — V1→V5 preview labs at `/preview/lab/*`. User landed on V5
-(bento + 28 AI cards). Next step is **porting V5 to the production
-`/dashboard`**: rebuild the catalog with this aesthetic, replace existing
-cards, expose customize drawer with size+position controls.
+**Last updated:** 2026-05-26 (V6 clean-skin dashboard merged to `main` + deployed to production — D-036)
+**Phase:** Phase 1 features live in prod. **New dashboard shipped** (D-033 →
+D-036): shared `dashboard/cards/` module, 10 live cards wired to real Supabase
+queries, customize (size-cycle + drag/▲▼ reorder + add/hide, `dash_layout`
+cookie). After review, the look moved to a **"clean" skin** — Arabic titles
+(not `// code`), Vazirmatn body, higher contrast, per-card quick actions, and
+Framer Motion (spring entrance, hover lift, layout reflow). Next: spread the
+clean skin to `/projects`, `/inbox`, `/equipment`, `/team`; then PWA attendance.
 
 **Live URLs:**
 - App: <https://antagna-v2.vercel.app> (custom domain `antagna.me` zone added on Cloudflare 2026-05-21)
@@ -18,26 +20,19 @@ cards, expose customize drawer with size+position controls.
 
 ## 🎯 Next concrete action
 
-> **Port V5 bento → production dashboard (D-033).** The user chose this
-> direction after rejecting V1, V2 (too over-the-top), V3 (still meh),
-> and V4 (workbench layout, only ~30% liked). V5 lives at
-> `/preview/lab/v5/dashboard` + `/preview/lab/v5/library` and ships
-> 28 AI-aware cards in 4 AI-density tiers. PWA attendance (D-031)
-> waits behind this.
+> **Spread the clean skin to the other top routes.** The dashboard
+> (D-033 → D-036) is merged to `main` and live in production. Remaining:
 >
-> Concrete steps:
-> 1. Move `apps/web/src/app/preview/lab/v5/cards.tsx` to a shared
->    `dashboard/cards/` directory and wire each card to real Supabase
->    queries (most have data — see `pendingSuggestions`, `recentThreads`
->    etc. already in current `/dashboard/page.tsx`).
-> 2. Replace existing dashboard layout with V5 bento (12-col grid + size
->    spans sm/md/lg/xl/full).
-> 3. Upgrade `dashboard-customize.tsx` to support **size cycling per
->    card** (currently only show/hide) and **drag-to-reorder**.
-> 4. Carry the 1-px AI stripe + AI badge into production.
-> 5. Apply same hairline-border + monospaced-meta language to
->    `/projects`, `/inbox`, `/equipment`, `/team` so the dashboard
->    doesn't look like an island.
+> 1. ⏳ Apply the V6 clean-skin language (Arabic titles, Vazirmatn,
+>    hairlines, quick actions, restrained motion) to `/projects`,
+>    `/inbox`, `/equipment`, `/team` so the dashboard isn't an island.
+> 2. ⏳ Wire the remaining catalog cards (hot_leads, lead_temp, ai_cost,
+>    oauth_health, activity, open_tasks, …) to real queries.
+> 3. ⏳ Replace the heuristic project_health / at_risk scoring with a
+>    real LLM/AI scorer.
+> 4. ⏳ PWA attendance check-in (D-031).
+>
+> V6 motion exploration + Stitch concept live at `/preview/lab/v6`.
 
 ---
 
@@ -171,6 +166,26 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-26 (eve)** — **Dashboard shipped to production** (D-036). Applied
+  the V6 "clean" skin to the real `/dashboard`: Arabic card titles (not `//`
+  code), Vazirmatn body, higher contrast, per-card quick actions, Framer
+  Motion (entrance/hover/reflow). Merged `feat/dashboard-v5-port` → `main`
+  and `vercel deploy --prod`. Mono skin kept only in `/preview/lab/v5`.
+- **2026-05-26 (pm)** — **V6 motion preview + Stitch concept** on branch
+  `feat/dashboard-v5-port`. `/preview/lab/v6/dashboard` = V5 bento + Framer
+  Motion (spring entrance, weightless hover, drag-float-snapback, layout
+  reflow, parallax hero). `/preview/lab/v6/stitch` = a Google Stitch
+  (Gemini 3.1 Pro) alternative concept honoring the palette. Added
+  `framer-motion`. Review: <https://antagna-v6.vercel.app/preview/lab/v6>.
+  Preview env (16 vars) set for all preview branches via `preview ""` trick
+  (see [[project-vercel-preview-env]]).
+- **2026-05-26** — **V5 bento ported to production `/dashboard`** (D-033)
+  on branch `feat/dashboard-v5-port`. New shared `dashboard/cards/` module
+  is the single source of truth (preview labs re-export it). 10 cards wired
+  to the existing Supabase queries; `DashboardGrid` adds size-cycle +
+  drag/▲▼ reorder + add-card + hide, persisted in a `dash_layout` cookie.
+  Old `dashboard-customize.*` (show/hide-only) removed. Typecheck + prod
+  build green. Not merged — pending visual review + preview deploy.
 - **2026-05-25** — Design system journey + Stitch MCP. Built five
   preview labs (`/preview/lab/v1..v5`) exploring eight aesthetic
   directions over a long session. User rejected V1 (boring variants),

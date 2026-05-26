@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Plus, Sparkles, LayoutGrid, Library } from 'lucide-react';
 import {
+  Cell,
   CardAIBrief, CardAtRisk, CardHotLeads, CardSmartSuggestions,
   CardEmailTriage, CardNextActions, CardProjectHealth, CardCapacityForecast,
   CardTodayShoots, CardMTDRevenue, CardOpenTasks, CardActivity,
@@ -47,30 +48,30 @@ export default function V5Dashboard() {
         {/* Bento grid */}
         <div className="grid grid-cols-12 gap-3">
           {/* Row 1: Hero AI brief (lg) + key metric (sm) + Email SLA (sm) */}
-          <CardAIBrief size="lg" editable />
-          <CardMTDRevenue size="sm" editable />
-          <CardEmailSLA size="sm" editable />
-          <CardAICost size="sm" editable />
+          <Cell size="lg"><CardAIBrief editable /></Cell>
+          <Cell size="sm"><CardMTDRevenue editable /></Cell>
+          <Cell size="sm"><CardEmailSLA editable /></Cell>
+          <Cell size="sm"><CardAICost editable /></Cell>
 
           {/* Row 2: At-risk (md) + Next actions (md) + Hot leads (md) */}
-          <CardAtRisk size="md" editable />
-          <CardNextActions size="md" editable />
-          <CardHotLeads size="md" editable />
+          <Cell size="md"><CardAtRisk editable /></Cell>
+          <Cell size="md"><CardNextActions editable /></Cell>
+          <Cell size="md"><CardHotLeads editable /></Cell>
 
           {/* Row 3: Project health (lg) + Email triage (md) + Smart suggestions (md) */}
-          <CardProjectHealth size="lg" editable />
-          <CardEmailTriage size="md" editable />
-          <CardSmartSuggestions size="md" editable />
+          <Cell size="lg"><CardProjectHealth editable /></Cell>
+          <Cell size="md"><CardEmailTriage editable /></Cell>
+          <Cell size="md"><CardSmartSuggestions editable /></Cell>
 
           {/* Row 4: Capacity forecast (lg) + Today's shoots (md) + Open tasks (md) */}
-          <CardCapacityForecast size="lg" editable />
-          <CardTodayShoots size="md" editable />
-          <CardOpenTasks size="md" editable />
+          <Cell size="lg"><CardCapacityForecast editable /></Cell>
+          <Cell size="md"><CardTodayShoots editable /></Cell>
+          <Cell size="md"><CardOpenTasks editable /></Cell>
 
           {/* Row 5: AI tip (md) + Activity (md) + Battery (sm) */}
-          <CardAITip size="md" editable />
-          <CardActivity size="md" editable />
-          <CardEquipmentBattery size="sm" editable />
+          <Cell size="md"><CardAITip editable /></Cell>
+          <Cell size="md"><CardActivity editable /></Cell>
+          <Cell size="sm"><CardEquipmentBattery editable /></Cell>
         </div>
 
         {/* Footer hint */}
