@@ -127,7 +127,7 @@ export default function V6Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F0F12] text-white">
+    <div className="min-h-screen bg-[#0F0F12] text-white" style={{ fontFamily: 'var(--font-arabic-display), var(--font-arabic), sans-serif' }}>
       <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#0F0F12]/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5">
           <Link href="/preview/lab/v6" className="inline-flex items-center gap-1.5 text-[11px] text-white/55 hover:text-white">

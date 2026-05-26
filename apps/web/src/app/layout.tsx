@@ -23,12 +23,12 @@ const geistMono = Geist_Mono({
   weight: ['400', '500'],
 });
 
-// Vazirmatn — DISPLAY/HEADINGS only (Arabic + Latin headings)
+// Vazirmatn — DISPLAY/HEADINGS (and, in the V6 clean card skin, body too)
 const vazirmatn = Vazirmatn({
   variable: '--font-arabic-display',
   subsets: ['arabic', 'latin'],
   display: 'swap',
-  weight: ['600', '700'],
+  weight: ['400', '500', '600', '700'],
 });
 
 // IBM Plex Sans Arabic — BODY (more character at small sizes)
