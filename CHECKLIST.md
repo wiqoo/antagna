@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1 + A0-framework done (i18n toggle verified); next A2.**
+> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1, A0-framework, A2 done; next A3.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
@@ -18,8 +18,8 @@
 - [x] **A0** i18n framework: `next-intl` wired (cookie locale, `ar`/`en` catalogs, dynamic dir, topbar language switch) — toggle verified flipping chrome + RTL/LTR
 - [~] **A0** copy: nav/chrome done in فصحى بسيطة + English; per-page strings converted as each page is rebuilt (B/C)
 - [ ] **A0** tone/channel: notifications + emails + WhatsApp in recipient's language
-- [ ] **A2** seed new permission keys (`admin.access.manage`, `suggestions.approve`, per-domain)
-- [ ] **A2** Access admin UI — users+roles, role×permission matrix, per-user overrides, capabilities
+- [x] **A2** seeded `access.manage` key (migration 042); reuse existing keys elsewhere (`ai_suggestion.approve`, `user.update_role`…)
+- [x] **A2** Access admin UI `/admin/access` — users+roles, role×permission matrix, per-user overrides + capabilities (gated by `access.manage`; builds clean)
 - [ ] **A3** generalize propose→approve (`lib/suggestions/`, extend enum, gate route, write `ai_action_log`)
 - [ ] **A4** fix `ai_memory_chunks` drift + unique `(source,source_id)`
 - [ ] **A4** `retrieveMemory` (RAG) + wire into daily-brief / insights / email-intel
