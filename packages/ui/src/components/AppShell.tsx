@@ -73,19 +73,24 @@ function NavRow({ item, active, badge }: { item: NavItem; active: boolean; badge
     <a
       href={item.href}
       className={
-        'group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors ' +
+        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors ' +
         (active
           ? 'bg-[var(--accent-tint)] text-[var(--text)]'
           : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text)]')
       }
     >
+      {active && (
+        <span className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-[var(--accent)]" aria-hidden />
+      )}
       <Icon
         size={17}
         strokeWidth={1.7}
-        className={active ? 'text-[var(--accent)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text-muted)]'}
+        className={
+          'transition-transform group-hover:scale-110 ' +
+          (active ? 'text-[var(--accent)]' : 'text-[var(--text-dim)] group-hover:text-[var(--text-muted)]')
+        }
       />
       <span className="flex-1 truncate">{item.label}</span>
-      {active && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
       {badge != null && (
         <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent)] px-1 font-mono text-[9px] font-semibold text-white">
           {badge}

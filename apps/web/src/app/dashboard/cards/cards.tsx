@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Card, AIBadge } from './shell';
 import { toAr, type CardSize } from './utils';
+import { CountUp } from './count-up';
 import type {
   EmailTriageData, SuggestionsData, ProjectHealthData, AtRiskData,
   StaleConvosData, CapacityData, ShootsData, RevenueData, ApprovalsData,
@@ -476,7 +477,7 @@ export function CardMTDRevenue({ size = 'sm', editable, data }: CardProps & { da
         ? <><TrendingUp size={9} /><span>{d.deltaPct >= 0 ? '+' : ''}{toAr(d.deltaPct)}٪ من الشهر الماضي</span></>
         : <><TrendingUp size={9} /><span>live · pg_cron</span></>}>
       <p className="font-mono text-[36px] font-bold leading-none tracking-tight text-white">
-        {toAr(k)}<span className="text-[14px] text-white/40">K</span>
+        <CountUp value={k} /><span className="text-[14px] text-white/40">K</span>
       </p>
       <p className="mt-1 text-[10px] text-white/55">ر.س محصّل من بداية الشهر</p>
       <svg viewBox="0 0 100 20" className="mt-3 h-6 w-full">
@@ -559,7 +560,7 @@ export function CardEquipmentConflicts({ size = 'sm', editable, data }: CardProp
   const d = data ?? SAMPLE_CONFLICTS;
   return (
     <Card title="// equip_conflicts" ai="light" size={size} editable={editable} footer={<><Camera size={9} /><span>AI كشف overlap</span></>}>
-      <p className="font-mono text-[36px] font-bold leading-none text-[#FF6B1A]">{toAr(d.count)}</p>
+      <p className="font-mono text-[36px] font-bold leading-none text-[#FF6B1A]"><CountUp value={d.count} /></p>
       <p className="mt-1 text-[11px] text-white/65">حجوزات متداخلة</p>
       {d.items.length > 0 && (
         <ul className="mt-3 space-y-1 text-[10.5px] text-white/55">
@@ -839,7 +840,7 @@ export function CardGlance({ size = 'sm', editable, data }: CardProps & { data?:
         {cells.map((c) => (
           <Link key={c.label} href={c.href} className="rounded-md border border-white/[0.05] bg-[#0F0F12] px-2.5 py-2 hover:border-white/[0.12]">
             <p className={'font-mono text-[22px] font-bold leading-none ' + (c.warn ? 'text-[#FF6B1A]' : 'text-white')}>
-              {toAr(c.value)}
+              <CountUp value={c.value} />
             </p>
             <p className="mt-1 text-[9.5px] text-white/50">{c.label}</p>
           </Link>
