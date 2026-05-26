@@ -12,7 +12,7 @@ import {
 } from '@/lib/view-as';
 import { ViewAsBar } from './ViewAsBar';
 
-const ADMIN_ROLES = new Set(['system_admin', 'system_manager']);
+const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
 
 export async function Shell({
   children,

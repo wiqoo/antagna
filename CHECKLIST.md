@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — starting Phase A1.**
+> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1 done, starting A0 (i18n).**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
@@ -14,8 +14,8 @@
 - [x] Dev MCP toolkit (Playwright, Chrome-DevTools, Context7, shadcn, MagicUI, 21st, Supabase, Stitch) + Sentry MCP configured
 
 ## Phase A — Foundation (cross-cutting)
-- [~] **A1** RBAC helper `authz.ts` (`can`/`requirePermission`/`requireCapability`) + reconcile phantom `system_manager`
-- [ ] **A0** i18n: wire `next-intl` (cookie/profile locale), `ar.json`/`en.json`, dynamic dir/font, language switch
+- [x] **A1** RBAC helper `authz.ts` (`can`/`requirePermission`/`requireCapability`) + reconciled phantom `system_manager`→`general_manager`
+- [~] **A0** i18n: wire `next-intl` (cookie/profile locale), `ar.json`/`en.json`, dynamic dir/font, language switch
 - [ ] **A0** copy: rewrite **all** UI strings → فصحى بسيطة + professional English (incl. dashboard cards)
 - [ ] **A0** tone/channel: notifications + emails + WhatsApp in recipient's language
 - [ ] **A2** seed new permission keys (`admin.access.manage`, `suggestions.approve`, per-domain)

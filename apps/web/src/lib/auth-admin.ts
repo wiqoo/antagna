@@ -12,7 +12,9 @@ import type { User } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from './supabase/server';
 import { getCurrentProfile } from './view-as';
 
-const ADMIN_ROLES = new Set(['system_admin', 'system_manager']);
+// Coarse admin gate for /admin. Fine-grained checks use lib/authz.ts `can()`.
+// (general_manager is the senior business admin; the old 'system_manager' role never existed.)
+const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
 
 export interface AdminUser {
   user: User;

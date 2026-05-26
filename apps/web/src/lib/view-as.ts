@@ -21,7 +21,7 @@ import { getSupabaseServerClient } from './supabase/server';
 
 export const VIEW_AS_COOKIE = 'antagna_view_as';
 
-const ADMIN_ROLES = new Set(['system_admin', 'system_manager']);
+const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
 
 export interface CurrentProfile {
   id: string;
