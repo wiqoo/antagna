@@ -20,15 +20,15 @@ import {
   MessageSquare, ListChecks, Clock, Battery, Zap, Lightbulb, CheckCircle2,
   FileText, Layers, Send, ChevronRight,
 } from 'lucide-react';
-import { Card, AIBadge, toAr, type CardSize } from './shell';
+import { Card, AIBadge } from './shell';
+import { toAr, type CardSize } from './utils';
 import type {
   EmailTriageData, SuggestionsData, ProjectHealthData, AtRiskData,
   StaleConvosData, CapacityData, ShootsData, RevenueData, ApprovalsData,
   ConflictsData, GlanceData,
 } from './types';
 
-export { Card, AIBadge, type CardSize };
-export type { AILevel } from './shell';
+export { Card, AIBadge };
 
 type CardProps = { size?: CardSize; editable?: boolean };
 

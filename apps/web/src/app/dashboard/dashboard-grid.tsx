@@ -5,7 +5,7 @@ import {
   Sliders, Check, Plus, RotateCcw, Maximize2, EyeOff, GripVertical,
   ChevronUp, ChevronDown, X,
 } from 'lucide-react';
-import { cardSpanClass, CARD_SIZES, type CardSize } from './cards/shell';
+import { cardSpanClass, CARD_SIZES, type CardSize } from './cards/utils';
 import {
   CARD_BY_ID, DEFAULT_LAYOUT, type CardId, type DashLayout,
 } from './cards/catalog';

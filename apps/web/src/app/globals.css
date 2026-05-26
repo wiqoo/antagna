@@ -248,3 +248,16 @@ textarea.form-input {
 @media (prefers-reduced-motion: reduce) {
   .antagna-skeleton { animation: none; }
 }
+
+/* ── V6 "clean" card skin ────────────────────────────────────────────────
+   Scoped contrast boost so the dense cards read clearly. Only affects cards
+   rendered with the clean skin (CardSkin variant="clean"); V5 is untouched. */
+.card-clean { font-feature-settings: "ss01" on, "cv01" on; }
+.card-clean .text-white\/40 { color: rgba(255,255,255,0.58); }
+.card-clean .text-white\/45 { color: rgba(255,255,255,0.62); }
+.card-clean .text-white\/55 { color: rgba(255,255,255,0.72); }
+.card-clean .text-white\/65 { color: rgba(255,255,255,0.80); }
+.card-clean .text-white\/85,
+.card-clean .text-white\/90 { color: rgba(255,255,255,0.94); }
+/* footer meta a touch brighter than the V5 mono footer */
+.card-clean footer { color: rgba(255,255,255,0.55) !important; }
