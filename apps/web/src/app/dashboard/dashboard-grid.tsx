@@ -1,11 +1,15 @@
 'use client';
 
 import { useMemo, useState, useTransition, type ReactNode } from 'react';
+import Link from 'next/link';
+import { motion, type Variants } from 'framer-motion';
 import {
   Sliders, Check, Plus, RotateCcw, Maximize2, EyeOff, GripVertical,
-  ChevronUp, ChevronDown, X,
+  ChevronUp, ChevronDown, X, Reply, CheckCheck, Send, CalendarDays,
+  ArrowUpRight, Wrench, Users, MoreHorizontal,
 } from 'lucide-react';
 import { cardSpanClass, CARD_SIZES, type CardSize } from './cards/utils';
+import { CardSkin } from './cards/shell';
 import {
   CARD_BY_ID, DEFAULT_LAYOUT, type CardId, type DashLayout,
 } from './cards/catalog';
@@ -15,6 +19,49 @@ type Item = { id: CardId; node: ReactNode };
 
 const SIZE_LABEL: Record<CardSize, string> = {
   sm: 'S', md: 'M', lg: 'L', xl: 'XL', full: 'كامل',
+};
+
+// Primary quick action per card → links to the relevant section.
+const QA: Partial<Record<CardId, { Icon: typeof Reply; label: string; href: string }>> = {
+  email_triage: { Icon: Reply, label: 'رد', href: '/inbox' },
+  ai_suggestions: { Icon: CheckCheck, label: 'مراجعة', href: '/inbox/suggestions' },
+  project_health: { Icon: ArrowUpRight, label: 'فتح', href: '/projects' },
+  capacity_fc: { Icon: Users, label: 'الفريق', href: '/team' },
+  approvals: { Icon: Check, label: 'موافقة', href: '/projects' },
+  stale_convos: { Icon: Send, label: 'متابعة', href: '/inbox/suggestions' },
+  shoots: { Icon: CalendarDays, label: 'التقويم', href: '/calendar' },
+  equip_conflicts: { Icon: Wrench, label: 'حل', href: '/equipment' },
+  mtd_revenue: { Icon: ArrowUpRight, label: 'تفاصيل', href: '/reports' },
+  glance: { Icon: ArrowUpRight, label: 'الكل', href: '/projects' },
+  at_risk: { Icon: ArrowUpRight, label: 'فتح', href: '/projects' },
+};
+
+function QuickActions({ id }: { id: CardId }) {
+  const a = QA[id];
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  return (
+    <>
+      {a && (
+        <Link
+          href={a.href}
+          onClick={stop}
+          className="inline-flex items-center gap-1 rounded-md border border-[#FF6B1A]/40 px-1.5 py-0.5 text-[10px] font-semibold text-[#FF6B1A] hover:bg-[#FF6B1A]/10"
+        >
+          <a.Icon size={10} />
+          {a.label}
+        </Link>
+      )}
+      <button onClick={stop} className="grid h-5 w-5 place-items-center rounded text-white/45 hover:bg-white/[0.06] hover:text-white">
+        <MoreHorizontal size={12} />
+      </button>
+    </>
+  );
+}
+
+const gridContainer: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } } };
+const gridItem: Variants = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 150, damping: 18 } },
 };
 
 export function DashboardGrid({
@@ -192,32 +239,38 @@ export function DashboardGrid({
           كل الكروت مخفية. افتح <span className="text-[#FF6B1A]">تخصيص → إضافة كرت</span> لإظهار اللي تحب.
         </div>
       ) : (
-        <div className="grid grid-cols-12 gap-3">
+        <motion.div variants={gridContainer} initial="hidden" animate="show" className="grid grid-cols-12 gap-3">
           {visible.map((id) => {
             const size = layout.sizes[id] ?? CARD_BY_ID[id]?.defaultSize ?? 'md';
             const isDragTarget = overId === id && dragId !== null && dragId !== id;
             return (
-              <div
+              <motion.div
                 key={id}
-                draggable={editing}
-                onDragStart={(e) => { setDragId(id); e.dataTransfer.effectAllowed = 'move'; }}
-                onDragOver={(e) => { if (editing && dragId) { e.preventDefault(); setOverId(id); } }}
-                onDragLeave={() => setOverId((cur) => (cur === id ? null : cur))}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (dragId) reorder(dragId, id);
-                  setDragId(null);
-                  setOverId(null);
-                }}
-                onDragEnd={() => { setDragId(null); setOverId(null); }}
+                layout
+                variants={gridItem}
+                whileHover={editing ? undefined : { y: -4, transition: { type: 'spring', stiffness: 300, damping: 24 } }}
                 className={
                   cardSpanClass(size) +
-                  ' relative transition-[opacity,transform] ' +
-                  (editing ? ' cursor-grab ' : '') +
+                  ' relative ' +
                   (dragId === id ? ' opacity-40 ' : '') +
                   (isDragTarget ? ' rounded-xl ring-2 ring-[#FF6B1A]/60 ring-offset-2 ring-offset-[#0F0F12] ' : '')
                 }
               >
+                {/* inner native-drag wrapper — Framer reserves onDragStart/End */}
+                <div
+                  draggable={editing}
+                  onDragStart={(e) => { setDragId(id); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => { if (editing && dragId) { e.preventDefault(); setOverId(id); } }}
+                  onDragLeave={() => setOverId((cur) => (cur === id ? null : cur))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragId) reorder(dragId, id);
+                    setDragId(null);
+                    setOverId(null);
+                  }}
+                  onDragEnd={() => { setDragId(null); setOverId(null); }}
+                  className={'h-full' + (editing ? ' cursor-grab' : '')}
+                >
                 {editing && (
                   <div className="absolute end-2 top-2 z-20 flex items-center gap-0.5 rounded-md border border-white/[0.1] bg-[#0F0F12]/90 p-0.5 backdrop-blur">
                     <span className="grid h-6 w-6 place-items-center text-white/40"><GripVertical size={12} /></span>
@@ -236,11 +289,18 @@ export function DashboardGrid({
                     </button>
                   </div>
                 )}
-                {nodeById.get(id)}
-              </div>
+                  <CardSkin
+                    variant="clean"
+                    title={CARD_BY_ID[id]?.titleAr}
+                    actions={editing ? undefined : <QuickActions id={id} />}
+                  >
+                    {nodeById.get(id)}
+                  </CardSkin>
+                </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
     </section>
   );
