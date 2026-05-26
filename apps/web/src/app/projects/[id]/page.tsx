@@ -316,6 +316,22 @@ export default async function ProjectDetailPage({
       `),
     ]);
 
+  // Activity timeline — the company-memory feed (write_activity), newest first.
+  const activity = (await db.execute(sql`
+    SELECT a.action AS action, a.summary_ar AS summary,
+           a.created_at AS at, p.display_name AS actor
+    FROM activity_events a
+    LEFT JOIN profiles p ON p.id = a.actor_id
+    WHERE a.project_id = ${id}::uuid
+    ORDER BY a.created_at DESC
+    LIMIT 30
+  `)) as unknown as Array<{
+    action: string;
+    summary: string | null;
+    at: string;
+    actor: string | null;
+  }>;
+
   // Group deliverables by their group
   type DGroup = {
     id: string;
@@ -903,6 +919,47 @@ export default async function ProjectDetailPage({
           )}
         </Card>
       </div>
+
+      {/* Activity timeline — the write_activity feed (also powers the AI memory) */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader title="النشاط" subtitle="آخر التحديثات على المشروع" />
+        </div>
+        {activity.length === 0 ? (
+          <EmptyState
+            icon={<History size={20} />}
+            title="لا نشاط بعد"
+            description="ستظهر هنا التغييرات والتعليقات والاعتمادات أولاً بأول."
+          />
+        ) : (
+          <ul className="space-y-0">
+            {activity.map((a, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-3 border-t border-[var(--line)] px-6 py-3 first:border-t-0"
+              >
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-[var(--text)]">{a.summary ?? a.action}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-dim)]">
+                    <span className="font-mono">{a.action}</span>
+                    {a.actor && (
+                      <>
+                        <span>·</span>
+                        <span>{a.actor}</span>
+                      </>
+                    )}
+                    <span>·</span>
+                    <span className="font-mono">
+                      {new Date(a.at).toISOString().slice(0, 16).replace('T', ' ')}
+                    </span>
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       {/* Frame.io-style 2-stage approval pipeline */}
       {groupedDeliverables.reduce((s, g) => s + g.items.length, 0) > 0 && (
