@@ -20,7 +20,7 @@
 - [ ] **A0** tone/channel: notifications + emails + WhatsApp in recipient's language
 - [x] **A2** seeded `access.manage` key (migration 042); reuse existing keys elsewhere (`ai_suggestion.approve`, `user.update_role`…)
 - [x] **A2** Access admin UI `/admin/access` — users+roles, role×permission matrix, per-user overrides + capabilities (gated by `access.manage`; builds clean)
-- [ ] **A3** generalize propose→approve (`lib/suggestions/`, extend enum, gate route, write `ai_action_log`)
+- [x] **A3** approve route gated by `ai_suggestion.approve` + writes `ai_action_log` on every decision (seeds A4 learning loop); inbox already domain-agnostic. Executor file-relocation → when first non-email domain lands (C).
 - [ ] **A4** fix `ai_memory_chunks` drift + unique `(source,source_id)`
 - [ ] **A4** `retrieveMemory` (RAG) + wire into daily-brief / insights / email-intel
 - [ ] **A4** `memory-indexer` worker (backfill `audit_log` + stream `activity_events`)
