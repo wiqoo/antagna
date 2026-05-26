@@ -237,6 +237,81 @@ project participants. Deferred for now (no sprint slot yet).
 
 ---
 
+### D-033 — Dashboard direction: V5 bento + AI cards
+**Decision (2026-05-25 by Mohammed):** After a long design exploration session
+(V1 — boring comparison variants; V2 — premium creative-pro mockups
+[Editorial/Studio/Glass]; V3 — restrained mono palette [Calm/Precise/Spaced];
+V4 — Frame.io workbench), the production dashboard moves to the **V5** model:
+
+- **Cards-only.** No tables embedded in the page, no inline lists outside
+  cards. Every piece of info is a discrete card.
+- **AI inside cards.** Each card declares an AI level (heavy / medium /
+  light / none). A 1-px top stripe on the card visually encodes the
+  density — orange at full opacity for heavy, fading to none for "no AI".
+  A tiny `AI` pill sits next to the title.
+- **28-card catalog.** See D-035.
+- **Bento layout.** Sizes per card: sm (3-col), md (4), lg (6), xl (8),
+  full (12). User can mix densities — small KPI tiles alongside large
+  AI Brief cards.
+
+Lives at `apps/web/src/app/preview/lab/v5/`. Production port is the
+next major work item.
+
+**Affects:** Pillar 12 (UI/UX), Pillar 10 (AI surface), Pillar 11 (suggestion
+visibility). Supersedes the rough customization first introduced in
+`apps/web/src/app/dashboard/dashboard-customize.tsx` — that's now the
+seed for the V5 customize drawer.
+
+---
+
+### D-034 — Palette discipline: mono orange, no chromatic gradients
+**Decision (2026-05-25 by Mohammed):** Across the whole UI:
+
+- The accent palette is the **single orange** already locked in
+  `apps/web/src/app/globals.css` (`--accent: #FF6B1A`, hover `#FF8442`).
+- **No mesh gradients, no glow shadows, no chromatic gradient fills**
+  (no purple/cyan/pink/emerald accents anywhere). The V2 mockups
+  (Editorial/Studio/Glass) tried these and were rejected as "اوفر اوي،
+  مش الالوان بتاعتي".
+- Greens / yellows / reds only for **semantic state** indicators
+  (success / warning / error in tiny pills) — never as decoration.
+- Backgrounds: `#0F0F12` page, `#17171C` surface, hairline borders at
+  `rgba(255,255,255,0.06–0.16)`.
+- Premium feel comes from **typography, spacing, and rhythm** — not
+  color or glow.
+
+**Reason:** Volt is a creative production agency. The UI is shown to
+clients (BMW, Rolls Royce). The user has a strong visual eye and
+explicitly rejected anything that "tries too hard" with color.
+
+**Affects:** All future components. Reviewers (including future Claude
+sessions) should flag any new chromatic gradient as out of policy.
+
+---
+
+### D-035 — V5 Card Catalog (28 cards)
+**Decision (2026-05-25 by Mohammed):** The dashboard customization
+drawer ships with a fixed seed catalog of 28 cards across 4 AI tiers:
+
+- **AI Heavy (13):** ai_brief · at_risk · hot_leads · ai_suggestions ·
+  email_triage · next_actions · project_health · bottleneck ·
+  client_mood · capacity_forecast · followups · stale_convos · ai_tip
+- **AI Medium (7):** cashflow · approvals · lead_temp · ai_cost ·
+  velocity · win_rate · today_shoots (light boundary)
+- **AI Light (5):** mtd_revenue · open_tasks · activity · equip_conflicts · battery
+- **No AI (3):** email_sla · oauth_health · workers
+
+Source of truth: `apps/web/src/app/preview/lab/v5/cards.tsx`
+exporting `CARD_CATALOG`. Each entry has `{ id, title, group, ai,
+component, defaultSize, desc }`. Production port should reuse this
+catalog verbatim — only swap mock content for live Supabase queries.
+
+**Affects:** Pillar 10/12, the customize drawer, future per-role
+default profiles (D-031 deferred attendance card can become catalog
+entry #29 when shipped).
+
+---
+
 ## Pending Decisions (to revisit in later pillars)
 
 - **Inngest tier**: free vs paid — depends on background workflow volume (decided in Pillar 10)

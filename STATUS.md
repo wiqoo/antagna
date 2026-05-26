@@ -3,11 +3,12 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-22 (Email Intelligence Phase 1 complete + WhatsApp bot live + Smart suggestions feed)
-**Phase:** Phase 1 features running end-to-end in prod. Gmail ingest + Email
-Intelligence (extraction → suggestions → execute) + WhatsApp team chat-ops bot
-+ daily smart-suggestions scan are all live. Remaining backlog is opt-in
-(social OAuth, attendance PWA, AI command bar) or external (legacy DB merge).
+**Last updated:** 2026-05-25 (Design system exploration · V5 bento direction picked · Stitch MCP wired)
+**Phase:** Phase 1 features live in prod. **Major design exploration just
+finished** — V1→V5 preview labs at `/preview/lab/*`. User landed on V5
+(bento + 28 AI cards). Next step is **porting V5 to the production
+`/dashboard`**: rebuild the catalog with this aesthetic, replace existing
+cards, expose customize drawer with size+position controls.
 
 **Live URLs:**
 - App: <https://antagna-v2.vercel.app> (custom domain `antagna.me` zone added on Cloudflare 2026-05-21)
@@ -17,10 +18,26 @@ Intelligence (extraction → suggestions → execute) + WhatsApp team chat-ops b
 
 ## 🎯 Next concrete action
 
-> **Next priority: PWA attendance check-in UI (D-031).** All Email Intel
-> Phase 1 work is shipped and deployed; attendance is the chosen next
-> feature. Mobile-first, GPS-stamped, plugs into the existing
-> `attendance_*` schema + KPI engine.
+> **Port V5 bento → production dashboard (D-033).** The user chose this
+> direction after rejecting V1, V2 (too over-the-top), V3 (still meh),
+> and V4 (workbench layout, only ~30% liked). V5 lives at
+> `/preview/lab/v5/dashboard` + `/preview/lab/v5/library` and ships
+> 28 AI-aware cards in 4 AI-density tiers. PWA attendance (D-031)
+> waits behind this.
+>
+> Concrete steps:
+> 1. Move `apps/web/src/app/preview/lab/v5/cards.tsx` to a shared
+>    `dashboard/cards/` directory and wire each card to real Supabase
+>    queries (most have data — see `pendingSuggestions`, `recentThreads`
+>    etc. already in current `/dashboard/page.tsx`).
+> 2. Replace existing dashboard layout with V5 bento (12-col grid + size
+>    spans sm/md/lg/xl/full).
+> 3. Upgrade `dashboard-customize.tsx` to support **size cycling per
+>    card** (currently only show/hide) and **drag-to-reorder**.
+> 4. Carry the 1-px AI stripe + AI badge into production.
+> 5. Apply same hairline-border + monospaced-meta language to
+>    `/projects`, `/inbox`, `/equipment`, `/team` so the dashboard
+>    doesn't look like an island.
 
 ---
 
@@ -154,6 +171,28 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-25** — Design system journey + Stitch MCP. Built five
+  preview labs (`/preview/lab/v1..v5`) exploring eight aesthetic
+  directions over a long session. User rejected V1 (boring variants),
+  V2 (too over-the-top, gradients clash with palette), V3 (still not
+  it), and V4 (~30% liked — kept the table-style + monospace headers,
+  but the workbench layout itself was rejected as "too big"). **V5
+  picked**: bento layout, 28 AI cards, ٤ AI-density tiers (heavy /
+  medium / light / none), 1-px orange top-stripe whose opacity encodes
+  AI weight. Aesthetic preferences captured in
+  `memory/feedback_design_taste.md`. Added Google Stitch MCP server
+  (local scope) so future sessions can generate UI variants directly.
+  Decisions D-033 (V5 direction), D-034 (palette discipline),
+  D-035 (28-card catalog) logged.
+- **2026-05-22** — Long bug-fix + UI session: Vercel region pinned to
+  hnd1 (co-located with Supabase Tokyo), pdf-parse quarantined as
+  serverExternalPackages (was 500ing every gmail/summarize), middleware
+  exclude list for `sw.js` + manifest (PWA was bricking on iOS),
+  `recordUsage` now resolves authUserId → profileId internally (FK
+  violation fixed), 6-second per-query timeout on dashboard (was
+  hitting the 300s Vercel limit), AppShell dock flipped to visual
+  right, project codes demoted to subtitles across CRM/projects/
+  equipment.
 - **2026-05-22 (afternoon)** — Backlog cleaned: Social OAuth **cancelled** (D-028), AI Command Bar **cancelled** (D-029), PWA attendance check-in **promoted to next sprint** (D-031), Team Chat **locked to per-project only** + deferred (D-032), Calendar runtime **gated behind Drive verification** (D-030). README + STATUS + bootstrap refreshed.
 - **2026-05-22** — Email Intel Phase 1 complete: attachment parsing (PDFs via pdf-parse) + cross-thread conversation analysis + proactive smart-suggestions feed. WhatsApp bot switched to gpt-4o-mini with tighter persona. Migration tracking gap (032-041) repaired in `supabase_migrations.schema_migrations`.
 - **2026-05-21** — Custom domain `antagna.me` zone added on Cloudflare. WPPConnect WhatsApp bot live via Cloudflare tunnel. View-as impersonation for admins.
