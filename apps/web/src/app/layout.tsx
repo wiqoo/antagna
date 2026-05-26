@@ -9,6 +9,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 // Geist — Latin product UI sans
 const geist = Geist({
@@ -82,6 +83,7 @@ export default async function RootLayout({
         <NextIntlClientProvider>
           {children}
           <PWARegister />
+          <InstallPrompt />
         </NextIntlClientProvider>
       </body>
     </html>

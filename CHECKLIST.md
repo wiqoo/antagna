@@ -27,8 +27,8 @@
 - [x] **A4** editable monitoring admin `/admin/automation` — full edit of alert rules (labels/recipients/cooldown/trigger_spec JSON/active) + KPI thresholds/labels/active; `compute_sql` shown read-only (code-managed); gated `automation.manage` (migration 044); linked from `/admin` (also linked the orphaned `/admin/access`)
 - [x] **A4** learning loop — `learning-aggregator` worker rolls `ai_action_log` (suggestion_review) → `project_learnings` acceptance rates; `adjustConfidence()` helper blends them into tiers (bounded ±0.10, sample floor 10). Wire into tiering = B2 /inbox.
 - [x] **A5** WhatsApp LID fix: webhook extracts real phone (`senderPn`/`sender.id`/group `author`), persists LID↔e164 mapping both ways + resolves known LIDs; bot gets RAG via `retrieveMemory`. Bot-action propose→approve folds into C4 team inbox.
-- [ ] **A6** auth: password reset + email-verify `/auth/callback` + invite/self-signup decision
-- [ ] **A6** PWA: install prompt + real offline shell
+- [x] **A6** auth: password reset (`/auth/forgot`→email→`/auth/callback`→`/auth/reset`) + email-verify via `emailRedirectTo`→`/auth/callback` (PKCE exchange) + login/register/forgot/reset re-skinned to DNA via shared `AuthCard`. Invite-vs-self-signup = your call (manual item Q1; register stays open for now).
+- [x] **A6** PWA: `beforeinstallprompt` custom install card (`InstallPrompt`) + real `/offline` shell (precached by sw.js v2, added to public allowlist)
 - [ ] **A7** Account control panel (profile, WhatsApp link, **language toggle**, per-event channel prefs, security, view-as)
 - [ ] **cross** wire `write_activity` into all server-action mutations
 
