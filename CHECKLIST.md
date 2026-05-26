@@ -34,7 +34,7 @@
 
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
 - [x] **B1** `/projects`: list strong+on-DNA (AIHints, stat tiles, filters, relational table) + **board/table toggle** (`?view=board` kanban by stage); detail page comprehensive (header, tasks, team, comments, stage-log, deliverables, equipment, approval pipeline) + new **Activity timeline** (reads `activity_events`); `write_activity` in all 9 project mutations → feeds A4 brain. **Polish later:** reorganize detail sections into tabs, drag-to-advance-stage (need visual QA on the auth-gated page).
-- [ ] **B2** `/inbox` + `/inbox/suggestions` (generalized queue)
+- [x] **B2** `/inbox` strong+on-DNA (AIHints, thread list w/ AI summary+status, WhatsApp + drafts sections); `/inbox/suggestions` queue is domain-agnostic (status/expiry filter, not email-only) + gated server-side (A3) + now shows **human-readable labeled proposed-data** (Arabic field view) instead of raw JSON, so approvals are reviewable. Reply-draft compose exists. **Later:** richer per-type cards, inline thread reply.
 - [ ] **B3** `/crm` lead pipeline + `/clients/[id]` 360° + lead→client/project conversion
 - [ ] **B4** `/tasks` — "my work" + per-project board + quick-create from a message
 
