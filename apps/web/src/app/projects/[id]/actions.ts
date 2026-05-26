@@ -5,6 +5,8 @@ import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { db, projects, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
+import { stageLabelAr } from '@/lib/project-stage';
 
 type StageVal = (typeof import('@antagna/db').projectStageEnum.enumValues)[number];
 
@@ -65,6 +67,17 @@ export async function transitionStage(
 
   await db.update(projects).set(setCols).where(eq(projects.id, projectId));
 
+  await writeActivity({
+    actorId: actor?.id ?? null,
+    entityType: 'project',
+    entityId: projectId,
+    projectId,
+    action: 'stage_changed',
+    summaryAr: `تغيّرت المرحلة إلى «${stageLabelAr(nextStage)}»${reason ? ` — ${reason}` : ''}`,
+    summaryEn: `Stage changed to ${nextStage}${reason ? ` — ${reason}` : ''}`,
+    metadata: { to_stage: nextStage, reason: reason ?? undefined },
+  });
+
   revalidatePath(`/projects/${projectId}`);
   revalidatePath('/projects');
 
@@ -98,6 +111,16 @@ export async function postComment(projectId: string, body: string) {
     sql`INSERT INTO project_comments (project_id, author_id, body)
         VALUES (${projectId}::uuid, ${actor.id}::uuid, ${body.trim()})`,
   );
+
+  await writeActivity({
+    actorId: actor.id,
+    entityType: 'project',
+    entityId: projectId,
+    projectId,
+    action: 'comment_posted',
+    summaryAr: `تعليق جديد: ${body.trim().slice(0, 140)}`,
+    summaryEn: `New comment: ${body.trim().slice(0, 140)}`,
+  });
 
   revalidatePath(`/projects/${projectId}`);
   return { ok: true };

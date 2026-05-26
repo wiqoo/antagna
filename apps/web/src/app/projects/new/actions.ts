@@ -5,6 +5,7 @@ import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
 
 // ════════════════════════════════════════════════════════════════════════════
 // AI PARSE — extract rich brief from any pasted text (email / WhatsApp / doc)
@@ -342,6 +343,17 @@ export async function createProject(formData: FormData) {
       // Skip invalid role (FK / enum mismatch)
     }
   }
+
+  await writeActivity({
+    actorId: actor?.id ?? null,
+    entityType: 'project',
+    entityId: newId,
+    projectId: newId,
+    action: 'project_created',
+    summaryAr: `أُنشئ مشروع جديد: ${titleAr ?? title}`,
+    summaryEn: `New project created: ${title}`,
+    metadata: { project_type: projectType, from_template: !!templateId },
+  });
 
   redirect(`/projects/${newId}`);
 }

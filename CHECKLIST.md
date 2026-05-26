@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — A1·A0·A2·A3·A4-memory·A5 done; next A4 rules+learning, then A6/A7.**
+> `.claude/plans` (approved). **Last updated: 2026-05-26 — Phase A COMPLETE (A0–A7), build ✓; B1 started (write_activity across all project mutations). Deploy postponed by Mohammed.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
@@ -30,10 +30,10 @@
 - [x] **A6** auth: password reset (`/auth/forgot`→email→`/auth/callback`→`/auth/reset`) + email-verify via `emailRedirectTo`→`/auth/callback` (PKCE exchange) + login/register/forgot/reset re-skinned to DNA via shared `AuthCard`. Invite-vs-self-signup = your call (manual item Q1; register stays open for now).
 - [x] **A6** PWA: `beforeinstallprompt` custom install card (`InstallPrompt`) + real `/offline` shell (precached by sw.js v2, added to public allowlist)
 - [x] **A7** Account hub `/settings` rebuilt: profile, **language toggle** (switches whole system + syncs locale cookie), per-event×per-channel **notification matrix** (in-app/email/WhatsApp chips → feeds unified notif service), **security** (change password), WhatsApp-link card, admin-tools card (admin-only). Reshaped `notification_prefs` → `{channels:{event:{inApp,email,whatsapp}}}` (no other consumer yet).
-- [ ] **cross** wire `write_activity` into all server-action mutations
+- [~] **cross** wire `write_activity` into all server-action mutations — `lib/activity.ts` helper done + all project mutations wired; remaining domains (crm/tasks/equipment/people) as each is built in B/C
 
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
-- [ ] **B1** `/projects` list (board+table, AI health) + `/projects/[id]` clean tabs + Messages/Activity
+- [~] **B1** `/projects`: list already strong+on-DNA (AIHints, stat tiles, filters, relational table). **Done:** `write_activity` wired into all 9 project mutations (stage/comment/create/deliverable add+status/reservation/submit/approve/revisions) → feeds A4 brain + Activity tab. **Next:** board-by-stage toggle, detail-page clean tabs (Overview/Tasks/Deliverables/Team/Equipment/Messages/Activity).
 - [ ] **B2** `/inbox` + `/inbox/suggestions` (generalized queue)
 - [ ] **B3** `/crm` lead pipeline + `/clients/[id]` 360° + lead→client/project conversion
 - [ ] **B4** `/tasks` — "my work" + per-project board + quick-create from a message
