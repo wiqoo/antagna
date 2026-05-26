@@ -173,6 +173,14 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-26 (pm)** — **V6 motion preview + Stitch concept** on branch
+  `feat/dashboard-v5-port`. `/preview/lab/v6/dashboard` = V5 bento + Framer
+  Motion (spring entrance, weightless hover, drag-float-snapback, layout
+  reflow, parallax hero). `/preview/lab/v6/stitch` = a Google Stitch
+  (Gemini 3.1 Pro) alternative concept honoring the palette. Added
+  `framer-motion`. Review: <https://antagna-v6.vercel.app/preview/lab/v6>.
+  Preview env (16 vars) set for all preview branches via `preview ""` trick
+  (see [[project-vercel-preview-env]]).
 - **2026-05-26** — **V5 bento ported to production `/dashboard`** (D-033)
   on branch `feat/dashboard-v5-port`. New shared `dashboard/cards/` module
   is the single source of truth (preview labs re-export it). 10 cards wired
