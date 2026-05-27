@@ -48,7 +48,7 @@
 - [~] **D1** KPIs/Reports interactive — installed **recharts**; `/kpis` cards now show a **trend sparkline** (AreaChart over 90d of `kpi_snapshots`, tone-colored, tooltip) below each value. 688 real snapshots × 4 KPIs render. **Remaining:** /reports charts + drill-down + date-range filters.
 - [~] **D2** role-aware landing — root `/` + login now dispatch each user to their best surface via `roleLanding()` (PM/PdM→projects, AM→crm, HR→team, finance→reports, admin/GM→dashboard, IC→tasks). **Remaining:** per-role default dashboard bento.
 - [ ] **D3** Social composer/calendar + sponsored deals
-- [ ] **D4** ⌘K global search + cross-entity links + design-system consolidation into `@antagna/ui`
+- [~] **D4** ⌘K global search — palette (`packages/ui/CommandPalette` + `/api/search`) already existed; **enhanced** it: people now link to `/team/[id]` + equipment to `/equipment/[id]` (were stubbed to `/admin` & `/equipment`), and **added freelancers + talents** to results (+ type labels/colors). Cross-entity links already live on every detail page. **Remaining:** consolidate shared Card/table primitives into `@antagna/ui`.
 
 ## Cross-cutting (from critical review)
 - [ ] Data seeding/import (from `volt-os`) so pages aren't empty

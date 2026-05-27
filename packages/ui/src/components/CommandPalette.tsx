@@ -5,7 +5,7 @@ import { Search, X, Command, Loader2, ArrowRight } from 'lucide-react';
 import { Kbd } from './Kbd';
 
 export type CommandResult = {
-  type: 'project' | 'client' | 'profile' | 'equipment';
+  type: 'project' | 'client' | 'profile' | 'equipment' | 'freelancer' | 'talent';
   id: string;
   label: string;
   sublabel?: string | null;
@@ -17,6 +17,8 @@ const TYPE_LABEL: Record<CommandResult['type'], string> = {
   client: 'عميل',
   profile: 'شخص',
   equipment: 'معدة',
+  freelancer: 'فريلانسر',
+  talent: 'موهبة',
 };
 
 const TYPE_COLOR: Record<CommandResult['type'], string> = {
@@ -24,6 +26,8 @@ const TYPE_COLOR: Record<CommandResult['type'], string> = {
   client: 'text-blue-400',
   profile: 'text-purple-400',
   equipment: 'text-emerald-400',
+  freelancer: 'text-orange-400',
+  talent: 'text-pink-400',
 };
 
 const QUICK_ACTIONS: CommandResult[] = [

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Row = {
-  type: 'project' | 'client' | 'profile' | 'equipment';
+  type: 'project' | 'client' | 'profile' | 'equipment' | 'freelancer' | 'talent';
   id: string;
   label: string;
   sublabel: string | null;
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         id::text AS id,
         display_name AS label,
         email AS sublabel,
-        '/admin'::text AS href
+        '/team/' || id::text AS href
       FROM profiles
       WHERE status = 'active'
         AND (display_name ILIKE ${like} OR email ILIKE ${like})
@@ -75,13 +75,39 @@ export async function GET(request: Request) {
       SELECT
         'equipment'::text AS type,
         id::text AS id,
-        (manufacturer || ' ' || model) AS label,
+        (COALESCE(manufacturer || ' ', '') || model) AS label,
         code || ' · ' || category AS sublabel,
-        '/equipment'::text AS href
+        '/equipment/' || id::text AS href
       FROM equipment
       WHERE archived_at IS NULL
         AND (model ILIKE ${like} OR code ILIKE ${like} OR manufacturer ILIKE ${like} OR category ILIKE ${like})
       LIMIT 8
+    )
+    UNION ALL
+    (
+      SELECT
+        'freelancer'::text AS type,
+        id::text AS id,
+        COALESCE(full_name_ar, full_name) AS label,
+        code AS sublabel,
+        '/freelancers/' || id::text AS href
+      FROM freelancers
+      WHERE archived_at IS NULL AND active
+        AND (full_name ILIKE ${like} OR full_name_ar ILIKE ${like} OR code ILIKE ${like})
+      LIMIT 6
+    )
+    UNION ALL
+    (
+      SELECT
+        'talent'::text AS type,
+        id::text AS id,
+        display_name AS label,
+        COALESCE(category, code) AS sublabel,
+        '/talents'::text AS href
+      FROM talents
+      WHERE archived_at IS NULL AND active
+        AND (display_name ILIKE ${like} OR code ILIKE ${like})
+      LIMIT 6
     )
   `)) as unknown as Row[];
 
