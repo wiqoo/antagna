@@ -20,6 +20,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Instagram, Youtube, Music, AtSign, Megaphone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createContentPost } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -212,6 +213,52 @@ export default async function SocialPage() {
             posts (20 الأحدث)
           </h2>
         </header>
+
+        {/* Composer — plan a content post (manual calendar) */}
+        <Card>
+          <p className="mb-3 text-sm font-medium text-[var(--text)]">فكرة محتوى جديدة</p>
+          {accounts.length === 0 ? (
+            <p className="text-[12px] text-[var(--text-dim)]">
+              أضف حساباً مُداراً أولاً لتتمكّن من جدولة المحتوى.
+            </p>
+          ) : (
+            <form action={createContentPost} className="space-y-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr]">
+                <select name="accountId" required className="sc-in">
+                  <option value="">— الحساب —</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.ownerLabel} · {a.platform} @{a.handle}
+                    </option>
+                  ))}
+                </select>
+                <input name="title" required placeholder="عنوان الفكرة" className="sc-in" />
+              </div>
+              <input name="caption" placeholder="النص / الكابشن (اختياري)" className="sc-in w-full" />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[140px_1fr_auto]">
+                <select name="format" defaultValue="reel" className="sc-in">
+                  <option value="reel">ريل</option>
+                  <option value="story">ستوري</option>
+                  <option value="feed_image">صورة</option>
+                  <option value="feed_carousel">كاروسيل</option>
+                  <option value="feed_video">فيديو</option>
+                  <option value="short">شورت</option>
+                  <option value="long_form_video">فيديو طويل</option>
+                  <option value="live">بث مباشر</option>
+                  <option value="text">نص</option>
+                </select>
+                <input name="plannedPublishAt" type="datetime-local" className="sc-in" dir="ltr" />
+                <button
+                  type="submit"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-4 text-[13px] font-semibold text-black hover:opacity-90"
+                >
+                  + أضف
+                </button>
+              </div>
+            </form>
+          )}
+          <style>{`.sc-in{height:36px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font-size:13px;padding:0 10px;}.sc-in:focus{outline:none;border-color:var(--accent);}`}</style>
+        </Card>
         {posts.length === 0 ? (
           <Card>
             <EmptyState
