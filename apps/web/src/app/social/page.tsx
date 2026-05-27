@@ -20,7 +20,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Instagram, Youtube, Music, AtSign, Megaphone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { createContentPost } from './actions';
+import { createContentPost, createSponsoredDeal } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -308,6 +308,53 @@ export default async function SocialPage() {
             sponsored deals
           </h2>
         </header>
+
+        {accounts.length > 0 && (
+          <Card>
+            <p className="mb-3 text-sm font-medium text-[var(--text)]">صفقة رعاية جديدة</p>
+            <form
+              action={createSponsoredDeal}
+              className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_140px_120px_110px_auto]"
+            >
+              <select name="accountId" required className="sc-in">
+                <option value="">— الحساب —</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.ownerLabel} · @{a.handle}
+                  </option>
+                ))}
+              </select>
+              <select name="dealType" defaultValue="paid_post" className="sc-in">
+                <option value="paid_post">منشور مدفوع</option>
+                <option value="barter">مقايضة</option>
+                <option value="affiliate">عمولة (affiliate)</option>
+                <option value="long_term_ambassador">سفير طويل الأمد</option>
+              </select>
+              <input
+                name="contractValueSar"
+                type="number"
+                step="any"
+                placeholder="القيمة ر.س"
+                dir="ltr"
+                className="sc-in"
+              />
+              <input
+                name="deliverablesCount"
+                type="number"
+                placeholder="عدد"
+                dir="ltr"
+                className="sc-in"
+              />
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-black hover:opacity-90"
+              >
+                + أضف
+              </button>
+            </form>
+          </Card>
+        )}
+
         {deals.length === 0 ? (
           <Card>
             <EmptyState

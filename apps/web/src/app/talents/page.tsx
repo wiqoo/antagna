@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
@@ -102,10 +103,15 @@ export default async function TalentsPage() {
                       <div className="flex items-center gap-2.5">
                         <Avatar name={t.displayName} size="sm" />
                         <div className="min-w-0">
-                          <div className="text-[var(--text)]">{t.displayName}</div>
-                          <span className="font-mono text-[10px] text-[var(--text-dim)]">
+                          <Link
+                            href={`/talents/${t.id}`}
+                            className="text-[var(--text)] hover:text-[var(--accent)]"
+                          >
+                            {t.displayName}
+                          </Link>
+                          <div className="font-mono text-[10px] text-[var(--text-dim)]">
                             {t.code}
-                          </span>
+                          </div>
                         </div>
                       </div>
                     </td>
