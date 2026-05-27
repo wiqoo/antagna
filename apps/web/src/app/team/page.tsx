@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles, capabilities, departments } from '@antagna/db';
@@ -186,9 +187,12 @@ export default async function TeamPage() {
                       <Avatar name={p.display_name} size="lg" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="truncate text-[14px] font-semibold text-[var(--text)]">
+                          <Link
+                            href={`/team/${p.id}`}
+                            className="truncate text-[14px] font-semibold text-[var(--text)] hover:text-[var(--accent)]"
+                          >
                             {p.display_name}
-                          </h3>
+                          </Link>
                           {p.status !== 'active' && (
                             <StatusPill tone="neutral">{p.status}</StatusPill>
                           )}
