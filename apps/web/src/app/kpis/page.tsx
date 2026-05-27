@@ -12,6 +12,7 @@ import {
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { BarChart3 } from 'lucide-react';
+import { KpiTrend } from './kpi-trend';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,20 @@ export default async function KpisPage() {
     .from(kpiDefinitions)
     .where(eq(kpiDefinitions.active, true))
     .orderBy(asc(kpiDefinitions.scope), asc(kpiDefinitions.key));
+
+  // Snapshot history for the trend sparklines (company-scope series).
+  const hist = (await db.execute(sql`
+    SELECT kpi_key AS k, value::float8 AS v, computed_at AS t
+    FROM kpi_snapshots
+    WHERE scope_entity_id IS NULL AND computed_at > now() - interval '90 days'
+    ORDER BY kpi_key, computed_at
+  `)) as unknown as { k: string; v: number; t: string }[];
+  const trendByKey = new Map<string, { t: string; v: number }[]>();
+  for (const h of hist) {
+    const arr = trendByKey.get(h.k) ?? [];
+    arr.push({ t: new Date(h.t).toISOString().slice(5, 10), v: h.v });
+    trendByKey.set(h.k, arr);
+  }
 
   const byScope = rows.reduce<Record<string, KpiRow[]>>((acc, r) => {
     (acc[r.scope] ??= []).push(r);
@@ -144,7 +159,7 @@ export default async function KpisPage() {
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {items.map((k) => (
-                <KpiCard key={k.key} k={k} />
+                <KpiCard key={k.key} k={k} trend={trendByKey.get(k.key) ?? []} />
               ))}
             </div>
           </section>
@@ -154,7 +169,7 @@ export default async function KpisPage() {
   );
 }
 
-function KpiCard({ k }: { k: KpiRow }) {
+function KpiCard({ k, trend }: { k: KpiRow; trend: { t: string; v: number }[] }) {
   const numVal = k.latestValue != null ? Number(k.latestValue) : null;
   const green = k.thresholdGreen != null ? Number(k.thresholdGreen) : null;
   const amber = k.thresholdAmber != null ? Number(k.thresholdAmber) : null;
@@ -203,6 +218,9 @@ function KpiCard({ k }: { k: KpiRow }) {
           {unitLabel && (
             <span className="text-sm text-[var(--text-dim)]">{unitLabel}</span>
           )}
+        </div>
+        <div className="mt-3">
+          <KpiTrend data={trend} tone={tone} id={k.key} />
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-dim)]">
           <span>{k.scope}</span>

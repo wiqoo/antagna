@@ -45,7 +45,7 @@
 - [~] **C4** WhatsApp **team inbox** — `/whatsapp` thread list (grouped by `thread_key`, last msg + count + direction) → `/whatsapp/[thread]` conversation view (message bubbles in/out, media chips) + **human composer** (`sendWhatsappMessage` → `sendText` + persists outbound + `write_activity`); LID threads correctly block sending until resolved. Linked from `/inbox`. **Remaining:** media download/store + voice transcription, notification fan-out (per-language).
 
 ## Phase D — Analytics, social, polish
-- [ ] **D1** KPIs/Reports interactive (charts, drill-down, ranges)
+- [~] **D1** KPIs/Reports interactive — installed **recharts**; `/kpis` cards now show a **trend sparkline** (AreaChart over 90d of `kpi_snapshots`, tone-colored, tooltip) below each value. 688 real snapshots × 4 KPIs render. **Remaining:** /reports charts + drill-down + date-range filters.
 - [ ] **D2** role-aware dashboards + per-role landing
 - [ ] **D3** Social composer/calendar + sponsored deals
 - [ ] **D4** ⌘K global search + cross-entity links + design-system consolidation into `@antagna/ui`
