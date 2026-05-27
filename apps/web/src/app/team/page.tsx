@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles, capabilities, departments } from '@antagna/db';
@@ -11,7 +12,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { UserSquare2, Briefcase } from 'lucide-react';
+import { UserSquare2, Briefcase, Users, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -145,6 +146,22 @@ export default async function TeamPage() {
         eyebrow="Team"
         title="الفريق"
         subtitle="أعضاء Volt Production · المهارات · الأقسام · توزيع المشاريع."
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/freelancers"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+            >
+              <Users size={14} /> الفريلانسرز
+            </Link>
+            <Link
+              href="/talents"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+            >
+              <Sparkles size={14} /> المواهب
+            </Link>
+          </div>
+        }
       />
 
       <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-4">
@@ -186,9 +203,12 @@ export default async function TeamPage() {
                       <Avatar name={p.display_name} size="lg" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="truncate text-[14px] font-semibold text-[var(--text)]">
+                          <Link
+                            href={`/team/${p.id}`}
+                            className="truncate text-[14px] font-semibold text-[var(--text)] hover:text-[var(--accent)]"
+                          >
                             {p.display_name}
-                          </h3>
+                          </Link>
                           {p.status !== 'active' && (
                             <StatusPill tone="neutral">{p.status}</StatusPill>
                           )}

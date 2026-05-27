@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
 
 export async function updateProject(projectId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient();
@@ -76,21 +77,26 @@ export async function addAssignment(projectId: string, formData: FormData) {
     await db.execute(sql`SELECT set_config('app.acting_as', ${actor.id}, true)`);
   }
 
-  const profileId = formData.get('profileId')?.toString() || null;
-  const externalName = formData.get('externalName')?.toString() || null;
+  // `assignee` is "p:<profileId>" (team member) or "f:<freelancerId>" (freelancer);
+  // externalName is the fallback for an off-system person.
+  const assignee = formData.get('assignee')?.toString() || '';
+  const externalName = formData.get('externalName')?.toString().trim() || null;
+  const profileId = assignee.startsWith('p:') ? assignee.slice(2) : null;
+  const freelancerId = assignee.startsWith('f:') ? assignee.slice(2) : null;
   const role = formData.get('role')?.toString();
   const rateSar = formData.get('rateSar')?.toString() || null;
   const rateUnit = formData.get('rateUnit')?.toString() || null;
 
-  if (!role || (!profileId && !externalName)) return;
+  if (!role || (!profileId && !freelancerId && !externalName)) return;
 
   await db.execute(sql`
     INSERT INTO project_assignments
-      (project_id, profile_id, external_name, role, rate_sar, rate_unit, created_by)
+      (project_id, profile_id, freelancer_id, external_name, role, rate_sar, rate_unit, created_by)
     VALUES (
       ${projectId}::uuid,
       ${profileId ? sql`${profileId}::uuid` : sql`NULL`},
-      ${profileId ? sql`NULL` : externalName},
+      ${freelancerId ? sql`${freelancerId}::uuid` : sql`NULL`},
+      ${!profileId && !freelancerId ? externalName : null},
       ${role}::project_assignment_role,
       ${rateSar ? sql`${rateSar}::numeric` : sql`NULL`},
       ${rateUnit},
@@ -98,17 +104,44 @@ export async function addAssignment(projectId: string, formData: FormData) {
     )
   `);
 
+  await writeActivity({
+    actorId: actor?.id ?? null,
+    entityType: 'project',
+    entityId: projectId,
+    projectId,
+    action: 'assignment_added',
+    summaryAr: `أُسند دور «${role}» إلى المشروع`,
+    summaryEn: `Assigned role ${role}`,
+    metadata: { role, freelancer: !!freelancerId },
+  });
+
   revalidatePath(`/projects/${projectId}`);
 }
 
 export async function removeAssignment(projectId: string, assignmentId: string) {
   const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return;
+  const [actor] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.authUserId, user.id))
+    .limit(1);
 
   await db.execute(
     sql`DELETE FROM project_assignments WHERE id = ${assignmentId}::uuid`,
   );
+  await writeActivity({
+    actorId: actor?.id ?? null,
+    entityType: 'project',
+    entityId: projectId,
+    projectId,
+    action: 'assignment_removed',
+    summaryAr: 'أُزيل عضو من فريق المشروع',
+    summaryEn: 'Removed a project assignment',
+  });
   revalidatePath(`/projects/${projectId}`);
 }
 

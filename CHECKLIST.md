@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — Phase A COMPLETE (A0–A7), build ✓; B1 started (write_activity across all project mutations). Deploy postponed by Mohammed.**
+> `.claude/plans` (approved). **Last updated: 2026-05-27 — Phases A + B (B1–B4) COMPLETE + Egyptian colloquial removed app-wide. 🚀 DEPLOYED to antagna-v2 prod (migrations 042–044 applied; merged to main). Live: https://antagna-v2.vercel.app. Next = Phase C.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
@@ -30,7 +30,7 @@
 - [x] **A6** auth: password reset (`/auth/forgot`→email→`/auth/callback`→`/auth/reset`) + email-verify via `emailRedirectTo`→`/auth/callback` (PKCE exchange) + login/register/forgot/reset re-skinned to DNA via shared `AuthCard`. Invite-vs-self-signup = your call (manual item Q1; register stays open for now).
 - [x] **A6** PWA: `beforeinstallprompt` custom install card (`InstallPrompt`) + real `/offline` shell (precached by sw.js v2, added to public allowlist)
 - [x] **A7** Account hub `/settings` rebuilt: profile, **language toggle** (switches whole system + syncs locale cookie), per-event×per-channel **notification matrix** (in-app/email/WhatsApp chips → feeds unified notif service), **security** (change password), WhatsApp-link card, admin-tools card (admin-only). Reshaped `notification_prefs` → `{channels:{event:{inApp,email,whatsapp}}}` (no other consumer yet).
-- [~] **cross** wire `write_activity` into all server-action mutations — `lib/activity.ts` helper done; **projects (9)** + **clients (4)** + **leads (status+convert)** + **tasks (status+create)** wired; remaining domains (equipment/people/attendance) as each is built in C
+- [~] **cross** wire `write_activity` into all server-action mutations — `lib/activity.ts` helper done; **projects (9)** + **clients (4)** + **leads (status+convert)** + **tasks (status+create)** + **equipment (checkout/return/status/charge)** wired; remaining (people/attendance) as built in C
 
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
 - [x] **B1** `/projects`: list strong+on-DNA (AIHints, stat tiles, filters, relational table) + **board/table toggle** (`?view=board` kanban by stage); detail page comprehensive (header, tasks, team, comments, stage-log, deliverables, equipment, approval pipeline) + new **Activity timeline** (reads `activity_events`); `write_activity` in all 9 project mutations → feeds A4 brain. **Polish later:** reorganize detail sections into tabs, drag-to-advance-stage (need visual QA on the auth-gated page).
@@ -39,9 +39,9 @@
 - [~] **B4** `/tasks` built+on-DNA ("my work" ranked by urgency, priority tones, daily+project tasks, quick-create). **Done:** `write_activity` on task status-change (+ revalidates the project) and daily-task create. **Later:** per-project task board, quick-create from a message.
 
 ## Phase C — Big systems
-- [ ] **C1** Equipment — detail page, reservation+checkout/return, repairs, kits, QR+scan, AI photo-ID (port `volt-os`)
-- [ ] **C2** People — employees/freelancers/talents rosters + detail + assignment composer + availability
-- [ ] **C3** Attendance PWA — selfie+GPS+geofence, storage bucket, offline queue, manager view, KPI feed
+- [~] **C1** Equipment — **`/equipment/[id]` detail page** (photo/specs/financials/battery, reservations, activity timeline) + **checkout/return** wiring the previously-uncalled `fn_checkout_equipment`/`fn_return_equipment` + **status** (repair/available) + **charge** + `equipment_activity_log` + `write_activity`; list rows now link to detail. Verified end-to-end via QA login (status change mutated DB + logged, then reverted). **Remaining:** kits/compatibility, QR labels + scan-to-checkout (PWA), AI photo-ID.
+- [x] **C2** People — `/team/[id]` employee detail + `/freelancers` roster+detail + **`/talents` roster** (category/niches/commission/contract) + **assignment composer** (project team form picks members **or freelancers** → `project_assignments` + `write_activity`). All linked from `/team`. **Minor remaining:** freelancer availability table (new schema), talent detail page.
+- [~] **C3** Attendance PWA — **BUILT** (build ✓): `/attendance` check-in PWA (`CheckInPanel`: camera selfie capture + GPS + type) → `checkIn` action (uploads to private `attendance-selfies` bucket, haversine geofence match → verified/flagged, inserts `attendance_records` + `write_activity`); **my-records** list, **team-today** (admin), **geofence-config admin** (add fences by coords — `addGeoFence`, so no hardcoded coords). Selfie required by schema. ⚠️ **Camera needs your phone to verify** (getUserMedia can't run headless) — test on the deployed HTTPS URL. **Remaining:** offline queue, KPI feed.
 - [ ] **C4** WhatsApp team inbox + media + notifications fan-out (per-language)
 
 ## Phase D — Analytics, social, polish

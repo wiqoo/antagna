@@ -105,6 +105,12 @@ export default async function ProjectDetailPage({
     .where(eq(profiles.status, 'active'))
     .orderBy(profiles.displayName);
 
+  const freelancersList = (await db.execute(sql`
+    SELECT id::text AS id, COALESCE(full_name_ar, full_name) AS name
+    FROM freelancers WHERE archived_at IS NULL AND active
+    ORDER BY preferred DESC, full_name LIMIT 200
+  `)) as unknown as { id: string; name: string }[];
+
   // Current actor's profile id (for highlighting their own comments)
   const [currentProfile] = await db
     .select({ id: profiles.id })
@@ -777,16 +783,27 @@ export default async function ProjectDetailPage({
               className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_auto]"
             >
               <select
-                name="profileId"
+                name="assignee"
                 defaultValue=""
                 className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-sm"
               >
                 <option value="">— اختر الشخص —</option>
-                {activeProfiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName}
-                  </option>
-                ))}
+                <optgroup label="الفريق">
+                  {activeProfiles.map((p) => (
+                    <option key={p.id} value={`p:${p.id}`}>
+                      {p.displayName}
+                    </option>
+                  ))}
+                </optgroup>
+                {freelancersList.length > 0 && (
+                  <optgroup label="فريلانسرز">
+                    {freelancersList.map((f) => (
+                      <option key={f.id} value={`f:${f.id}`}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               <select
                 name="role"
