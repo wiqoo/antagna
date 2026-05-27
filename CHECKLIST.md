@@ -35,7 +35,7 @@
 ## Phase B — Core pages (each: DNA skin + i18n + links + quick actions + Playwright verify)
 - [x] **B1** `/projects`: list strong+on-DNA (AIHints, stat tiles, filters, relational table) + **board/table toggle** (`?view=board` kanban by stage); detail page comprehensive (header, tasks, team, comments, stage-log, deliverables, equipment, approval pipeline) + new **Activity timeline** (reads `activity_events`); `write_activity` in all 9 project mutations → feeds A4 brain. **Polish later:** reorganize detail sections into tabs, drag-to-advance-stage (need visual QA on the auth-gated page).
 - [x] **B2** `/inbox` strong+on-DNA (AIHints, thread list w/ AI summary+status, WhatsApp + drafts sections); `/inbox/suggestions` queue is domain-agnostic (status/expiry filter, not email-only) + gated server-side (A3) + now shows **human-readable labeled proposed-data** (Arabic field view) instead of raw JSON, so approvals are reviewable. Reply-draft compose exists. **Later:** richer per-type cards, inline thread reply.
-- [~] **B3** `/crm` + `/clients/[id]` already built+on-DNA (AIHints, leads+clients, client 360). **Done:** `write_activity` in all client mutations. **Next:** lead pipeline board (by status, reuse projects-board pattern), lead→client/project conversion action.
+- [x] **B3** `/crm` + `/clients/[id]` built+on-DNA (AIHints, client 360). **Done:** `write_activity` in client mutations; **lead pipeline board** (`?view=board`, funnel columns + per-card status-move dropdown via `updateLeadStatus`, temperature/value/source) — verified visually via QA login. **Next:** lead→client/project conversion action.
 - [ ] **B4** `/tasks` — "my work" + per-project board + quick-create from a message
 
 ## Phase C — Big systems
