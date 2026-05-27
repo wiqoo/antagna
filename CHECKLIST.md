@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-26 — Phase A COMPLETE (A0–A7), build ✓; B1 started (write_activity across all project mutations). Deploy postponed by Mohammed.**
+> `.claude/plans` (approved). **Last updated: 2026-05-27 — Phases A + B (B1–B4) COMPLETE + Egyptian colloquial removed app-wide. 🚀 DEPLOYED to antagna-v2 prod (migrations 042–044 applied; merged to main). Live: https://antagna-v2.vercel.app. Next = Phase C.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
