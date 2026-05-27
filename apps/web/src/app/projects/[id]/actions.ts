@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import { db, projects, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { writeActivity } from '@/lib/activity';
+import { notify } from '@/lib/notify';
 import { stageLabelAr } from '@/lib/project-stage';
 
 type StageVal = (typeof import('@antagna/db').projectStageEnum.enumValues)[number];
@@ -121,6 +122,26 @@ export async function postComment(projectId: string, body: string) {
     summaryAr: `تعليق جديد: ${body.trim().slice(0, 140)}`,
     summaryEn: `New comment: ${body.trim().slice(0, 140)}`,
   });
+
+  // Notify the project's PM (unless they wrote it) in their language.
+  const [proj] = (await db.execute(sql`
+    SELECT project_manager_id::text AS pm, COALESCE(title_ar, title) AS t
+    FROM projects WHERE id = ${projectId}::uuid
+  `)) as unknown as { pm: string | null; t: string }[];
+  if (proj?.pm && proj.pm !== actor.id) {
+    const snippet = body.trim().slice(0, 100);
+    await notify({
+      recipientId: proj.pm,
+      event: 'on_comment',
+      content: {
+        ar: { title: `تعليق جديد على «${proj.t}»`, body: snippet },
+        en: { title: `New comment on "${proj.t}"`, body: snippet },
+      },
+      linkUrl: `/projects/${projectId}`,
+      entityType: 'project',
+      entityId: projectId,
+    }).catch((e) => console.error('[postComment notify]', e));
+  }
 
   revalidatePath(`/projects/${projectId}`);
   return { ok: true };
