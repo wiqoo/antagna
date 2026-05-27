@@ -39,6 +39,10 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/monitoring') ||
     url.pathname.startsWith('/p/') || // client portal — public read of share_token URLs
+    url.pathname === '/offline' || // PWA offline fallback (precached by sw.js)
+    // Dev-only: let the /preview design labs render without auth (for local
+    // visual iteration with Playwright). Never public in production.
+    (process.env.NODE_ENV !== 'production' && url.pathname.startsWith('/preview')) ||
     url.pathname === '/favicon.ico';
 
   // Logged-out user trying to reach a protected route → /login

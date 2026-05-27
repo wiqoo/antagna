@@ -120,13 +120,7 @@ function SuggestionCard({ item }: { item: SuggestionItem }) {
         </div>
       </div>
 
-      {expanded && (
-        <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--surface)]/40 p-3">
-          <pre className="overflow-x-auto text-[10px] leading-relaxed text-[var(--text-muted)]">
-            {JSON.stringify(item.proposedData, null, 2)}
-          </pre>
-        </div>
-      )}
+      {expanded && <ProposedDataView data={item.proposedData} />}
 
       {error && (
         <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--danger)]">
@@ -134,5 +128,54 @@ function SuggestionCard({ item }: { item: SuggestionItem }) {
         </p>
       )}
     </Card>
+  );
+}
+
+// Friendly Arabic labels for the common proposed-data keys across suggestion
+// types. Unknown keys fall back to a de-underscored version.
+const FIELD_LABELS_AR: Record<string, string> = {
+  name_ar: 'الاسم (عربي)', name_en: 'الاسم (إنجليزي)', name: 'الاسم',
+  email: 'البريد', phone: 'الهاتف', phone_e164: 'الهاتف', whatsapp_e164: 'واتساب',
+  company: 'الشركة', company_name: 'الشركة', title: 'العنوان', title_ar: 'العنوان (عربي)',
+  title_en: 'العنوان (إنجليزي)', description: 'الوصف', objective: 'الهدف',
+  stage: 'المرحلة', status: 'الحالة', project_type: 'نوع المشروع', source: 'المصدر',
+  client_id: 'العميل', project_id: 'المشروع', contact_id: 'جهة الاتصال', lead_id: 'الفرصة',
+  due_date: 'تاريخ الاستحقاق', delivery_due_at: 'موعد التسليم', priority: 'الأولوية',
+  body: 'النص', subject: 'الموضوع', reason: 'السبب', notes: 'ملاحظات',
+  amount: 'المبلغ', budget_sar: 'الميزانية (ر.س)', value_sar: 'القيمة (ر.س)',
+  assignee_id: 'المُسنَد إليه', role: 'الدور', escalate_to: 'تصعيد إلى',
+};
+
+function labelFor(k: string): string {
+  return FIELD_LABELS_AR[k] ?? k.replace(/_/g, ' ');
+}
+
+function renderVal(v: unknown): string {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'boolean') return v ? 'نعم' : 'لا';
+  if (Array.isArray(v))
+    return v.map((x) => (x && typeof x === 'object' ? JSON.stringify(x) : String(x))).join('، ');
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+/** Human-readable view of a suggestion's proposed_data — labeled fields, not raw JSON. */
+function ProposedDataView({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data).filter(
+    ([, v]) => v !== null && v !== undefined && v !== '',
+  );
+  return (
+    <div className="mt-3 space-y-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)]/40 p-3">
+      {entries.length === 0 ? (
+        <p className="text-[11px] text-[var(--text-dim)]">لا تفاصيل إضافية.</p>
+      ) : (
+        entries.map(([k, v]) => (
+          <div key={k} className="flex gap-2 text-[12px]">
+            <span className="min-w-[120px] shrink-0 text-[var(--text-dim)]">{labelFor(k)}</span>
+            <span className="min-w-0 flex-1 break-words text-[var(--text)]">{renderVal(v)}</span>
+          </div>
+        ))
+      )}
+    </div>
   );
 }

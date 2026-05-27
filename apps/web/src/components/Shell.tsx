@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { getTranslations } from 'next-intl/server';
 import { AppShell, CommandPalette } from '@antagna/ui';
+import { LocaleSwitch } from './LocaleSwitch';
 import { fetchNotifications } from '@/lib/notifications';
 import {
   markAllNotificationsRead,
@@ -12,7 +14,7 @@ import {
 } from '@/lib/view-as';
 import { ViewAsBar } from './ViewAsBar';
 
-const ADMIN_ROLES = new Set(['system_admin', 'system_manager']);
+const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
 
 export async function Shell({
   children,
@@ -38,6 +40,19 @@ export async function Shell({
     ? { email: current.email, displayName: current.displayName }
     : user;
 
+  // Translated nav/topbar labels passed into the (i18n-free) AppShell.
+  const tNav = await getTranslations('nav');
+  const tTop = await getTranslations('topbar');
+  const navKeys = [
+    'dashboard', 'projects', 'tasks', 'inbox', 'calendar', 'clients', 'equipment',
+    'social', 'team', 'kpis', 'reports', 'admin', 'settings', 'groupWork',
+    'groupAnalytics', 'more', 'sidebar', 'bottomNav',
+  ] as const;
+  const labels: Record<string, string> = Object.fromEntries(
+    navKeys.map((k) => [k, tNav(k)]),
+  );
+  labels.newProject = tTop('newProject');
+
   return (
     <>
       {showBar && current && real && (
@@ -57,6 +72,8 @@ export async function Shell({
           onMarkAllRead={markAllNotificationsRead}
           onMarkOneRead={markNotificationRead}
           commandPalette={<CommandPalette />}
+          labels={labels}
+          localeSwitch={<LocaleSwitch />}
         >
           {children}
         </AppShell>

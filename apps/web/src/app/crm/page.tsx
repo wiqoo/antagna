@@ -22,8 +22,9 @@ import {
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
-import { Users, Flame, Building2, Plus } from 'lucide-react';
+import { Users, Flame, Building2, Plus, Rows3, Columns3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { LeadsBoard, type LeadRow } from './leads-board';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,14 @@ const LEAD_STATUS_TONE: Record<
   ghosted: 'danger',
 };
 
-export default async function CrmPage() {
+export default async function CrmPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const sp = await searchParams;
+  const leadsView = sp.view === 'board' ? 'board' : 'table';
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
@@ -127,7 +135,7 @@ export default async function CrmPage() {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${hotLeads.length} lead بحرارة ٧٠+ بدون تحرك`,
-      insight: 'الـ leads الساخنة بتبرد بسرعة — proposal سريع موصى به.',
+      insight: 'الـ leads الساخنة تبرد بسرعة — يُنصح بعرض سعر سريع.',
       urgent: true,
       actions: [{ label: 'افتح الساخنة', href: '#leads', primary: true }],
     });
@@ -176,11 +184,35 @@ export default async function CrmPage() {
 
       {/* Leads */}
       <Card padded={false}>
-        <div className="p-6 pb-4">
+        <div className="flex items-center justify-between gap-3 p-6 pb-4">
           <CardHeader
             title="فرص (leads) مفتوحة"
             subtitle="أحدث الـ leads في الـ funnel"
           />
+          <div className="inline-flex shrink-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-0.5">
+            <Link
+              href={{ pathname: '/crm', query: { view: 'table' } }}
+              className={
+                'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium ' +
+                (leadsView === 'table'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]')
+              }
+            >
+              <Rows3 size={13} /> جدول
+            </Link>
+            <Link
+              href={{ pathname: '/crm', query: { view: 'board' } }}
+              className={
+                'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium ' +
+                (leadsView === 'board'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]')
+              }
+            >
+              <Columns3 size={13} /> لوحة
+            </Link>
+          </div>
         </div>
         {leadRows.length === 0 ? (
           <EmptyState
@@ -188,6 +220,10 @@ export default async function CrmPage() {
             title="لا توجد leads مفتوحة"
             description="الـ leads ستظهر تلقائياً لما الـ inbound email routing يبدأ بالعمل (Pillar 8)."
           />
+        ) : leadsView === 'board' ? (
+          <div className="px-6 pb-6">
+            <LeadsBoard rows={leadRows as unknown as LeadRow[]} />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -92,8 +92,8 @@ export default async function SuggestionsPage() {
         <Card>
           <EmptyState
             icon={<Brain size={20} />}
-            title="مفيش اقتراحات معلّقة"
-            description="لما تيجي إيميلات business جديدة، الـ AI هيقترح إجراءات هنا تلقائياً."
+            title="لا اقتراحات معلّقة"
+            description="عند وصول إيميلات business جديدة، سيقترح الـ AI إجراءات هنا تلقائياً."
           />
         </Card>
       ) : (

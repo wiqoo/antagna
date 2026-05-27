@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
 
 async function actor() {
   const supabase = await getSupabaseServerClient();
@@ -37,7 +38,7 @@ export async function addDeliverableGroup(projectId: string, formData: FormData)
 }
 
 export async function addDeliverable(projectId: string, formData: FormData) {
-  await actor();
+  const actorId = await actor();
   const groupId = formData.get('groupId')?.toString();
   const title = formData.get('title')?.toString().trim() || null;
   const itemNumber = formData.get('itemNumber')?.toString().trim() || null;
@@ -48,6 +49,16 @@ export async function addDeliverable(projectId: string, formData: FormData) {
     VALUES (${groupId}::uuid, ${projectId}::uuid, ${title}, ${itemNumber}, 'draft'::deliverable_status)
   `);
 
+  await writeActivity({
+    actorId,
+    entityType: 'project',
+    entityId: projectId,
+    projectId,
+    action: 'deliverable_added',
+    summaryAr: `مخرَج جديد: ${title ?? itemNumber ?? 'بدون عنوان'}`,
+    summaryEn: `Deliverable added: ${title ?? itemNumber ?? 'untitled'}`,
+  });
+
   revalidatePath(`/projects/${projectId}`);
 }
 
@@ -56,7 +67,7 @@ export async function setDeliverableStatus(
   deliverableId: string,
   nextStatus: string,
 ) {
-  await actor();
+  const actorId = await actor();
   const valid = [
     'draft', 'submitted', 'pending_director', 'pending_am',
     'revisions_director', 'revisions_am', 'client_ready',
@@ -75,6 +86,17 @@ export async function setDeliverableStatus(
         ${setApproved}
     WHERE id = ${deliverableId}::uuid
   `);
+
+  await writeActivity({
+    actorId,
+    entityType: 'deliverable',
+    entityId: deliverableId,
+    projectId,
+    action: 'deliverable_status',
+    summaryAr: `تغيّرت حالة المخرَج إلى «${nextStatus}»`,
+    summaryEn: `Deliverable status → ${nextStatus}`,
+    metadata: { status: nextStatus },
+  });
 
   revalidatePath(`/projects/${projectId}`);
 }
@@ -119,6 +141,17 @@ export async function addReservation(projectId: string, formData: FormData) {
     console.error('reservation failed', err);
     throw new Error('فشل الحجز — قد يكون فيه تعارض زمني مع حجز آخر.');
   }
+
+  await writeActivity({
+    actorId,
+    entityType: 'project',
+    entityId: projectId,
+    projectId,
+    action: 'equipment_reserved',
+    summaryAr: 'حُجزت معدات للمشروع',
+    summaryEn: 'Equipment reserved for the project',
+    metadata: { equipment_id: equipmentId, group_id: groupId },
+  });
 
   revalidatePath(`/projects/${projectId}`);
   revalidatePath('/equipment');

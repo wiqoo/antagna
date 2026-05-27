@@ -70,6 +70,11 @@ export const aiMemoryChunks = pgTable(
     contentLang: text('content_lang'),
     embedding: vector('embedding', { dimensions: 1536 }),
     metadata: jsonb('metadata'),
+    // Usefulness / retrieval telemetry (live columns; previously missing here).
+    relevanceScore: numeric('relevance_score'),
+    retrievalCount: integer('retrieval_count').notNull().default(0),
+    lastRetrievedAt: timestamp('last_retrieved_at', { withTimezone: true }),
+    useful: boolean('useful'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .default(sql`now()`),

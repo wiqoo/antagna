@@ -48,7 +48,7 @@ export default async function MyWhatsappPage() {
       <PageHeader
         eyebrow="Settings · WhatsApp"
         title="اربط واتسابك"
-        subtitle="عشان Volt Bot يعرفك ويرد عليك بمعلومات Antagna على WhatsApp."
+        subtitle="ليتعرّف عليك Volt Bot ويرد عليك بمعلومات Antagna على WhatsApp."
       />
 
       <Card>
@@ -88,17 +88,17 @@ export default async function MyWhatsappPage() {
         <div className="flex items-start gap-2 text-[12px] text-[var(--text-muted)]">
           <MessageCircle size={14} className="mt-0.5 text-[var(--accent)]" />
           <div>
-            <p className="font-semibold text-[var(--text)]">إزاي بيشتغل؟</p>
+            <p className="font-semibold text-[var(--text)]">كيف يعمل؟</p>
             <ol className="mt-1 list-inside list-decimal space-y-1">
-              <li>اضغط <strong>"وَلِّد كود"</strong> فوق</li>
-              <li>هتشوف رقم من خانتين (مثال: 47)</li>
-              <li>افتح واتسابك وابعت الرقم ده فقط على{' '}
+              <li>اضغط <strong>«وَلِّد كوداً»</strong> في الأعلى</li>
+              <li>سيظهر رقم من خانتين (مثال: 47)</li>
+              <li>افتح واتسابك وأرسل هذا الرقم فقط إلى{' '}
                 <span dir="ltr" className="font-mono">{voltLine}</span></li>
-              <li>الـ bot يرد عليك بـ <strong>"تم الربط ✓"</strong> خلال ثوان</li>
-              <li>بعد كده تقدر تسأله أي حاجة عن Antagna من نفس الرقم</li>
+              <li>يرد عليك الـ bot بـ <strong>"تم الربط ✓"</strong> خلال ثوانٍ</li>
+              <li>بعد ذلك يمكنك سؤاله عن أي شيء في Antagna من نفس الرقم</li>
             </ol>
             <p className="mt-2 text-[var(--text-dim)]">
-              الكود صالح لـ 10 دقايق. لو خلصت المدة، ولّد كود جديد.
+              الكود صالح لمدة 10 دقائق. إذا انتهت المدة، ولّد كوداً جديداً.
             </p>
           </div>
         </div>

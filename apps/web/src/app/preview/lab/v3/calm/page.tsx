@@ -54,7 +54,7 @@ export default function CalmDashboard() {
               ['02', 'إيميل BMW متأخر ٥٢ ساعة. الـ draft جاهز عند خالد.', false],
               ['03', 'خالد على ٣ مشاريع متزامنة. وزّع MG لـ فادي قبل الإثنين.', false],
             ].map(([num, text, urgent]) => (
-              <li key={num as string} className="grid grid-cols-[40px,1fr] gap-4 border-b border-white/8 pb-5">
+              <li key={num as string} className="grid grid-cols-[40px_1fr] gap-4 border-b border-white/8 pb-5">
                 <span className={'font-mono text-[14px] font-bold ' + ((urgent as boolean) ? 'text-[#FF6B1A]' : 'text-white/35')}>
                   {num as string}
                 </span>
@@ -80,7 +80,7 @@ export default function CalmDashboard() {
         </section>
 
         {/* Two-column layout */}
-        <section className="grid grid-cols-1 gap-12 border-t border-white/8 pt-10 md:grid-cols-[2fr,1fr]">
+        <section className="grid grid-cols-1 gap-12 border-t border-white/8 pt-10 md:grid-cols-[2fr_1fr]">
           <article>
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-white/45">
               — اليوم وهذا الأسبوع
@@ -95,7 +95,7 @@ export default function CalmDashboard() {
                 ['١٠:٠٠', 'الأحد', 'Rolls Royce — interior', 'رولز رويس', 'الرياض', false],
                 ['٠٧:٣٠', 'الإثنين', 'لكزس LX social', 'لكزس', 'جدة', false],
               ].map(([time, day, title, client, city, isToday]) => (
-                <li key={(time as string) + (title as string)} className="grid grid-cols-[64px,80px,1fr,auto] items-baseline gap-4 border-b border-white/8 py-4">
+                <li key={(time as string) + (title as string)} className="grid grid-cols-[64px_80px_1fr_auto] items-baseline gap-4 border-b border-white/8 py-4">
                   <span className={'font-mono text-[14px] ' + ((isToday as boolean) ? 'text-[#FF6B1A]' : 'text-white/85')}>
                     {time as string}
                   </span>

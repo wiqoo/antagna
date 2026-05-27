@@ -36,3 +36,7 @@ coverage/
 
 # Vercel
 .vercel/
+
+# local visual-audit artifacts
+.playwright-mcp/
+shell-*.png

@@ -95,17 +95,17 @@ export function WelcomeFlow({ profile, capabilities }: Props) {
                   className="text-[28px] font-bold leading-tight tracking-[-0.02em] md:text-[36px]"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  أهلاً {profile.displayName} — يا حظ Volt إن انت هنا
+                  أهلاً {profile.displayName} — يسعدنا انضمامك إلى Volt
                 </h1>
                 <p className="text-[14px] leading-relaxed text-[var(--text-muted)]">
-                  Antagna هو نظام الإدارة الداخلي اللي بيخلّي شغلك أسرع
-                  وأوضح. هنوريك أهم 3 حاجات في دقيقة.
+                  Antagna هو نظام الإدارة الداخلي الذي يجعل عملك أسرع
+                  وأوضح. سنعرض عليك أهم ثلاثة أمور في دقيقة.
                 </p>
               </div>
               <ul className="space-y-3 text-[13px]">
-                <Bullet text="كل المشاريع + المعدات + المهام مكان واحد" />
-                <Bullet text="AI بيقرا الإيميلات ويصنّفها ويفتح leads تلقائي" />
-                <Bullet text="Cmd+K في أي مكان عشان تتنقّل / تعمل أي حاجة" />
+                <Bullet text="كل المشاريع والمعدات والمهام في مكان واحد" />
+                <Bullet text="الـ AI يقرأ الإيميلات ويصنّفها ويفتح leads تلقائياً" />
+                <Bullet text="Cmd+K في أي مكان للتنقّل أو تنفيذ أي إجراء" />
               </ul>
             </>
           )}
@@ -117,9 +117,9 @@ export function WelcomeFlow({ profile, capabilities }: Props) {
                   <User2 size={12} />
                   بياناتك
                 </span>
-                <h2 className="text-[22px] font-bold">دي بياناتك في السيستم</h2>
+                <h2 className="text-[22px] font-bold">هذه بياناتك في النظام</h2>
                 <p className="text-[12px] text-[var(--text-muted)]">
-                  لو في حاجة غلط، قول لـ admin يعدّلها لاحقاً من /admin.
+                  إن وجدت خطأً، اطلب من المسؤول تعديله لاحقاً من /admin.
                 </p>
               </div>
               <dl className="grid grid-cols-1 gap-3 text-[13px]">
@@ -141,15 +141,15 @@ export function WelcomeFlow({ profile, capabilities }: Props) {
                   <Award size={12} />
                   مهاراتك
                 </span>
-                <h2 className="text-[22px] font-bold">إيه اللي بتعمله</h2>
+                <h2 className="text-[22px] font-bold">ما الذي تقوم به</h2>
                 <p className="text-[12px] text-[var(--text-muted)]">
-                  دي المهارات اللي مسجلة عليك. السيستم بيستخدمها لما يقترح حد
+                  هذه المهارات المسجّلة لديك. يستخدمها النظام عند اقتراح شخص
                   لـ task أو reservation.
                 </p>
               </div>
               {capabilities.length === 0 ? (
                 <p className="rounded-md border border-dashed border-[var(--line)] p-4 text-center text-[12px] text-[var(--text-muted)]">
-                  مفيش مهارات مسجلة. اطلب من admin يضيف من /admin.
+                  لا مهارات مسجّلة. اطلب من المسؤول إضافتها من /admin.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -188,9 +188,9 @@ export function WelcomeFlow({ profile, capabilities }: Props) {
                   size={48}
                   className="mx-auto text-[var(--success)]"
                 />
-                <h2 className="text-[24px] font-bold">جاهز تبدأ</h2>
+                <h2 className="text-[24px] font-bold">جاهز للبدء</h2>
                 <p className="text-[13px] text-[var(--text-muted)]">
-                  دلوقتي تقدر تفتح Antagna من أي مكان. اضغط Cmd+K في أي وقت
+                  الآن يمكنك فتح Antagna من أي مكان. اضغط Cmd+K في أي وقت
                   لتفتح أي شيء بسرعة.
                 </p>
               </div>

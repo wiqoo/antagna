@@ -135,7 +135,7 @@ export function WhatsappLinkPanel({
     return (
       <Card>
         <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-dim)] text-center">
-          الكود بتاعك
+          الكود الخاص بك
         </p>
         <div
           className="my-3 text-center font-mono text-[72px] font-bold leading-none tracking-tight"
@@ -196,9 +196,9 @@ export function WhatsappLinkPanel({
       <div>
         <p className="text-[13px] text-[var(--text)]">ابدأ ربط واتسابك</p>
         <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-          محتاجين رقم واتسابك بشكله الكامل (مثل: +966554176850) — Volt Bot
-          هيستخدمه عشان يبعتلك ردوده. WhatsApp بتخفي الأرقام دلوقتي، فلازم
-          نحطه يدوي.
+          نحتاج رقم واتسابك بصيغته الكاملة (مثل: +966554176850) — يستخدمه Volt
+          Bot لإرسال ردوده إليك. يُخفي WhatsApp الأرقام حالياً، لذا يلزم
+          إدخاله يدوياً.
         </p>
       </div>
 

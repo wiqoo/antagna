@@ -87,7 +87,7 @@ export default async function WhatsAppIntegrationsPage() {
               <ul className="mt-2 list-inside list-disc text-[11px] text-[var(--text-muted)] font-mono">
                 <li>WHATSAPP_API_URL {apiUrl ? '✓' : '✗ — مفقود'}</li>
                 <li>WHATSAPP_API_KEY {apiKeySet ? '✓' : '✗ — مفقود'}</li>
-                <li>WHATSAPP_OUR_E164 {ourE164 ? '✓ ' + ourE164 : '✗ — مفقود (الرقم اللي بتـ pair بيه)'}</li>
+                <li>WHATSAPP_OUR_E164 {ourE164 ? '✓ ' + ourE164 : '✗ — مفقود (الرقم الذي تُجري الـ pair به)'}</li>
               </ul>
               <p className="mt-2 text-[11px] text-[var(--text-muted)]">
                 دليل الإعداد:{' '}
@@ -144,8 +144,8 @@ export default async function WhatsAppIntegrationsPage() {
         {recent.length === 0 ? (
           <EmptyState
             icon={<MessageCircle size={20} />}
-            title="مفيش رسائل بعد"
-            description="لما تعمل pair للرقم وتوصل أول رسالة، هتظهر هنا."
+            title="لا رسائل بعد"
+            description="بعد عمل pair للرقم ووصول أول رسالة، ستظهر هنا."
           />
         ) : (
           <ul className="space-y-1.5">

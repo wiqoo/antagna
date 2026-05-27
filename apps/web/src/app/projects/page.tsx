@@ -22,9 +22,10 @@ import {
   CardsGrid,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles, Rows3, Columns3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { ProjectsBoard, type BoardRow } from './projects-board';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,7 @@ type SearchParams = {
   q?: string;
   page?: string;
   archived?: string;
+  view?: string;
 };
 
 export default async function ProjectsListPage({
@@ -72,6 +74,7 @@ export default async function ProjectsListPage({
 
   const where = filters.length ? and(...filters) : undefined;
   const hasFilters = !!(sp.q || sp.stage || sp.pm || sp.client || sp.archived === '1');
+  const view = sp.view === 'board' ? 'board' : 'table';
 
   const [rows, countRows, pmList, clientList, signalsRows] = await Promise.all([
     db
@@ -141,6 +144,31 @@ export default async function ProjectsListPage({
   const signals = (signalsRows as unknown as Array<{
     overdue: number; due_soon: number; stalled: number; high_risk: number; total_active: number;
   }>)[0] ?? { overdue: 0, due_soon: 0, stalled: 0, high_risk: 0, total_active: 0 };
+
+  // Board view fetches all matching projects (no pagination), grouped by stage.
+  const boardRows: BoardRow[] =
+    view === 'board'
+      ? ((await db
+          .select({
+            id: projects.id,
+            code: projects.code,
+            title: projects.title,
+            titleAr: projects.titleAr,
+            stage: projects.stage,
+            deliveryDueAt: projects.deliveryDueAt,
+            contractedValueSar: projects.contractedValueSar,
+            aiRiskLevel: projects.aiRiskLevel,
+            pmName: profiles.displayName,
+            clientNameAr: clients.nameAr,
+            clientCode: clients.code,
+          })
+          .from(projects)
+          .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
+          .innerJoin(clients, eq(clients.id, projects.clientId))
+          .where(where)
+          .orderBy(desc(projects.updatedAt))
+          .limit(300)) as unknown as BoardRow[])
+      : [];
 
   const hints: AIHint[] = [];
   if (signals.overdue > 0) {
@@ -322,7 +350,50 @@ export default async function ProjectsListPage({
         </div>
       </form>
 
-      {/* Table */}
+      {/* View toggle */}
+      <div className="flex items-center justify-end">
+        <div className="inline-flex rounded-lg border border-[var(--line)] bg-[var(--surface)] p-0.5">
+          <Link
+            href={{ pathname: '/projects', query: { ...sp, view: 'table' } }}
+            className={
+              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium ' +
+              (view === 'table'
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]')
+            }
+          >
+            <Rows3 size={13} /> جدول
+          </Link>
+          <Link
+            href={{ pathname: '/projects', query: { ...sp, view: 'board' } }}
+            className={
+              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium ' +
+              (view === 'board'
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]')
+            }
+          >
+            <Columns3 size={13} /> لوحة
+          </Link>
+        </div>
+      </div>
+
+      {view === 'board' ? (
+        boardRows.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<Briefcase size={20} />}
+              title="لا توجد مشاريع بهذه المعايير"
+              description={
+                hasFilters ? 'جرّب تعديل أو مسح الفلاتر.' : 'ابدأ بإنشاء مشروعك الأول.'
+              }
+            />
+          </Card>
+        ) : (
+          <ProjectsBoard rows={boardRows} />
+        )
+      ) : (
+      /* Table */
       <Card padded={false} className="overflow-hidden">
         {rows.length === 0 ? (
           <EmptyState
@@ -428,8 +499,9 @@ export default async function ProjectsListPage({
           </div>
         )}
       </Card>
+      )}
 
-      {totalPages > 1 && (
+      {view === 'table' && totalPages > 1 && (
         <nav className="flex items-center justify-center gap-2 text-xs">
           {page > 1 && (
             <Link

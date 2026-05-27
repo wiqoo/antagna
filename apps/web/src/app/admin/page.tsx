@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { desc, eq, sql } from 'drizzle-orm';
 import {
@@ -20,7 +21,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power } from 'lucide-react';
+import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
 import { seedDevData } from './seed-actions';
 import { toggleAlertRule, updateAlertCooldown, toggleKpi } from './alert-actions';
@@ -130,6 +131,22 @@ export default async function AdminPage() {
         />
       </section>
 
+      {/* Advanced management tools */}
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <AdminToolLink
+          href="/admin/access"
+          icon={<KeyRound size={18} />}
+          title="الأدوار والصلاحيات"
+          subtitle="تحكّم دقيق لكل إجراء + استثناءات وقدرات لكل مستخدم"
+        />
+        <AdminToolLink
+          href="/admin/automation"
+          icon={<SlidersHorizontal size={18} />}
+          title="قواعد التنبيهات والمؤشرات"
+          subtitle="حرّر منطق المراقبة — التنبيهات وحدود مؤشرات الأداء"
+        />
+      </section>
+
       {/* Users */}
       <Card padded={false}>
         <div className="p-6 pb-4">
@@ -194,7 +211,7 @@ export default async function AdminPage() {
         <div className="p-6 pb-4">
           <CardHeader
             title="قواعد التنبيه"
-            subtitle="بتشتغل عبر worker كل 5 دقايق"
+            subtitle="تعمل عبر worker كل 5 دقائق · للتحرير الكامل: قواعد التنبيهات والمؤشرات"
           />
         </div>
         {rules.length === 0 ? (
@@ -395,5 +412,36 @@ function AdminStat({
         </div>
       </div>
     </Card>
+  );
+}
+
+function AdminToolLink({
+  href,
+  icon,
+  title,
+  subtitle,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--accent)]/50"
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--surface-hover)] text-[var(--text-muted)] group-hover:text-[var(--accent)]">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-[var(--text)]">{title}</p>
+        <p className="truncate text-xs text-[var(--text-muted)]">{subtitle}</p>
+      </div>
+      <ChevronLeft
+        size={16}
+        className="shrink-0 text-[var(--text-dim)] transition-transform group-hover:-translate-x-0.5 group-hover:text-[var(--accent)]"
+      />
+    </Link>
   );
 }

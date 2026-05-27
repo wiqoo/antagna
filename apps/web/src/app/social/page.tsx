@@ -114,7 +114,7 @@ export default async function SocialPage() {
       <PageHeader
         eyebrow="Social Media"
         title="السوشيال ميديا"
-        subtitle="حسابات مُدارة، محتوى منشور، صفقات رعاية — Pillar 7. OAuth runtime لسه يدوي."
+        subtitle="حسابات مُدارة، محتوى منشور، صفقات رعاية — Pillar 7. لا يزال OAuth runtime يدوياً."
       />
 
       <section className="grid grid-cols-3 gap-4 stagger-in">
@@ -228,7 +228,7 @@ export default async function SocialPage() {
                 return (
                   <li
                     key={p.id}
-                    className="grid grid-cols-[auto,1fr,auto,auto] items-center gap-4 px-6 py-3"
+                    className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-6 py-3"
                   >
                     <Icon size={14} className="text-[var(--text-dim)]" />
                     <div className="min-w-0">

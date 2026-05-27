@@ -1,7 +1,7 @@
 // Minimal service worker — registers itself + offline shell fallback.
 // Antagna is an internal dashboard, so we don't aggressively cache app data.
-const CACHE = 'antagna-v1';
-const SHELL = ['/'];
+const CACHE = 'antagna-v2';
+const SHELL = ['/offline'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -44,6 +44,6 @@ self.addEventListener('fetch', (event) => {
         }
         return res;
       })
-      .catch(() => caches.match(req).then((m) => m || caches.match('/'))),
+      .catch(() => caches.match(req).then((m) => m || caches.match('/offline'))),
   );
 });

@@ -307,7 +307,7 @@ export default async function ReportsPage() {
               {stageArr.map((s) => (
                 <li
                   key={s.stage}
-                  className="grid grid-cols-[140px,1fr,auto] items-center gap-4 px-6 py-3"
+                  className="grid grid-cols-[140px_1fr_auto] items-center gap-4 px-6 py-3"
                 >
                   <span className="text-[12px] text-[var(--text)]">
                     {s.stage}
@@ -417,7 +417,7 @@ export default async function ReportsPage() {
               {teamArr.map((t) => (
                 <li
                   key={t.profile_id}
-                  className="grid grid-cols-[1fr,auto,auto] items-center gap-4 px-6 py-3"
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-3"
                 >
                   <span className="text-[13px] text-[var(--text)]">
                     {t.display_name}

@@ -276,7 +276,7 @@ export default async function EquipmentPage() {
               return (
                 <div
                   key={r.id}
-                  className="grid grid-cols-[80px,1fr,auto] items-center gap-5 border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 px-5 py-4 hover:bg-[var(--bg-elevated)]/80"
+                  className="grid grid-cols-[80px_1fr_auto] items-center gap-5 border-b border-[var(--line)] bg-[var(--bg-elevated)]/40 px-5 py-4 hover:bg-[var(--bg-elevated)]/80"
                 >
                   <div>
                     <p className="font-mono text-[11px] text-[var(--text-dim)]">{dateStr}</p>

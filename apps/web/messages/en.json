@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "dashboard": "Home",
+    "projects": "Projects",
+    "tasks": "Tasks",
+    "inbox": "Inbox",
+    "calendar": "Calendar",
+    "clients": "Clients",
+    "equipment": "Equipment",
+    "social": "Social",
+    "team": "Team",
+    "kpis": "KPIs",
+    "reports": "Reports",
+    "admin": "Admin",
+    "settings": "Settings",
+    "groupWork": "Work",
+    "groupAnalytics": "Analytics & Admin",
+    "more": "More",
+    "sidebar": "Sidebar",
+    "bottomNav": "Bottom navigation"
+  },
+  "topbar": {
+    "newProject": "Project",
+    "search": "Search",
+    "logout": "Sign out",
+    "greeting": "Welcome"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading",
+    "language": "Language",
+    "arabic": "Arabic",
+    "english": "English",
+    "all": "All",
+    "open": "Open",
+    "review": "Review"
+  },
+  "dashboard": {
+    "board": "Board",
+    "customize": "Customize",
+    "done": "Done",
+    "addCard": "Add card",
+    "reset": "Reset",
+    "cards": "cards",
+    "rearrangeHint": "Drag to reorder · resize · hide"
+  }
+}

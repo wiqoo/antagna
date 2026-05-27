@@ -126,7 +126,7 @@ export function ConnectionPanel({
       </div>
 
       {state === 'connecting' && qr?.base64 && (
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[auto,1fr]">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
           <div className="rounded-md border border-[var(--line)] bg-white p-2">
             <img
               src={
@@ -204,7 +204,7 @@ function LogoutButton({ onAfter }: { onAfter: () => void }) {
   return (
     <button
       onClick={async () => {
-        if (!confirm('تأكد فصل الـ session؟ هتحتاج QR جديد عشان ترجع.')) return;
+        if (!confirm('تأكيد فصل الـ session؟ ستحتاج QR جديداً للعودة.')) return;
         setLoading(true);
         try {
           await fetch('/api/integrations/whatsapp/logout', { method: 'POST' });
@@ -251,7 +251,7 @@ function TestSend() {
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
         اختبار إرسال
       </p>
-      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[200px,1fr,auto]">
+      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[200px_1fr_auto]">
         <input
           dir="ltr"
           value={to}

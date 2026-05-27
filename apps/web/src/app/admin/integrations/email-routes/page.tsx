@@ -47,8 +47,8 @@ export default async function EmailRoutesPage() {
         <Card>
           <EmptyState
             icon={<Filter size={20} />}
-            title="مفيش قواعد بعد"
-            description="ابدأ بإضافة قاعدة من فوق. مثال شائع: لو الـ from contains 'noreply' → اعمل status=closed."
+            title="لا قواعد بعد"
+            description="ابدأ بإضافة قاعدة من الأعلى. مثال شائع: إذا كان الـ from يحتوي 'noreply' → اجعل status=closed."
           />
         </Card>
       ) : (
@@ -132,12 +132,12 @@ export default async function EmailRoutesPage() {
         <div className="flex items-start gap-2 text-[12px] text-[var(--text-muted)]">
           <Mail size={14} className="mt-0.5 text-[var(--accent)]" />
           <div>
-            <p className="font-semibold text-[var(--text)]">إزاي بتشتغل القواعد؟</p>
+            <p className="font-semibold text-[var(--text)]">كيف تعمل القواعد؟</p>
             <ul className="mt-1 list-disc list-inside space-y-1">
-              <li>كل thread جديد بيمر على القواعد بالترتيب (الـ position)</li>
-              <li>أول قاعدة كل شروطها match — تتطبّق وتقف</li>
+              <li>كل thread جديد يمرّ على القواعد بالترتيب (الـ position)</li>
+              <li>أول قاعدة تتطابق كل شروطها — تُطبَّق ويتوقّف الفحص</li>
               <li>الإجراءات تتراكب: assign + status + label معاً</li>
-              <li>الـ AI summary بيشتغل قبل القواعد — `category:marketing` أصلاً بيقفل تلقائي</li>
+              <li>الـ AI summary يعمل قبل القواعد — `category:marketing` يُغلَق تلقائياً أصلاً</li>
             </ul>
           </div>
         </div>

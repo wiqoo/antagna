@@ -51,7 +51,7 @@ export default function SpacedDashboard() {
         </section>
 
         {/* Two-block layout */}
-        <section className="mb-20 grid grid-cols-1 gap-12 border-t border-white/10 pt-12 md:grid-cols-[1.6fr,1fr]">
+        <section className="mb-20 grid grid-cols-1 gap-12 border-t border-white/10 pt-12 md:grid-cols-[1.6fr_1fr]">
           {/* Project list — minimal */}
           <div>
             <header className="mb-6 flex items-baseline justify-between">
@@ -78,7 +78,7 @@ export default function SpacedDashboard() {
                 <li key={title as string}>
                   <Link
                     href="/projects"
-                    className="grid grid-cols-[1fr,auto,auto,16px] items-baseline gap-6 border-b border-white/8 py-5 hover:bg-white/[0.015]"
+                    className="grid grid-cols-[1fr_auto_auto_16px] items-baseline gap-6 border-b border-white/8 py-5 hover:bg-white/[0.015]"
                   >
                     <span className="text-[15px] text-white">{title as string}</span>
                     <span className="font-mono text-[12px] text-white/55">{pct as string}</span>
@@ -152,7 +152,7 @@ export default function SpacedDashboard() {
               ['١٤:٤٥', 'حجز كاميرا Canon R5 للأحد'],
               ['١٤:٢٢', 'AI لخّص ٧ threads'],
             ].map(([time, what]) => (
-              <li key={(time as string) + (what as string)} className="grid grid-cols-[80px,1fr] gap-6 border-b border-white/8 py-4">
+              <li key={(time as string) + (what as string)} className="grid grid-cols-[80px_1fr] gap-6 border-b border-white/8 py-4">
                 <span className="font-mono text-[12px] text-white/40">{time as string}</span>
                 <span className="text-[14px] text-white/85">{what as string}</span>
               </li>

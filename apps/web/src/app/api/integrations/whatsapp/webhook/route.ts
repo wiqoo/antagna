@@ -12,7 +12,7 @@
  */
 import { NextResponse } from 'next/server';
 import { db, whatsappMessages } from '@antagna/db';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { handleInboundForBot } from '@/lib/whatsapp-bot';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +71,36 @@ function stripJid(jid: string): string {
   if (suffix === 'g.us') return `group:${local}`;
   if (suffix === 'lid') return `lid:${local}`;
   return jid;
+}
+
+/** Pull a real +E.164 out of a c.us / s.whatsapp.net JID (null for @lid/@g.us). */
+function jidToRealPhone(jid: string): string | null {
+  const at = jid.indexOf('@');
+  const local = at === -1 ? jid : jid.slice(0, at);
+  const suffix = at === -1 ? 'c.us' : jid.slice(at + 1);
+  if (suffix !== 'c.us' && suffix !== 's.whatsapp.net') return null;
+  const digits = local.replace(/[^0-9]/g, '');
+  return digits ? `+${digits}` : null;
+}
+
+/**
+ * WhatsApp hides stranger numbers behind @lid, but WPPConnect payloads often
+ * still carry the real phone elsewhere (senderPn / sender.id / author). Dig it
+ * out so we can map the LID to a real number and identify the sender.
+ */
+function extractRealPhone(body: WppEvent): string | null {
+  const sender = body.sender as { id?: unknown } | undefined;
+  const senderId =
+    typeof sender?.id === 'string'
+      ? sender.id
+      : (sender?.id as { _serialized?: string } | undefined)?._serialized;
+  for (const c of [body.senderPn, senderId, body.author]) {
+    if (typeof c === 'string') {
+      const e = jidToRealPhone(c);
+      if (e) return e;
+    }
+  }
+  return null;
 }
 
 function messageIdOf(id: unknown): string | null {
@@ -136,6 +166,45 @@ export async function POST(req: Request) {
   const fromE164 = fromMe ? us : peer;
   const toE164 = fromMe ? peer : us;
 
+  // LID → real-number recovery (WhatsApp privacy). When the peer arrives as a
+  // @lid (`lid:NNN`) but the payload still carries the real phone (senderPn /
+  // sender.id / author), prefer the real number AND remember the mapping on the
+  // profile so future @lid messages from this person resolve to their account.
+  let fromE164Final = fromE164;
+  let toE164Final = toE164;
+  let threadKey = peer;
+  if (peer.startsWith('lid:')) {
+    const lid = peer.slice(4);
+    const realPhone = extractRealPhone(body);
+    if (realPhone) {
+      threadKey = realPhone;
+      if (fromMe) toE164Final = realPhone;
+      else fromE164Final = realPhone;
+      // Link this LID to whichever profile we already know by this phone.
+      await db
+        .execute(sql`
+          UPDATE profiles SET whatsapp_lid = ${lid}, updated_at = now()
+          WHERE whatsapp_e164 = ${realPhone}
+            AND (whatsapp_lid IS NULL OR whatsapp_lid <> ${lid})
+        `)
+        .catch((e) => console.error('[whatsapp-webhook] lid map failed', e));
+    } else {
+      // No real number yet, but a known mapping may already let us resolve it.
+      const known = (await db
+        .execute(sql`
+          SELECT whatsapp_e164 FROM profiles
+          WHERE whatsapp_lid = ${lid} AND whatsapp_e164 IS NOT NULL LIMIT 1
+        `)
+        .catch(() => [])) as unknown as { whatsapp_e164: string }[];
+      const mapped = known[0]?.whatsapp_e164;
+      if (mapped) {
+        threadKey = mapped;
+        if (fromMe) toE164Final = mapped;
+        else fromE164Final = mapped;
+      }
+    }
+  }
+
   // Map WPPConnect's `type` enum to our messageType column.
   const wppType = (body.type ?? 'chat').toLowerCase();
   let messageType = 'text';
@@ -156,13 +225,13 @@ export async function POST(req: Request) {
     .values({
       baileysMessageId: msgId,
       direction,
-      fromE164,
-      toE164,
+      fromE164: fromE164Final,
+      toE164: toE164Final,
       messageType,
       bodyText,
       mediaUrl,
       rawPayload: body as unknown as Record<string, unknown>,
-      threadKey: peer,
+      threadKey,
       receivedAt,
     })
     .returning({ id: whatsappMessages.id });

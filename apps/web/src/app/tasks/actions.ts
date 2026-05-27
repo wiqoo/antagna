@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { eq, sql } from 'drizzle-orm';
 import { db, profiles, projectTasks, dailyTasks } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
 
 export async function setTaskStatus(
   source: 'project' | 'daily',
@@ -28,11 +29,14 @@ export async function setTaskStatus(
 
   const completedAt = status === 'completed' ? new Date() : null;
 
+  let projectId: string | null = null;
   if (source === 'project') {
-    await db
+    const [row] = await db
       .update(projectTasks)
       .set({ status, completedAt, updatedAt: new Date() })
-      .where(eq(projectTasks.id, taskId));
+      .where(eq(projectTasks.id, taskId))
+      .returning({ projectId: projectTasks.projectId });
+    projectId = row?.projectId ?? null;
   } else {
     await db
       .update(dailyTasks)
@@ -40,7 +44,19 @@ export async function setTaskStatus(
       .where(eq(dailyTasks.id, taskId));
   }
 
+  await writeActivity({
+    actorId: actor?.id ?? null,
+    entityType: 'task',
+    entityId: taskId,
+    projectId,
+    action: 'task_status',
+    summaryAr: `تغيّرت حالة مهمة إلى «${status}»`,
+    summaryEn: `Task status → ${status}`,
+    metadata: { status, source },
+  });
+
   revalidatePath('/tasks');
+  if (projectId) revalidatePath(`/projects/${projectId}`);
   return { ok: true };
 }
 
@@ -68,11 +84,24 @@ export async function createDailyTask(formData: FormData) {
     | 'high'
     | 'urgent';
 
-  await db.insert(dailyTasks).values({
-    ownerId: actor.id,
-    title,
-    priority,
-    dueAt: dueAtStr ? new Date(dueAtStr) : null,
+  const [row] = await db
+    .insert(dailyTasks)
+    .values({
+      ownerId: actor.id,
+      title,
+      priority,
+      dueAt: dueAtStr ? new Date(dueAtStr) : null,
+    })
+    .returning({ id: dailyTasks.id });
+
+  await writeActivity({
+    actorId: actor.id,
+    entityType: 'task',
+    entityId: row?.id ?? null,
+    action: 'task_created',
+    summaryAr: `مهمة يومية جديدة: ${title}`,
+    summaryEn: `New daily task: ${title}`,
+    metadata: { priority },
   });
 
   revalidatePath('/tasks');

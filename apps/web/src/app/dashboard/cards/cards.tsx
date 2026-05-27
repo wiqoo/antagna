@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Card, AIBadge } from './shell';
 import { toAr, type CardSize } from './utils';
+import { CountUp } from './count-up';
 import type {
   EmailTriageData, SuggestionsData, ProjectHealthData, AtRiskData,
   StaleConvosData, CapacityData, ShootsData, RevenueData, ApprovalsData,
@@ -63,7 +64,7 @@ export function CardAIBrief({ size = 'lg', editable }: CardProps) {
           ['02', 'إيميل BMW متأخر ٥٢س — الـ draft جاهز.', false],
           ['03', 'وزّع MG لـ فادي قبل الإثنين.', false],
         ].map(([num, text, urgent]) => (
-          <li key={num as string} className="grid grid-cols-[20px,1fr] gap-2 text-[12px]">
+          <li key={num as string} className="grid grid-cols-[20px_1fr] gap-2 text-[12px]">
             <span className={'font-mono ' + ((urgent as boolean) ? 'text-[#FF6B1A]' : 'text-white/35')}>
               {num as string}
             </span>
@@ -150,7 +151,7 @@ export function CardSmartSuggestions({ size = 'md', editable, data }: CardProps 
     <Card title="// ai_suggestions" ai="heavy" size={size} editable={editable}
       footer={<><Sparkles size={9} className="text-[#FF6B1A]" /><span>{toAr(d.pending)} بانتظار مراجعتك</span><Link href="/inbox/suggestions" className="ms-auto cursor-pointer hover:underline">راجع الكل →</Link></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">مفيش اقتراحات معلقة. لما تيجي إيميلات جديدة، الـ AI هيقترح إجراءات.</p>
+        <p className="py-2 text-[11px] text-white/45">لا اقتراحات معلّقة. عند وصول إيميلات جديدة، سيقترح الـ AI إجراءات.</p>
       ) : (
         <ul className="space-y-2">
           {d.items.map((it) => (
@@ -183,7 +184,7 @@ export function CardEmailTriage({ size = 'md', editable, data }: CardProps & { d
     <Card title="// email_triage" ai="heavy" size={size} editable={editable}
       footer={<><Mail size={9} /><span>{toAr(d.awaitingOurReply)} ينتظر ردنا · {toAr(d.urgent)} urgent</span></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">مفيش إيميلات تنتظر ردك ✓</p>
+        <p className="py-2 text-[11px] text-white/45">لا إيميلات تنتظر ردك ✓</p>
       ) : (
         <ul className="space-y-1.5">
           {d.items.map((it) => (
@@ -216,7 +217,7 @@ export function CardNextActions({ size = 'md', editable }: CardProps) {
         {[
           ['اتصل بـ Toyota الجزيرة', '12 دقيقة', '#FF6B1A'],
           ['وافق على Reel 7 من ريم', '2 دقيقة', 'rgba(255,255,255,0.75)'],
-          ['أعد توزيع MG لـ فادي', '5 دقايق', 'rgba(255,255,255,0.55)'],
+          ['أعد توزيع MG لـ فادي', '5 دقائق', 'rgba(255,255,255,0.55)'],
         ].map(([action, time, color]) => (
           <li key={action as string} className="flex items-center gap-2.5 rounded-md border border-white/[0.05] bg-[#0F0F12] px-2.5 py-2">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: color as string }} />
@@ -250,7 +251,7 @@ export function CardProjectHealth({ size = 'lg', editable, data }: CardProps & {
       ) : (
         <ul className="space-y-2">
           {d.items.map((it) => (
-            <li key={it.name} className="grid grid-cols-[8px,1fr,80px,40px] items-center gap-2.5 text-[11.5px]">
+            <li key={it.name} className="grid grid-cols-[8px_1fr_80px_40px] items-center gap-2.5 text-[11.5px]">
               <span
                 className="h-2 w-2 rounded-full"
                 style={{
@@ -340,7 +341,7 @@ export function CardCapacityForecast({ size = 'lg', editable, data }: CardProps 
       ) : (
         <div className="space-y-1">
           {d.people.map((p) => (
-            <div key={p.name} className="grid grid-cols-[48px,1fr] items-center gap-2">
+            <div key={p.name} className="grid grid-cols-[48px_1fr] items-center gap-2">
               <span className="truncate font-mono text-[10px] text-white/65">{p.name}</span>
               <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(14, minmax(0, 1fr))' }}>
                 {p.days.map((v, j) => (
@@ -476,7 +477,7 @@ export function CardMTDRevenue({ size = 'sm', editable, data }: CardProps & { da
         ? <><TrendingUp size={9} /><span>{d.deltaPct >= 0 ? '+' : ''}{toAr(d.deltaPct)}٪ من الشهر الماضي</span></>
         : <><TrendingUp size={9} /><span>live · pg_cron</span></>}>
       <p className="font-mono text-[36px] font-bold leading-none tracking-tight text-white">
-        {toAr(k)}<span className="text-[14px] text-white/40">K</span>
+        <CountUp value={k} /><span className="text-[14px] text-white/40">K</span>
       </p>
       <p className="mt-1 text-[10px] text-white/55">ر.س محصّل من بداية الشهر</p>
       <svg viewBox="0 0 100 20" className="mt-3 h-6 w-full">
@@ -498,7 +499,7 @@ export function CardOpenTasks({ size = 'md', editable }: CardProps) {
       <ul className="space-y-1.5">
         {[
           ['راجع cut نهائي BMW', 'اليوم', '#FF6B1A'],
-          ['وافق على invoice Toyota', 'بكرة', 'rgba(255,255,255,0.6)'],
+          ['وافق على invoice Toyota', 'غداً', 'rgba(255,255,255,0.6)'],
           ['اتصل بـ Mazda', '+3 أيام', 'rgba(255,255,255,0.4)'],
           ['تحضير عرض جديد', '+5 أيام', 'rgba(255,255,255,0.3)'],
         ].map(([task, due, color]) => (
@@ -559,7 +560,7 @@ export function CardEquipmentConflicts({ size = 'sm', editable, data }: CardProp
   const d = data ?? SAMPLE_CONFLICTS;
   return (
     <Card title="// equip_conflicts" ai="light" size={size} editable={editable} footer={<><Camera size={9} /><span>AI كشف overlap</span></>}>
-      <p className="font-mono text-[36px] font-bold leading-none text-[#FF6B1A]">{toAr(d.count)}</p>
+      <p className="font-mono text-[36px] font-bold leading-none text-[#FF6B1A]"><CountUp value={d.count} /></p>
       <p className="mt-1 text-[11px] text-white/65">حجوزات متداخلة</p>
       {d.items.length > 0 && (
         <ul className="mt-3 space-y-1 text-[10.5px] text-white/55">
@@ -643,7 +644,7 @@ export function CardStaleConvos({ size = 'md', editable, data }: CardProps & { d
   return (
     <Card title="// stale_threads" ai="heavy" size={size} editable={editable} footer={<><Reply size={9} className="text-[#FF6B1A]" /><span>AI اكتشف خمول</span></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">مفيش محادثات معلقة ✓</p>
+        <p className="py-2 text-[11px] text-white/45">لا محادثات معلّقة ✓</p>
       ) : (
         <ul className="space-y-2">
           {d.items.map((it) => (
@@ -734,7 +735,7 @@ export function CardVelocity({ size = 'md', editable }: CardProps) {
           ['مونتاج', 7, 5, false],
           ['مراجعة', 14, 7, false],
         ].map(([stage, actual, baseline, ok]) => (
-          <li key={stage as string} className="grid grid-cols-[80px,1fr,40px] items-center gap-2 text-[11px]">
+          <li key={stage as string} className="grid grid-cols-[80px_1fr_40px] items-center gap-2 text-[11px]">
             <span className="text-white/75">{stage as string}</span>
             <div className="flex items-center gap-1.5">
               <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
@@ -812,8 +813,8 @@ export function CardAITip({ size = 'md', editable }: CardProps) {
   return (
     <Card title="// ai_tip_of_the_day" ai="heavy" size={size} editable={editable} footer={<><Lightbulb size={9} className="text-[#FF6B1A]" /><span>AI رصد نمط من ٣٠ يوم</span></>}>
       <p className="text-[13.5px] leading-relaxed text-white/90">
-        لاحظت إن مشاريع <span className="text-[#FF6B1A]">السيارات اللي ميزانيتها فوق ١٠٠ك</span> بتاخد
-        ٤٠٪ مونتاج زيادة عن المتوقع. اقترح زود الـ buffer لـ ٧ أيام.
+        لاحظت أن مشاريع <span className="text-[#FF6B1A]">السيارات التي تتجاوز ميزانيتها ١٠٠ ألف</span> تستغرق
+        ٤٠٪ مونتاجاً أكثر من المتوقع. أقترح زيادة الـ buffer إلى ٧ أيام.
       </p>
       <button className="mt-3 inline-flex items-center gap-1.5 rounded border border-[#FF6B1A]/40 px-2 py-1 font-mono text-[9.5px] uppercase tracking-wider text-[#FF6B1A] hover:bg-[#FF6B1A]/10">
         <FileText size={9} />
@@ -839,7 +840,7 @@ export function CardGlance({ size = 'sm', editable, data }: CardProps & { data?:
         {cells.map((c) => (
           <Link key={c.label} href={c.href} className="rounded-md border border-white/[0.05] bg-[#0F0F12] px-2.5 py-2 hover:border-white/[0.12]">
             <p className={'font-mono text-[22px] font-bold leading-none ' + (c.warn ? 'text-[#FF6B1A]' : 'text-white')}>
-              {toAr(c.value)}
+              <CountUp value={c.value} />
             </p>
             <p className="mt-1 text-[9.5px] text-white/50">{c.label}</p>
           </Link>

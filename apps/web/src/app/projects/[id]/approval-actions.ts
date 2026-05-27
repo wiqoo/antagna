@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { writeActivity } from '@/lib/activity';
 
 async function actor() {
   const supabase = await getSupabaseServerClient();
@@ -29,7 +30,7 @@ async function actor() {
  * requestRevisions: anywhere → revisions_*
  */
 export async function submitForReview(projectId: string, deliverableId: string) {
-  await actor();
+  const actorId = await actor();
   // Read current project's approval flow + deliverable
   const res = await db.execute<{
     requires_director: boolean;
@@ -60,6 +61,17 @@ export async function submitForReview(projectId: string, deliverableId: string) 
         updated_at = now()
     WHERE id = ${deliverableId}::uuid
   `);
+
+  await writeActivity({
+    actorId,
+    entityType: 'deliverable',
+    entityId: deliverableId,
+    projectId,
+    action: 'deliverable_submitted',
+    summaryAr: `قُدّم مخرَج للمراجعة (${nextStatus})`,
+    summaryEn: `Deliverable submitted for review (${nextStatus})`,
+    metadata: { stage: nextStatus },
+  });
 
   revalidatePath(`/projects/${projectId}`);
 }
@@ -111,6 +123,17 @@ export async function approveDeliverable(
     WHERE id = ${deliverableId}::uuid
   `);
 
+  await writeActivity({
+    actorId,
+    entityType: 'deliverable',
+    entityId: deliverableId,
+    projectId,
+    action: 'deliverable_approved',
+    summaryAr: `اعتُمد مخرَج (${nextStatus})`,
+    summaryEn: `Deliverable approved (${nextStatus})`,
+    metadata: { stage: nextStatus },
+  });
+
   revalidatePath(`/projects/${projectId}`);
 }
 
@@ -119,7 +142,7 @@ export async function requestRevisions(
   deliverableId: string,
   formData: FormData,
 ) {
-  await actor();
+  const actorId = await actor();
   const note = formData.get('note')?.toString().trim() || null;
   const stage = formData.get('stage')?.toString();
 
@@ -147,6 +170,17 @@ export async function requestRevisions(
         updated_at = now()
     WHERE id = ${deliverableId}::uuid
   `);
+
+  await writeActivity({
+    actorId,
+    entityType: 'deliverable',
+    entityId: deliverableId,
+    projectId,
+    action: 'deliverable_revisions',
+    summaryAr: `طُلبت تعديلات (${newStatus})${note ? `: ${note.slice(0, 120)}` : ''}`,
+    summaryEn: `Revisions requested (${newStatus})${note ? `: ${note.slice(0, 120)}` : ''}`,
+    metadata: { stage: newStatus },
+  });
 
   revalidatePath(`/projects/${projectId}`);
 }
