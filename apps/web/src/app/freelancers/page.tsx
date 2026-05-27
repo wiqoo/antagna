@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
@@ -120,9 +121,12 @@ export default async function FreelancersPage() {
                           <Avatar name={f.fullNameAr ?? f.fullName} size="sm" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[var(--text)]">
+                              <Link
+                                href={`/freelancers/${f.id}`}
+                                className="text-[var(--text)] hover:text-[var(--accent)]"
+                              >
                                 {f.fullNameAr ?? f.fullName}
-                              </span>
+                              </Link>
                               {f.preferred && (
                                 <Sparkles size={11} className="text-[var(--accent)]" />
                               )}

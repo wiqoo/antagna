@@ -40,7 +40,7 @@
 
 ## Phase C — Big systems
 - [~] **C1** Equipment — **`/equipment/[id]` detail page** (photo/specs/financials/battery, reservations, activity timeline) + **checkout/return** wiring the previously-uncalled `fn_checkout_equipment`/`fn_return_equipment` + **status** (repair/available) + **charge** + `equipment_activity_log` + `write_activity`; list rows now link to detail. Verified end-to-end via QA login (status change mutated DB + logged, then reverted). **Remaining:** kits/compatibility, QR labels + scan-to-checkout (PWA), AI photo-ID.
-- [~] **C2** People — **employee detail `/team/[id]`** (skills/workload/activity, linked from roster) + **`/freelancers` roster** (specialties/rate/rating/projects/idle flags + stat tiles; linked from `/team`) — both verified via QA login (graceful empty states; freelancers table empty). **Remaining:** freelancer detail page + talents roster/detail + assignment composer (writes `project_assignments`) + availability.
+- [~] **C2** People — employee detail `/team/[id]` + `/freelancers` roster + **`/freelancers/[id]` detail** (rate/rating/specialties/payout + collaboration history from `project_assignments`, linked from roster) — verified via QA login. **Remaining:** talents roster/detail + assignment composer (writes `project_assignments` — the empty table behind blank workloads) + availability.
 - [ ] **C3** Attendance PWA — selfie+GPS+geofence, storage bucket, offline queue, manager view, KPI feed
 - [ ] **C4** WhatsApp team inbox + media + notifications fan-out (per-language)
 
