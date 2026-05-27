@@ -16,7 +16,7 @@
 ## Phase A — Foundation (cross-cutting)
 - [x] **A1** RBAC helper `authz.ts` (`can`/`requirePermission`/`requireCapability`) + reconciled phantom `system_manager`→`general_manager`
 - [x] **A0** i18n framework: `next-intl` wired (cookie locale, `ar`/`en` catalogs, dynamic dir, topbar language switch) — toggle verified flipping chrome + RTL/LTR
-- [~] **A0** copy: nav/chrome done in فصحى بسيطة + English; per-page strings converted as each page is rebuilt (B/C)
+- [~] **A0** copy: **Egyptian colloquial removed app-wide → فصحى بسيطة** (dashboard cards/briefing, welcome, settings/whatsapp, crm, inbox, intake, social, admin integrations — verified 0 colloquial tokens remain outside dev-only `/preview`). Remaining: full per-string extraction into the `ar`/`en` i18n catalogs for the English toggle (nav/chrome done; pages still have inline Arabic).
 - [ ] **A0** tone/channel: notifications + emails + WhatsApp in recipient's language
 - [x] **A2** seeded `access.manage` key (migration 042); reuse existing keys elsewhere (`ai_suggestion.approve`, `user.update_role`…)
 - [x] **A2** Access admin UI `/admin/access` — users+roles, role×permission matrix, per-user overrides + capabilities (gated by `access.manage`; builds clean)

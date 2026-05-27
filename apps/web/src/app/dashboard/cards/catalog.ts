@@ -62,7 +62,7 @@ export const CARD_CATALOG = [
   { id: 'win_rate', title: 'Win Rate', titleAr: 'معدّل الفوز', group: 'AI Medium', ai: 'medium', component: CardWinRate, defaultSize: 'sm', desc: 'معدل الفوز بالعروض حسب نوع العميل' },
   { id: 'open_tasks', title: 'My Open Tasks', titleAr: 'مهامي المفتوحة', group: 'AI Light', ai: 'light', component: CardOpenTasks, defaultSize: 'md', desc: 'مهامي مرتبة بالـ AI urgency' },
   { id: 'activity', title: 'Activity Feed', titleAr: 'النشاط المباشر', group: 'AI Light', ai: 'light', component: CardActivity, defaultSize: 'md', desc: 'آخر الأحداث، AI يبرز المهم' },
-  { id: 'battery', title: 'Battery Alerts', titleAr: 'تنبيهات البطارية', group: 'AI Light', ai: 'light', component: CardEquipmentBattery, defaultSize: 'sm', desc: 'AI يتوقع المعدات اللي محتاجة شحن' },
+  { id: 'battery', title: 'Battery Alerts', titleAr: 'تنبيهات البطارية', group: 'AI Light', ai: 'light', component: CardEquipmentBattery, defaultSize: 'sm', desc: 'AI يتوقع المعدات التي تحتاج شحناً' },
   { id: 'email_sla', title: 'Email Response SLA', titleAr: 'سرعة الرد (٢٤س)', group: 'No AI', ai: 'none', component: CardEmailSLA, defaultSize: 'sm', desc: '٪ الـ threads المردود عليها خلال ٢٤س' },
   { id: 'oauth_health', title: 'OAuth Health', titleAr: 'صحة الربط', group: 'No AI', ai: 'none', component: CardOAuthHealth, defaultSize: 'sm', desc: 'صحة tokens الـ Google/WhatsApp' },
   { id: 'workers', title: 'Worker Status', titleAr: 'حالة المهام', group: 'No AI', ai: 'none', component: CardWorkerStatus, defaultSize: 'sm', desc: 'Trigger.dev tasks status' },

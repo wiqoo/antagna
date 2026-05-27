@@ -135,7 +135,7 @@ export default async function CrmPage({
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${hotLeads.length} lead بحرارة ٧٠+ بدون تحرك`,
-      insight: 'الـ leads الساخنة بتبرد بسرعة — proposal سريع موصى به.',
+      insight: 'الـ leads الساخنة تبرد بسرعة — يُنصح بعرض سعر سريع.',
       urgent: true,
       actions: [{ label: 'افتح الساخنة', href: '#leads', primary: true }],
     });

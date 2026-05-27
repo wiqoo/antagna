@@ -77,7 +77,7 @@ const TOOLS: Anthropic.Tool[] = [
     name: 'antagna_link',
     description:
       "رجّع رابط مباشر لصفحة في Antagna. الـ entity: 'project' | 'task' | 'inbox' | 'crm' | 'equipment' | 'dashboard'. " +
-      "للـ project + task: مرّر الـ id. لباقي الـ entities: مفيش id محتاج.",
+      "للـ project + task: مرّر الـ id. لباقي الـ entities: لا حاجة إلى id.",
     input_schema: {
       type: 'object',
       properties: {

@@ -67,8 +67,8 @@ export function BriefingCard({
           <span className="gradient-text">ابدأ يومك بملخص ذكي</span>
         </h2>
         <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-muted)]">
-          هيقرا كل اللي حصل في Volt من إيميلات ومشاريع ومهام، ويرتّبلك ٣–٥ نقاط
-          محتاجة قرار منك دلوقتي.
+          يقرأ كل ما حدث في Volt من إيميلات ومشاريع ومهام، ويرتّب لك ٣–٥ نقاط
+          تحتاج قراراً منك الآن.
         </p>
         <div className="mt-4">
           <button
@@ -143,8 +143,8 @@ export function BriefingCard({
         }
         summary={
           allDismissed
-            ? 'خلصت كل النقاط — اضغط 🔄 لو عايز ملخص جديد.'
-            : `${remaining} من ${total} نقطة محتاجة قرار${remaining < total ? ` · أجّلت ${total - remaining}` : ''}`
+            ? 'انتهت كل النقاط — اضغط 🔄 إذا أردت ملخصاً جديداً.'
+            : `${remaining} من ${total} نقطة تحتاج قراراً${remaining < total ? ` · أجّلت ${total - remaining}` : ''}`
         }
         hints={hints}
         updatedAt={updatedAt}

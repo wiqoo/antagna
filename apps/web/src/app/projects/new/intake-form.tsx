@@ -378,7 +378,7 @@ export function IntakeForm({
 
       {/* Section 2: Creative */}
       <Section eyebrow="٣. الإبداعي والمخرجات" icon={<Film size={14} />} hidden={step !== 2}>
-        <Row label="الهدف من المشروع" hint="جملة واحدة — ليه هيتعمل؟">
+        <Row label="الهدف من المشروع" hint="جملة واحدة — لماذا سيُنفَّذ؟">
           <textarea
             name="objective"
             rows={2}
@@ -467,7 +467,7 @@ export function IntakeForm({
                 </div>
               ))}
               <p className="text-[10px] text-[var(--text-dim)]">
-                هيتعمل {deliverables.reduce((s, d) => s + d.count, 0)} عنصر في {new Set(deliverables.map((d) => d.format)).size} مجموعة
+                سيُنشأ {deliverables.reduce((s, d) => s + d.count, 0)} عنصر في {new Set(deliverables.map((d) => d.format)).size} مجموعة
               </p>
             </div>
           )}

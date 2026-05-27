@@ -204,7 +204,7 @@ function LogoutButton({ onAfter }: { onAfter: () => void }) {
   return (
     <button
       onClick={async () => {
-        if (!confirm('تأكد فصل الـ session؟ هتحتاج QR جديد عشان ترجع.')) return;
+        if (!confirm('تأكيد فصل الـ session؟ ستحتاج QR جديداً للعودة.')) return;
         setLoading(true);
         try {
           await fetch('/api/integrations/whatsapp/logout', { method: 'POST' });

@@ -114,7 +114,7 @@ export default async function SocialPage() {
       <PageHeader
         eyebrow="Social Media"
         title="السوشيال ميديا"
-        subtitle="حسابات مُدارة، محتوى منشور، صفقات رعاية — Pillar 7. OAuth runtime لسه يدوي."
+        subtitle="حسابات مُدارة، محتوى منشور، صفقات رعاية — Pillar 7. لا يزال OAuth runtime يدوياً."
       />
 
       <section className="grid grid-cols-3 gap-4 stagger-in">

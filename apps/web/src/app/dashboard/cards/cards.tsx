@@ -151,7 +151,7 @@ export function CardSmartSuggestions({ size = 'md', editable, data }: CardProps 
     <Card title="// ai_suggestions" ai="heavy" size={size} editable={editable}
       footer={<><Sparkles size={9} className="text-[#FF6B1A]" /><span>{toAr(d.pending)} بانتظار مراجعتك</span><Link href="/inbox/suggestions" className="ms-auto cursor-pointer hover:underline">راجع الكل →</Link></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">مفيش اقتراحات معلقة. لما تيجي إيميلات جديدة، الـ AI هيقترح إجراءات.</p>
+        <p className="py-2 text-[11px] text-white/45">لا اقتراحات معلّقة. عند وصول إيميلات جديدة، سيقترح الـ AI إجراءات.</p>
       ) : (
         <ul className="space-y-2">
           {d.items.map((it) => (
@@ -184,7 +184,7 @@ export function CardEmailTriage({ size = 'md', editable, data }: CardProps & { d
     <Card title="// email_triage" ai="heavy" size={size} editable={editable}
       footer={<><Mail size={9} /><span>{toAr(d.awaitingOurReply)} ينتظر ردنا · {toAr(d.urgent)} urgent</span></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">مفيش إيميلات تنتظر ردك ✓</p>
+        <p className="py-2 text-[11px] text-white/45">لا إيميلات تنتظر ردك ✓</p>
       ) : (
         <ul className="space-y-1.5">
           {d.items.map((it) => (
@@ -217,7 +217,7 @@ export function CardNextActions({ size = 'md', editable }: CardProps) {
         {[
           ['اتصل بـ Toyota الجزيرة', '12 دقيقة', '#FF6B1A'],
           ['وافق على Reel 7 من ريم', '2 دقيقة', 'rgba(255,255,255,0.75)'],
-          ['أعد توزيع MG لـ فادي', '5 دقايق', 'rgba(255,255,255,0.55)'],
+          ['أعد توزيع MG لـ فادي', '5 دقائق', 'rgba(255,255,255,0.55)'],
         ].map(([action, time, color]) => (
           <li key={action as string} className="flex items-center gap-2.5 rounded-md border border-white/[0.05] bg-[#0F0F12] px-2.5 py-2">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: color as string }} />
@@ -499,7 +499,7 @@ export function CardOpenTasks({ size = 'md', editable }: CardProps) {
       <ul className="space-y-1.5">
         {[
           ['راجع cut نهائي BMW', 'اليوم', '#FF6B1A'],
-          ['وافق على invoice Toyota', 'بكرة', 'rgba(255,255,255,0.6)'],
+          ['وافق على invoice Toyota', 'غداً', 'rgba(255,255,255,0.6)'],
           ['اتصل بـ Mazda', '+3 أيام', 'rgba(255,255,255,0.4)'],
           ['تحضير عرض جديد', '+5 أيام', 'rgba(255,255,255,0.3)'],
         ].map(([task, due, color]) => (
@@ -644,7 +644,7 @@ export function CardStaleConvos({ size = 'md', editable, data }: CardProps & { d
   return (
     <Card title="// stale_threads" ai="heavy" size={size} editable={editable} footer={<><Reply size={9} className="text-[#FF6B1A]" /><span>AI اكتشف خمول</span></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">مفيش محادثات معلقة ✓</p>
+        <p className="py-2 text-[11px] text-white/45">لا محادثات معلّقة ✓</p>
       ) : (
         <ul className="space-y-2">
           {d.items.map((it) => (
@@ -813,8 +813,8 @@ export function CardAITip({ size = 'md', editable }: CardProps) {
   return (
     <Card title="// ai_tip_of_the_day" ai="heavy" size={size} editable={editable} footer={<><Lightbulb size={9} className="text-[#FF6B1A]" /><span>AI رصد نمط من ٣٠ يوم</span></>}>
       <p className="text-[13.5px] leading-relaxed text-white/90">
-        لاحظت إن مشاريع <span className="text-[#FF6B1A]">السيارات اللي ميزانيتها فوق ١٠٠ك</span> بتاخد
-        ٤٠٪ مونتاج زيادة عن المتوقع. اقترح زود الـ buffer لـ ٧ أيام.
+        لاحظت أن مشاريع <span className="text-[#FF6B1A]">السيارات التي تتجاوز ميزانيتها ١٠٠ ألف</span> تستغرق
+        ٤٠٪ مونتاجاً أكثر من المتوقع. أقترح زيادة الـ buffer إلى ٧ أيام.
       </p>
       <button className="mt-3 inline-flex items-center gap-1.5 rounded border border-[#FF6B1A]/40 px-2 py-1 font-mono text-[9.5px] uppercase tracking-wider text-[#FF6B1A] hover:bg-[#FF6B1A]/10">
         <FileText size={9} />

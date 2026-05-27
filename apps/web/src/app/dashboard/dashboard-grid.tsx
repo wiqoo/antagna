@@ -236,7 +236,7 @@ export function DashboardGrid({
 
       {visible.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/[0.1] bg-[#17171C] p-8 text-center text-[12px] text-white/55">
-          كل الكروت مخفية. افتح <span className="text-[#FF6B1A]">تخصيص → إضافة كرت</span> لإظهار اللي تحب.
+          كل الكروت مخفية. افتح <span className="text-[#FF6B1A]">تخصيص → إضافة كرت</span> لإظهار ما تريد.
         </div>
       ) : (
         <motion.div variants={gridContainer} initial="hidden" animate="show" className="grid grid-flow-row-dense grid-cols-12 items-start gap-3 md:grid-flow-row">
