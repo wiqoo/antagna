@@ -105,13 +105,33 @@ export const DEFAULT_LAYOUT: DashLayout = {
   hidden: CARD_CATALOG.map((c) => c.id).filter((id) => !DEFAULT_ORDER.includes(id)),
 };
 
+/** Per-role lead cards — reorders the same default set so each role sees their
+ * most relevant cards first. Applied only when the user has no saved layout. */
+const ROLE_LEAD: Record<string, CardId[]> = {
+  project_manager: ['project_health', 'capacity_fc', 'approvals', 'shoots'],
+  production_manager: ['shoots', 'equip_conflicts', 'capacity_fc', 'project_health'],
+  account_manager: ['ai_suggestions', 'email_triage', 'stale_convos', 'mtd_revenue'],
+  finance: ['mtd_revenue', 'project_health', 'approvals'],
+  hr: ['capacity_fc', 'glance'],
+};
+
+export function roleDefaultLayout(role?: string | null): DashLayout {
+  const lead = role ? ROLE_LEAD[role] : undefined;
+  if (!lead) return DEFAULT_LAYOUT;
+  const order = [...lead, ...DEFAULT_ORDER.filter((id) => !lead.includes(id))];
+  return { ...DEFAULT_LAYOUT, order };
+}
+
 /**
  * Merge a user's stored layout with the catalog: keep their order/sizes/hidden,
  * drop ids that no longer exist, and append any newly-shipped cards (hidden by
  * default so a deploy never silently rearranges someone's board).
  */
-export function resolveLayout(stored?: Partial<DashLayout> | null): DashLayout {
-  if (!stored || !stored.order?.length) return DEFAULT_LAYOUT;
+export function resolveLayout(
+  stored?: Partial<DashLayout> | null,
+  role?: string | null,
+): DashLayout {
+  if (!stored || !stored.order?.length) return roleDefaultLayout(role);
 
   const valid = new Set(CARD_CATALOG.map((c) => c.id) as CardId[]);
   const order = stored.order.filter((id): id is CardId => valid.has(id));

@@ -391,7 +391,7 @@ export default async function DashboardPage() {
   if (raw) {
     try { storedLayout = JSON.parse(raw) as Partial<DashLayout>; } catch { storedLayout = null; }
   }
-  const layout = resolveLayout(storedLayout);
+  const layout = resolveLayout(storedLayout, current?.role);
 
   // Pivot team load → per-person 14-day arrays
   type PersonRow = { profileId: string; name: string; days: number[] };
