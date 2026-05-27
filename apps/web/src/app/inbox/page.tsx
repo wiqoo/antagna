@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { desc, eq, sql } from 'drizzle-orm';
 import {
@@ -311,14 +312,21 @@ export default async function InboxPage() {
             <CardHeader
               title="WhatsApp"
               subtitle="آخر 10 رسائل"
-              action={<MessageCircle size={12} className="text-[var(--text-dim)]" />}
+              action={
+                <Link
+                  href="/whatsapp"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--accent)] hover:underline"
+                >
+                  <MessageCircle size={12} /> كل المحادثات
+                </Link>
+              }
             />
           </div>
           {whatsapps.length === 0 ? (
             <EmptyState
               icon={<MessageCircle size={20} />}
-              title="WhatsApp لا يزال manual setup"
-              description="هيشتغل عبر Baileys self-hosted (D-023) بعد إعداد الـ VPS."
+              title="لا رسائل WhatsApp بعد"
+              description="ستظهر هنا فور وصول أول رسالة على خط Volt."
             />
           ) : (
             <ul className="divide-y divide-[var(--line)]">
