@@ -408,23 +408,25 @@ export default async function EquipmentPage() {
                         className="bg-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/80"
                       >
                         <td className="px-5 py-3.5">
-                          <div className="text-[13px] text-[var(--text)]">
-                            {it.manufacturer && (
-                              <span className="text-[var(--text-dim)]">
-                                {it.manufacturer}{' '}
-                              </span>
-                            )}
-                            {it.model}
-                          </div>
-                          <div className="mt-0.5 font-mono text-[10px] text-[var(--text-dim)] opacity-70">
-                            {it.code}
-                          </div>
-                          {it.requiresCharging && (
-                            <Battery
-                              size={11}
-                              className="ms-2 inline text-[var(--text-dim)]"
-                            />
-                          )}
+                          <Link href={`/equipment/${it.id}`} className="group block">
+                            <div className="text-[13px] text-[var(--text)] group-hover:text-[var(--accent)]">
+                              {it.manufacturer && (
+                                <span className="text-[var(--text-dim)]">
+                                  {it.manufacturer}{' '}
+                                </span>
+                              )}
+                              {it.model}
+                              {it.requiresCharging && (
+                                <Battery
+                                  size={11}
+                                  className="ms-2 inline text-[var(--text-dim)]"
+                                />
+                              )}
+                            </div>
+                            <div className="mt-0.5 font-mono text-[10px] text-[var(--text-dim)] opacity-70">
+                              {it.code}
+                            </div>
+                          </Link>
                         </td>
                         <td className="px-5 py-3.5 font-mono text-[11px] text-[var(--text-dim)]">
                           {it.serialNumber ?? '—'}
