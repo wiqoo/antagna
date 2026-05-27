@@ -7,7 +7,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 export async function loginAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
-  const next = String(formData.get('next') ?? '/dashboard');
+  const next = String(formData.get('next') ?? '/'); // '/' dispatches by role
 
   if (!email || !password) {
     redirect(`/login?error=${encodeURIComponent('Email and password are required')}`);

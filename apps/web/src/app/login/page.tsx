@@ -8,7 +8,7 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
   const params = await props.searchParams;
   const error = typeof params.error === 'string' ? params.error : null;
   const message = typeof params.message === 'string' ? params.message : null;
-  const next = typeof params.next === 'string' ? params.next : '/dashboard';
+  const next = typeof params.next === 'string' ? params.next : '/';
 
   return (
     <AuthCard
