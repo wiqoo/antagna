@@ -6,6 +6,7 @@ import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { writeActivity } from '@/lib/activity';
+import { notify } from '@/lib/notify';
 
 export async function updateProject(projectId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient();
@@ -114,6 +115,25 @@ export async function addAssignment(projectId: string, formData: FormData) {
     summaryEn: `Assigned role ${role}`,
     metadata: { role, freelancer: !!freelancerId },
   });
+
+  // Notify the assigned team member (internal profiles only) via the unified service.
+  if (profileId) {
+    const [pr] = (await db.execute(sql`
+      SELECT COALESCE(title_ar, title) AS t FROM projects WHERE id = ${projectId}::uuid
+    `)) as unknown as { t: string }[];
+    const proj = pr?.t ?? 'مشروع';
+    await notify({
+      recipientId: profileId,
+      event: 'on_assignment',
+      content: {
+        ar: { title: 'أُسندت إلى مشروع', body: `${proj} — بدور ${role}` },
+        en: { title: 'You were assigned to a project', body: `${proj} — as ${role}` },
+      },
+      linkUrl: `/projects/${projectId}`,
+      entityType: 'project',
+      entityId: projectId,
+    }).catch((e) => console.error('[addAssignment notify]', e));
+  }
 
   revalidatePath(`/projects/${projectId}`);
 }

@@ -17,7 +17,7 @@
 - [x] **A1** RBAC helper `authz.ts` (`can`/`requirePermission`/`requireCapability`) + reconciled phantom `system_manager`→`general_manager`
 - [x] **A0** i18n framework: `next-intl` wired (cookie locale, `ar`/`en` catalogs, dynamic dir, topbar language switch) — toggle verified flipping chrome + RTL/LTR
 - [~] **A0** copy: **Egyptian colloquial removed app-wide → فصحى بسيطة** (dashboard cards/briefing, welcome, settings/whatsapp, crm, inbox, intake, social, admin integrations — verified 0 colloquial tokens remain outside dev-only `/preview`). Remaining: full per-string extraction into the `ar`/`en` i18n catalogs for the English toggle (nav/chrome done; pages still have inline Arabic).
-- [ ] **A0** tone/channel: notifications + emails + WhatsApp in recipient's language
+- [x] **A0** tone/channel: the `notify()` service renders each message in the **recipient's `ui_language`** across all three channels (in-app/email/WhatsApp).
 - [x] **A2** seeded `access.manage` key (migration 042); reuse existing keys elsewhere (`ai_suggestion.approve`, `user.update_role`…)
 - [x] **A2** Access admin UI `/admin/access` — users+roles, role×permission matrix, per-user overrides + capabilities (gated by `access.manage`; builds clean)
 - [x] **A3** approve route gated by `ai_suggestion.approve` + writes `ai_action_log` on every decision (seeds A4 learning loop); inbox already domain-agnostic. Executor file-relocation → when first non-email domain lands (C).
@@ -52,7 +52,7 @@
 
 ## Cross-cutting (from critical review)
 - [ ] Data seeding/import (from `volt-os`) so pages aren't empty
-- [ ] Unified notification service (in-app + email + WhatsApp, per-language)
+- [~] Unified notification service — **`lib/notify.ts` built**: reads the recipient's A7 channel prefs + `ui_language`, fans out to **in-app** (notifications row) + **email** (Resend) + **WhatsApp** (sendText) in their language, records requested/delivered. First consumer wired: **project assignment** (`on_assignment`). Remaining: wire into alerts/deadlines/daily-digest/mentions.
 - [ ] Automated tests — Vitest (authz/executors/locale) + Playwright E2E (login, approve, checkout, check-in) in CI
 - [ ] Every page verified mobile (390) + basic a11y + RTL/LTR
 
