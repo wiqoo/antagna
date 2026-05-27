@@ -12,7 +12,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { UserSquare2, Briefcase, Users } from 'lucide-react';
+import { UserSquare2, Briefcase, Users, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -147,12 +147,20 @@ export default async function TeamPage() {
         title="الفريق"
         subtitle="أعضاء Volt Production · المهارات · الأقسام · توزيع المشاريع."
         action={
-          <Link
-            href="/freelancers"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
-          >
-            <Users size={14} /> الفريلانسرز
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/freelancers"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+            >
+              <Users size={14} /> الفريلانسرز
+            </Link>
+            <Link
+              href="/talents"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+            >
+              <Sparkles size={14} /> المواهب
+            </Link>
+          </div>
         }
       />
 
