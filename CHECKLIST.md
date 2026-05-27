@@ -2,7 +2,7 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-27 — Phases A + B (B1–B4) COMPLETE + Egyptian colloquial removed app-wide. 🚀 DEPLOYED to antagna-v2 prod (migrations 042–044 applied; merged to main). Live: https://antagna-v2.vercel.app. Next = Phase C.**
+> `.claude/plans` (approved). **Last updated: 2026-05-27 — Phases A·B·C·D all built + 🚀 DEPLOYED live to antagna-v2 prod (https://antagna-v2.vercel.app). Camera attendance tested ✓. Remaining = scattered polish sub-items (tabs/QR/offline-queue/notif-service/tests/design-system consolidation) + i18n catalog extraction.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## ✅ Done already (this session)
