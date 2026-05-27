@@ -12,7 +12,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { UserSquare2, Briefcase } from 'lucide-react';
+import { UserSquare2, Briefcase, Users } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -146,6 +146,14 @@ export default async function TeamPage() {
         eyebrow="Team"
         title="الفريق"
         subtitle="أعضاء Volt Production · المهارات · الأقسام · توزيع المشاريع."
+        action={
+          <Link
+            href="/freelancers"
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+          >
+            <Users size={14} /> الفريلانسرز
+          </Link>
+        }
       />
 
       <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-4">
