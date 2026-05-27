@@ -7,6 +7,7 @@ import { Shell } from '@/components/Shell';
 import { ArrowLeft, Star, MapPin, Briefcase, Mail, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { addFreelancerAvailability, removeFreelancerAvailability } from '../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export default async function FreelancerDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/freelancers/${id}`);
 
-  const [fR, asgR] = await Promise.all([
+  const [fR, asgR, avR] = await Promise.all([
     db.execute(sql`
       SELECT id::text AS id, code, full_name AS "fullName", full_name_ar AS "fullNameAr",
              email_primary AS "emailPrimary", specialties, city_base AS "cityBase",
@@ -66,10 +67,21 @@ export default async function FreelancerDetailPage({
       LEFT JOIN projects p ON p.id = pa.project_id
       WHERE pa.freelancer_id = ${id}::uuid
       ORDER BY pa.assigned_at DESC LIMIT 30`),
+    db.execute(sql`
+      SELECT id::text AS id, starts_at AS "startsAt", ends_at AS "endsAt", status, note
+      FROM freelancer_availability WHERE freelancer_id = ${id}::uuid
+      ORDER BY starts_at DESC LIMIT 20`),
   ]);
 
   const f = rows<Freelancer>(fR)[0];
   if (!f) notFound();
+  const availability = rows<{
+    id: string;
+    startsAt: string;
+    endsAt: string;
+    status: string;
+    note: string | null;
+  }>(avR);
   const assignments = rows<{
     role: string;
     rateSar: string | null;
@@ -227,6 +239,77 @@ export default async function FreelancerDetailPage({
                 ))}
               </ul>
             )}
+          </Card>
+
+          <Card padded={false}>
+            <div className="p-6 pb-4">
+              <CardHeader title="التوفّر" subtitle="نوافذ الإتاحة لإسناد المشاريع" />
+            </div>
+            <div className="px-6 pb-3">
+              {availability.length === 0 ? (
+                <p className="text-[12px] text-[var(--text-dim)]">لا نوافذ توفّر مسجّلة.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {availability.map((a) => (
+                    <li
+                      key={a.id}
+                      className="flex items-center justify-between gap-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-[12px]"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <StatusPill
+                          tone={
+                            a.status === 'available'
+                              ? 'success'
+                              : a.status === 'busy'
+                                ? 'danger'
+                                : 'warning'
+                          }
+                          withDot={false}
+                        >
+                          {a.status === 'available'
+                            ? 'متاح'
+                            : a.status === 'busy'
+                              ? 'مشغول'
+                              : 'مبدئي'}
+                        </StatusPill>
+                        <span className="font-mono text-[11px] text-[var(--text-muted)]" dir="ltr">
+                          {new Date(a.startsAt).toISOString().slice(0, 10)} →{' '}
+                          {new Date(a.endsAt).toISOString().slice(0, 10)}
+                        </span>
+                        {a.note && <span className="text-[var(--text-dim)]">· {a.note}</span>}
+                      </span>
+                      <form action={removeFreelancerAvailability.bind(null, f.id, a.id)}>
+                        <button
+                          type="submit"
+                          className="text-[var(--text-dim)] hover:text-[var(--danger)]"
+                        >
+                          ✕
+                        </button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <form
+              action={addFreelancerAvailability.bind(null, f.id)}
+              className="grid grid-cols-1 gap-2 border-t border-[var(--line)] px-6 py-4 sm:grid-cols-[1fr_1fr_120px_auto]"
+            >
+              <input name="startsAt" type="date" required dir="ltr" className="fa-in" />
+              <input name="endsAt" type="date" required dir="ltr" className="fa-in" />
+              <select name="status" defaultValue="available" className="fa-in">
+                <option value="available">متاح</option>
+                <option value="busy">مشغول</option>
+                <option value="tentative">مبدئي</option>
+              </select>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-black hover:opacity-90"
+              >
+                + أضف
+              </button>
+            </form>
+            <style>{`.fa-in{height:36px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elevated);color:var(--text);font-size:13px;padding:0 10px;}.fa-in:focus{outline:none;border-color:var(--accent);}`}</style>
           </Card>
         </div>
       </div>
