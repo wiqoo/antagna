@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { PageHeader, Card, StatusPill, EmptyState, Counter, AIHints, type AIHint } from '@antagna/ui';
+import { RevenueChart } from './revenue-chart';
 import { Shell } from '@/components/Shell';
 import { FileText, TrendingUp, Briefcase } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -127,11 +128,6 @@ export default async function ReportsPage() {
     Number(eqArr.find((s) => s.status === 'checked_out')?.count ?? 0) /
     Math.max(1, totalEqUnits);
 
-  const maxRevenue = Math.max(
-    ...revenueArr.map((r) => Number(r.delivered_value)),
-    1,
-  );
-
   // AI hints from data
   const monthly = [...revenueArr].sort((a, b) => a.month.localeCompare(b.month));
   const lastTwo = monthly.slice(-2);
@@ -250,34 +246,13 @@ export default async function ReportsPage() {
         ) : (
           <Card padded={false}>
             <div className="p-6">
-              <div className="grid grid-cols-12 gap-2">
-                {revenueArr
-                  .slice()
-                  .reverse()
-                  .map((m) => {
-                    const v = Number(m.delivered_value);
-                    const pct = (v / maxRevenue) * 100;
-                    return (
-                      <div
-                        key={m.month}
-                        className="flex flex-col items-center gap-1.5"
-                      >
-                        <div className="flex h-32 w-full items-end">
-                          <div
-                            className="w-full rounded-t-md bg-gradient-to-t from-[var(--accent)] to-[var(--accent-hover)] transition-all"
-                            style={{ height: `${Math.max(2, pct)}%` }}
-                          />
-                        </div>
-                        <p className="font-mono text-[10px] text-[var(--text-dim)]">
-                          {m.month}
-                        </p>
-                        <p className="font-mono text-[10px] text-[var(--text-muted)]">
-                          {v >= 1000 ? `${Math.round(v / 1000)}K` : v.toFixed(0)}
-                        </p>
-                      </div>
-                    );
-                  })}
-              </div>
+              <RevenueChart
+                data={monthly.map((m) => ({
+                  month: m.month,
+                  value: Number(m.delivered_value),
+                  count: Number(m.delivered_count),
+                }))}
+              />
             </div>
           </Card>
         )}
