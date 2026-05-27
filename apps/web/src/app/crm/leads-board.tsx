@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { StatusPill } from '@antagna/ui';
 import { updateLeadStatus } from './actions';
 
@@ -155,6 +156,16 @@ function LeadCard({ lead }: { lead: LeadRow }) {
           </option>
         ))}
       </select>
+      {!lead.clientNameAr && (
+        <Link
+          href={`/clients/new?leadId=${lead.id}&name=${encodeURIComponent(
+            lead.unmatchedFromName ?? lead.unmatchedFromEmail ?? '',
+          )}`}
+          className="mt-1.5 inline-flex w-full items-center justify-center gap-1 rounded-md border border-[var(--line)] py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        >
+          تحويل إلى عميل
+        </Link>
+      )}
     </div>
   );
 }

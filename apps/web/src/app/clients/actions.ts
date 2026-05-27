@@ -62,6 +62,26 @@ export async function createClient(formData: FormData) {
     summaryEn: `New client added: ${nameEn ?? nameAr} (${code})`,
   });
 
+  // Converting from a lead? Link it to the new client + mark qualified.
+  const leadId = formData.get('leadId')?.toString();
+  if (leadId) {
+    await db.execute(sql`
+      UPDATE leads
+      SET client_id = ${newId}::uuid, status = 'qualified'::lead_status, updated_at = now()
+      WHERE id = ${leadId}::uuid
+    `);
+    await writeActivity({
+      actorId,
+      entityType: 'lead',
+      entityId: leadId,
+      action: 'lead_converted',
+      summaryAr: `حُوّلت الفرصة إلى عميل: ${nameAr}`,
+      summaryEn: `Lead converted to client: ${nameEn ?? nameAr}`,
+      metadata: { client_id: newId },
+    });
+    revalidatePath('/crm');
+  }
+
   revalidatePath('/crm');
   redirect(`/clients/${newId}`);
 }

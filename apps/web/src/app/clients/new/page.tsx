@@ -8,7 +8,15 @@ import { createClient } from '../actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewClientPage() {
+export default async function NewClientPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ name?: string; leadId?: string }>;
+}) {
+  const sp = await searchParams;
+  const prefillName = typeof sp.name === 'string' ? sp.name : '';
+  const leadId = typeof sp.leadId === 'string' ? sp.leadId : '';
+
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/clients/new');
@@ -30,8 +38,15 @@ export default async function NewClientPage() {
           subtitle="حدد الـ code والاسم — البقية اختياري ويمكن تعديله لاحقاً."
         />
 
+        {leadId && (
+          <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-3 text-[13px] text-[var(--text)]">
+            تحويل فرصة (lead) إلى عميل — أكمل البيانات وسيُربط الـ lead بالعميل الجديد تلقائياً.
+          </div>
+        )}
+
         <Card>
           <form action={createClient} className="space-y-6">
+            {leadId && <input type="hidden" name="leadId" value={leadId} />}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_1fr]">
               <Field label="Code" required>
                 <input
@@ -49,6 +64,7 @@ export default async function NewClientPage() {
                   type="text"
                   name="nameAr"
                   required
+                  defaultValue={prefillName}
                   placeholder="مينام"
                   className="form-input"
                 />
