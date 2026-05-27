@@ -21,7 +21,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft } from 'lucide-react';
+import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
 import { seedDevData } from './seed-actions';
 import { toggleAlertRule, updateAlertCooldown, toggleKpi } from './alert-actions';
@@ -144,6 +144,12 @@ export default async function AdminPage() {
           icon={<SlidersHorizontal size={18} />}
           title="قواعد التنبيهات والمؤشرات"
           subtitle="حرّر منطق المراقبة — التنبيهات وحدود مؤشرات الأداء"
+        />
+        <AdminToolLink
+          href="/system-map"
+          icon={<Workflow size={18} />}
+          title="خريطة النظام"
+          subtitle="رسم تفاعلي للأقسام وتدفّق البيانات والأتمتة وربط الـ AI"
         />
       </section>
 

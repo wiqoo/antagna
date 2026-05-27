@@ -50,6 +50,9 @@
 - [~] **D3** Social — `/social` (accounts/posts/deals) gained a **content composer**: pick managed account + title + caption + format + planned date → `createContentPost` inserts a `content_posts` idea + `write_activity` (manual calendar; OAuth posting stays off per D-028). **Remaining:** calendar grid view + sponsored-deal CRUD.
 - [~] **D4** ⌘K global search — palette (`packages/ui/CommandPalette` + `/api/search`) already existed; **enhanced** it: people now link to `/team/[id]` + equipment to `/equipment/[id]` (were stubbed to `/admin` & `/equipment`), and **added freelancers + talents** to results (+ type labels/colors). Cross-entity links already live on every detail page. **Remaining:** consolidate shared Card/table primitives into `@antagna/ui`.
 
+## Visual
+- [x] **System map** `/system-map` — interactive Obsidian-style force graph (react-force-graph): modules + data stores + AI, color-coded by type, sized by importance, AI-flow links highlighted; hover→focus a node's links, click→zoom, drag→pan. Linked from `/admin`. Verified visually.
+
 ## Cross-cutting (from critical review)
 - [ ] Data seeding/import (from `volt-os`) so pages aren't empty
 - [~] Unified notification service — **`lib/notify.ts` built**: reads the recipient's A7 channel prefs + `ui_language`, fans out to **in-app** (notifications row) + **email** (Resend) + **WhatsApp** (sendText) in their language, records requested/delivered. First consumer wired: **project assignment** (`on_assignment`). Remaining: wire into alerts/deadlines/daily-digest/mentions.
