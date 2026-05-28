@@ -3,14 +3,18 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-26 (V6 clean-skin dashboard merged to `main` + deployed to production — D-036)
-**Phase:** Phase 1 features live in prod. **New dashboard shipped** (D-033 →
-D-036): shared `dashboard/cards/` module, 10 live cards wired to real Supabase
-queries, customize (size-cycle + drag/▲▼ reorder + add/hide, `dash_layout`
-cookie). After review, the look moved to a **"clean" skin** — Arabic titles
-(not `// code`), Vazirmatn body, higher contrast, per-card quick actions, and
-Framer Motion (spring entrance, hover lift, layout reflow). Next: spread the
-clean skin to `/projects`, `/inbox`, `/equipment`, `/team`; then PWA attendance.
+**Last updated:** 2026-05-29 (Sprint 0 **Phase A + B DONE + deployed** to prod — permissions re-architecture)
+**Phase:** Phase 2 / **Sprint 0 (Permissions)** in progress. Phase A+B landed
+live on antagna-v2 (migrations 048+049): `capabilities`→`skills` rename, 16
+**positions** + `position_default_permissions` (258 grants), `has_permission()`
+resolves by effective positions (multi-hat, NO system_admin bypass — `*` only
+for general_manager). 9/10 spec tests pass; **Test 10 fails BY DESIGN** —
+غريب/Mohammed holds a TEMP `general_manager '*'` hat (his request "give all
+perms now, remove later"; cleanup row tracked in CHECKLIST). Verified via SQL +
+Playwright (0 console errors on /team, /admin/access, /team/[id]). Equipment
+(172 rows) untouched. **Next: Phase C** (effective-profile GUC + `withProfileScope`)
+→ **Phase D** (the `v_*_safe` masking views + switch read pages). See
+`01PERMISSIONSforClaudeCode.md` + D-037→D-041.
 
 **Live URLs:**
 - App: <https://antagna-v2.vercel.app> (custom domain `antagna.me` zone added on Cloudflare 2026-05-21)
@@ -20,14 +24,19 @@ clean skin to `/projects`, `/inbox`, `/equipment`, `/team`; then PWA attendance.
 
 ## 🎯 Next concrete action
 
-> **Spread the clean skin to the other top routes.** The dashboard
-> (D-033 → D-036) is merged to `main` and live in production. Remaining:
+> **Sprint 0 Phase C → D (permissions enforcement layer).** Phase A+B are
+> live. Next, in order:
 >
-> 1. ⏳ Apply the V6 clean-skin language (Arabic titles, Vazirmatn,
->    hairlines, quick actions, restrained motion) to `/projects`,
->    `/inbox`, `/equipment`, `/team` so the dashboard isn't an island.
-> 2. ⏳ Wire the remaining catalog cards (hot_leads, lead_temp, ai_cost,
->    oauth_health, activity, open_tasks, …) to real queries.
+> 1. ⏳ **Phase C** — migration 050: `current_effective_profile_id()` GUC fn
+>    (reads `app.current_profile_id`, falls back to `current_profile_id()`) +
+>    `withProfileScope(pid, fn)` transaction helper in `@antagna/db` (MUST use
+>    `db.transaction` — DATABASE_URL is the 6543 transaction pooler) + authz.ts
+>    JSDoc fix. `can()` stays as-is (already position-aware).
+> 2. ⏳ **Phase D** — the 6 `v_*_safe` masking views (per spec Part 2) + switch
+>    read pages (projects/crm/equipment/inbox/team) to read them inside
+>    `withProfileScope`. ⚠️ Decision needed first — see "Open decisions" below.
+> 3. ⏳ Rewrite `scripts/smoke/pillar3-acceptance.ts` for the position model
+>    (tests #1/#2 assert the retired role-based model + admin bypass).
 > 3. ⏳ Replace the heuristic project_health / at_risk scoring with a
 >    real LLM/AI scorer.
 > 4. ⏳ PWA attendance check-in (D-031).
