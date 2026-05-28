@@ -212,10 +212,11 @@ export default async function InboxPage() {
         ) : (
           <ul className="divide-y divide-[var(--line)]">
             {threads.map((t) => (
-              <li
-                key={t.id}
-                className="flex items-start gap-3 px-6 py-3.5 hover:bg-[var(--surface-hover)]"
-              >
+              <li key={t.id}>
+                <Link
+                  href={`/inbox/${t.id}`}
+                  className="flex items-start gap-3 px-6 py-3.5 hover:bg-[var(--surface-hover)]"
+                >
                 <Avatar name={t.clientNameAr ?? t.primaryContactName ?? '?'} size="md" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -255,6 +256,7 @@ export default async function InboxPage() {
                         .replace('T', ' ')
                     : '—'}
                 </div>
+                </Link>
               </li>
             ))}
           </ul>
