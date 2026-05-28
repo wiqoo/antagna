@@ -7,7 +7,7 @@ import {
   alertRules,
   kpiDefinitions,
   permissions,
-  roleDefaultPermissions,
+  positionDefaultPermissions,
 } from '@antagna/db';
 import {
 
@@ -58,7 +58,7 @@ export default async function AdminPage() {
     db.select({ count: sql<number>`count(*)::int` }).from(permissions),
     db
       .select({ count: sql<number>`count(*)::int` })
-      .from(roleDefaultPermissions),
+      .from(positionDefaultPermissions),
   ]);
 
   const inactiveUsers = people.filter((p) => p.status !== 'active').length;

@@ -42,7 +42,12 @@ export const profiles = pgTable('profiles', {
   legalName: text('legal_name'),
 
   // System role (project roles live on project_assignments).
+  // NOTE: `role` is legacy (drives landing surface + ADMIN_ROLES gate). The
+  // permission graph resolves via `positionKey` + user_position_overrides as of
+  // Sprint 0 (D-037/D-041). `role` will be retired in Phase G.
   role: text('role').notNull().default('user'),
+  // Primary position (D-037). Multi-hat extras live in userPositionOverrides.
+  positionKey: text('position_key'),
   status: personStatusEnum('status').notNull().default('active'),
 
   // Acting-on-behalf (Mohammed approves for Abu Luka before his account exists).
@@ -121,9 +126,14 @@ export const employees = pgTable('employees', {
 
 export type Employee = typeof employees.$inferSelect;
 
-// ── capabilities catalog + user join ───────────────────────────────────────────
+// ── skills catalog + user join (renamed from `capabilities` — D-038/D-041) ──────
+//
+// This is the production-skills catalog (shooter / editor / drone_pilot …).
+// Renamed from `capabilities` in migration 048; the word "capabilities" is
+// reclaimed for fine-grained access codes, which live in the `permissions`
+// table (not here). The old empty `skills` (uuid id) stubs were dropped.
 
-export const capabilities = pgTable('capabilities', {
+export const skills = pgTable('skills', {
   key: text('key').primaryKey(),
   nameAr: text('name_ar').notNull(),
   nameEn: text('name_en').notNull(),
@@ -134,51 +144,53 @@ export const capabilities = pgTable('capabilities', {
   position: integer('position').notNull().default(0),
 });
 
-export const userCapabilities = pgTable(
-  'user_capabilities',
-  {
-    profileId: uuid('profile_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    capabilityKey: text('capability_key')
-      .notNull()
-      .references(() => capabilities.key),
-    isPrimary: boolean('is_primary').notNull().default(false),
-    proficiency: integer('proficiency').notNull().default(2), // 1-5
-    notes: text('notes'),
-    addedBy: uuid('added_by'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
-  },
-  (t) => [primaryKey({ columns: [t.profileId, t.capabilityKey] })],
-);
-
-// ── skills (finer-grained than capabilities) ───────────────────────────────────
-
-export const skills = pgTable('skills', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  key: text('key').notNull().unique(),
-  nameAr: text('name_ar').notNull(),
-  nameEn: text('name_en').notNull(),
-  category: text('category'),
-  parentSkillId: uuid('parent_skill_id'),
-  active: boolean('active').notNull().default(true),
-});
-
 export const userSkills = pgTable(
   'user_skills',
   {
     profileId: uuid('profile_id')
       .notNull()
       .references(() => profiles.id, { onDelete: 'cascade' }),
-    skillId: uuid('skill_id')
+    skillKey: text('skill_key')
       .notNull()
-      .references(() => skills.id),
-    level: integer('level').notNull().default(1), // 1-3
-    yearsExperience: integer('years_experience'),
-    certifiedAt: timestamp('certified_at', { withTimezone: true }),
+      .references(() => skills.key),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    proficiency: integer('proficiency').notNull().default(2), // 1-5
     notes: text('notes'),
+    addedBy: uuid('added_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   },
-  (t) => [primaryKey({ columns: [t.profileId, t.skillId] })],
+  (t) => [primaryKey({ columns: [t.profileId, t.skillKey] })],
+);
+
+// ── positions (16-position model — D-037) ───────────────────────────────────────
+
+export const positions = pgTable('positions', {
+  key: text('key').primaryKey(),
+  nameAr: text('name_ar').notNull(),
+  nameEn: text('name_en').notNull(),
+  description: text('description'),
+  position: integer('position').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+});
+
+// Multi-hat: extra positions beyond profiles.positionKey (Abu Luka GM+Creative,
+// Mohammed Production+SysAdmin). has_permission() unions these in.
+export const userPositionOverrides = pgTable(
+  'user_position_overrides',
+  {
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    positionKey: text('position_key')
+      .notNull()
+      .references(() => positions.key),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    reason: text('reason'),
+    grantedBy: uuid('granted_by').references(() => profiles.id),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+  },
+  (t) => [primaryKey({ columns: [t.profileId, t.positionKey] })],
 );
 
 // ── departments + work calendar ────────────────────────────────────────────────

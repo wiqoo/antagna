@@ -53,7 +53,7 @@ export default async function TeamMemberPage({
       FROM profiles WHERE id = ${id}::uuid LIMIT 1`),
     db.execute(sql`
       SELECT c.name_ar AS name, c.category
-      FROM user_capabilities uc JOIN capabilities c ON c.key = uc.capability_key
+      FROM user_skills uc JOIN skills c ON c.key = uc.skill_key
       WHERE uc.profile_id = ${id}::uuid ORDER BY c.category, c.position`),
     db.execute(sql`
       SELECT pa.role::text AS role, pa.rate_sar AS "rateSar", pa.rate_unit AS "rateUnit",

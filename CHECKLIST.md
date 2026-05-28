@@ -106,6 +106,7 @@
 - [x] Volt-os live DB read authorized + executed 2026-05-28 (equipment import + team-email lookup — saved in [[project_team_emails]] memory).
 - [x] Auth: **invite-only** locked (D-040) + emails pulled from live: Ahmed → `ahmedakj.1423@gmail.com`, Abu Luka → `mo.malki88@gmail.com`.
 - [x] Mohammed (غريب) = production_director + system_admin override (D-037, D-040). Production_director **without** financial visibility.
+- [ ] **TEMP: remove غريب's full-access hat** — migration 049 grants Mohammed a `general_manager` hat (`*` = everything, incl. financial) per his 2026-05-29 request "give me all perms now, remove later". DELETE the `user_position_overrides` row (`position_key='general_manager'` for `mohammedelghareib@gmail.com`) to re-enforce the intended `production_director` "no financial" restriction (spec Test 10).
 - [ ] **Attendance geofence coords** — office + recurring shoot locations (lat/lng + radius). Needed when Sprint 0 Phase E finalizes the personal-PWA attendance UX.
 - [ ] **Optional/later** — Sentry token with `event:read` scope (current is release-only — limits proactive Sentry triage). DNS flip `antagna.me` → Vercel when retiring the `.vercel.app` URL.
 

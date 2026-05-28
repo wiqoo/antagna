@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql, eq } from 'drizzle-orm';
-import { db, profiles, capabilities, departments } from '@antagna/db';
+import { db, profiles, skills, departments } from '@antagna/db';
 import {
   PageHeader,
   Card,
@@ -47,7 +47,7 @@ export default async function TeamPage() {
         d.name_ar AS department_name,
         e.job_title,
         (
-          SELECT count(*)::int FROM user_capabilities uc
+          SELECT count(*)::int FROM user_skills uc
           WHERE uc.profile_id = p.id
         ) AS capability_count,
         (
@@ -58,8 +58,8 @@ export default async function TeamPage() {
             AND pr.stage NOT IN ('delivered','archived','lost','cancelled')
         ) AS active_projects,
         (
-          SELECT array_agg(uc.capability_key)
-          FROM user_capabilities uc
+          SELECT array_agg(uc.skill_key)
+          FROM user_skills uc
           WHERE uc.profile_id = p.id
         ) AS capability_keys
       FROM profiles p
@@ -68,7 +68,7 @@ export default async function TeamPage() {
       WHERE p.archived_at IS NULL
       ORDER BY p.display_name
     `),
-    db.select().from(capabilities).orderBy(capabilities.position, capabilities.key),
+    db.select().from(skills).orderBy(skills.position, skills.key),
     db.select().from(departments).orderBy(departments.position),
   ]);
 

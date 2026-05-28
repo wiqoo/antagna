@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
-import { db, profiles, userCapabilities, capabilities } from '@antagna/db';
+import { db, profiles, userSkills } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { WelcomeFlow } from './welcome-flow';
 
@@ -28,12 +28,12 @@ export default async function WelcomePage() {
 
   const caps = await db
     .select({
-      key: userCapabilities.capabilityKey,
-      isPrimary: userCapabilities.isPrimary,
-      proficiency: userCapabilities.proficiency,
+      key: userSkills.skillKey,
+      isPrimary: userSkills.isPrimary,
+      proficiency: userSkills.proficiency,
     })
-    .from(userCapabilities)
-    .where(eq(userCapabilities.profileId, profile.id));
+    .from(userSkills)
+    .where(eq(userSkills.profileId, profile.id));
 
   // Friendly labels for known capability keys (Arabic).
   const capLabels: Record<string, string> = {

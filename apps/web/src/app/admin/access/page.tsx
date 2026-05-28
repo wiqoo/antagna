@@ -9,8 +9,14 @@ import { AccessManager } from './access-manager';
 
 export const dynamic = 'force-dynamic';
 
+// The 16 positions (D-037). The matrix now edits position_default_permissions.
+// `profiles.role` (legacy) still drives landing + the view-as admin gate; the
+// per-user dropdown below assigns position_key via setUserRole. Phase F unifies.
 const ROLES = [
-  'system_admin', 'general_manager', 'project_manager', 'account_manager', 'hr', 'finance', 'user',
+  'general_manager', 'creative_director', 'production_director', 'project_manager',
+  'account_manager', 'videographer', 'video_editor', 'photo_editor',
+  'equipment_technician', 'procurement', 'financial_manager', 'accountant',
+  'hr_manager', 'system_admin', 'trainee', 'freelancer',
 ] as const;
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
@@ -20,11 +26,11 @@ export default async function AccessPage() {
   const me = await getCurrentProfile();
 
   const [usersR, permsR, grantsR, capsR, userCapsR, overridesR] = await Promise.all([
-    db.execute(sql`SELECT id::text AS id, display_name AS name, role FROM profiles WHERE archived_at IS NULL ORDER BY display_name`),
+    db.execute(sql`SELECT id::text AS id, display_name AS name, COALESCE(position_key, role) AS role FROM profiles WHERE archived_at IS NULL ORDER BY display_name`),
     db.execute(sql`SELECT key, category, description_ar AS name, risk_level AS risk FROM permissions ORDER BY category, key`),
-    db.execute(sql`SELECT role, permission_key AS key FROM role_default_permissions`),
-    db.execute(sql`SELECT key, name_ar AS name, category FROM capabilities WHERE active ORDER BY position, key`),
-    db.execute(sql`SELECT profile_id::text AS "profileId", capability_key AS key FROM user_capabilities`),
+    db.execute(sql`SELECT position_key AS role, permission_key AS key FROM position_default_permissions`),
+    db.execute(sql`SELECT key, name_ar AS name, category FROM skills WHERE active ORDER BY position, key`),
+    db.execute(sql`SELECT profile_id::text AS "profileId", skill_key AS key FROM user_skills`),
     db.execute(sql`SELECT profile_id::text AS "profileId", permission_key AS key, granted FROM user_permission_overrides`),
   ]);
 

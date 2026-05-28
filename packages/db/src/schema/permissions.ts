@@ -3,7 +3,8 @@
  *
  * The three tables that make `has_permission(profile_id, key)` work:
  *   - permissions: catalog of every permission key in the system
- *   - role_default_permissions: which keys each role gets by default
+ *   - position_default_permissions: which keys each position gets by default
+ *     (renamed from role_default_permissions in migration 049 — D-037/D-041)
  *   - user_permission_overrides: per-user grant/deny with optional expiry
  */
 import {
@@ -25,15 +26,15 @@ export const permissions = pgTable('permissions', {
   riskLevel: text('risk_level').notNull().default('normal'), // 'low' | 'normal' | 'high'
 });
 
-export const roleDefaultPermissions = pgTable(
-  'role_default_permissions',
+export const positionDefaultPermissions = pgTable(
+  'position_default_permissions',
   {
-    role: text('role').notNull(),
+    positionKey: text('position_key').notNull(),
     permissionKey: text('permission_key')
       .notNull()
       .references(() => permissions.key),
   },
-  (t) => [primaryKey({ columns: [t.role, t.permissionKey] })],
+  (t) => [primaryKey({ columns: [t.positionKey, t.permissionKey] })],
 );
 
 export const userPermissionOverrides = pgTable(
@@ -55,5 +56,5 @@ export const userPermissionOverrides = pgTable(
 );
 
 export type Permission = typeof permissions.$inferSelect;
-export type RoleDefaultPermission = typeof roleDefaultPermissions.$inferSelect;
+export type PositionDefaultPermission = typeof positionDefaultPermissions.$inferSelect;
 export type UserPermissionOverride = typeof userPermissionOverrides.$inferSelect;

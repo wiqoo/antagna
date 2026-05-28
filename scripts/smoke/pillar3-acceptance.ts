@@ -148,7 +148,7 @@ async function main() {
   // #6 — has_capability
   // ════════════════════════════════════════════════════════════════════════
   await pg(`
-    INSERT INTO user_capabilities (profile_id, capability_key, is_primary)
+    INSERT INTO user_skills (profile_id, skill_key, is_primary)
     VALUES ('${amId}', 'editor', false)
     ON CONFLICT DO NOTHING
   `);
@@ -216,7 +216,7 @@ async function main() {
   await pg(`DELETE FROM projects WHERE id='${proj.id}'`);
   await pg(`DELETE FROM clients WHERE id='${cli.id}'`);
   await pg(`DELETE FROM user_permission_overrides WHERE profile_id IN ('${amId}', '${userId}')`);
-  await pg(`DELETE FROM user_capabilities WHERE profile_id='${amId}'`);
+  await pg(`DELETE FROM user_skills WHERE profile_id='${amId}'`);
   // audit_log holds FKs to profiles via actor_id + acted_as_id — purge first.
   await pg(`
     DELETE FROM audit_log
