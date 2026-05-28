@@ -29,6 +29,7 @@ import {
   Wrench,
   CheckCircle2,
   ScanLine,
+  Boxes,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -182,6 +183,13 @@ export default async function EquipmentPage() {
         subtitle="كاميرات، عدسات، إضاءة، صوت — كل ما يدير إنتاج Volt."
         action={
           <div className="flex gap-2">
+            <Link
+              href="/equipment/kits"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
+            >
+              <Boxes size={15} />
+              الكيتات
+            </Link>
             <Link
               href="/equipment/scan"
               className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"

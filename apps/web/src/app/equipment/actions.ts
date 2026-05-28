@@ -177,3 +177,59 @@ export async function identifyEquipmentPhoto(
     },
   };
 }
+
+// --- C1: kits (presets) + items ---
+
+/** Create a kit (a named bundle of equipment templated for a shoot type). */
+export async function createKit(formData: FormData): Promise<void> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const code = formData.get('code')?.toString().trim();
+  const nameAr = formData.get('nameAr')?.toString().trim();
+  const nameEn = formData.get('nameEn')?.toString().trim() || null;
+  const description = formData.get('description')?.toString().trim() || null;
+  const primaryEquipmentId = formData.get('primaryEquipmentId')?.toString() || null;
+  if (!code || !nameAr) return;
+
+  await db.execute(sql`
+    INSERT INTO kits (code, name_ar, name_en, description, primary_equipment_id, active)
+    VALUES (${code}, ${nameAr}, ${nameEn}, ${description},
+            ${primaryEquipmentId ? sql`${primaryEquipmentId}::uuid` : sql`NULL`}, true)
+    ON CONFLICT (code) DO NOTHING
+  `);
+  revalidatePath('/equipment/kits');
+}
+
+/** Add an equipment item to an existing kit. */
+export async function addKitItem(
+  kitId: string,
+  formData: FormData,
+): Promise<void> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const equipmentId = formData.get('equipmentId')?.toString() || null;
+  const qty = Number(formData.get('quantity')?.toString() ?? '1');
+  const mandatory = formData.get('mandatory') === 'on';
+  const notes = formData.get('notes')?.toString().trim() || null;
+  if (!equipmentId) return;
+
+  await db.execute(sql`
+    INSERT INTO kit_items (kit_id, equipment_id, quantity, is_mandatory, notes)
+    VALUES (${kitId}::uuid, ${equipmentId}::uuid,
+            ${Number.isFinite(qty) && qty > 0 ? qty : 1},
+            ${mandatory}, ${notes})
+  `);
+  revalidatePath('/equipment/kits');
+}
+
+export async function removeKitItem(itemId: string): Promise<void> {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await db.execute(sql`DELETE FROM kit_items WHERE id = ${itemId}::uuid`);
+  revalidatePath('/equipment/kits');
+}
