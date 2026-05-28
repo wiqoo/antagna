@@ -77,12 +77,27 @@ export const alertScanner = schedules.task({
       }
     }
 
+    // Piggyback the WhatsApp media + voice scanner (same 5-min cadence; keeps
+    // us under Trigger.dev Pro's 10-schedule cap).
+    let mediaSummary: { checked: number; stashed: number; transcribed: number } = {
+      checked: 0,
+      stashed: 0,
+      transcribed: 0,
+    };
+    try {
+      const { runWhatsappMediaScan } = await import('./whatsapp-media-scanner');
+      mediaSummary = await runWhatsappMediaScan();
+    } catch (err) {
+      console.error('[alert-scanner] whatsapp-media-scanner failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,
       rulesEvaluated: rulesArr.length,
       firedCount,
       cooldownSkipped,
+      mediaSummary,
     };
   },
 });

@@ -19,3 +19,6 @@ export { emailFollowupScanner } from './email-followup-scanner';
 export { smartSuggestionsScanner } from './smart-suggestions-scanner';
 export { memoryIndexer } from './memory-indexer';
 export { learningAggregator } from './learning-aggregator';
+// Piggybacked (no own schedule): called from alert-scanner / insights-scanner.
+export { runWhatsappMediaScan } from './whatsapp-media-scanner';
+export { runDeadlineNotifier } from './deadline-notifier';

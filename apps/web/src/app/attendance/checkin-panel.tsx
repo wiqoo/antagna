@@ -1,9 +1,22 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, Check, AlertTriangle, RefreshCw, LogIn } from 'lucide-react';
+import {
+  Camera,
+  MapPin,
+  Check,
+  AlertTriangle,
+  RefreshCw,
+  LogIn,
+  CloudOff,
+} from 'lucide-react';
 import { checkIn } from './actions';
+import {
+  enqueue,
+  listQueue,
+  remove as removeFromQueue,
+} from '@/lib/attendance-queue';
 
 type Coords = { lat: number; lng: number; acc: number };
 
@@ -25,6 +38,56 @@ export function CheckInPanel() {
   const [geoErr, setGeoErr] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const [queueCount, setQueueCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+
+  // Drain the offline queue on mount + whenever the device comes back online.
+  useEffect(() => {
+    let cancelled = false;
+
+    const drain = async () => {
+      const list = await listQueue();
+      if (cancelled) return;
+      setQueueCount(list.length);
+      if (list.length === 0 || !navigator.onLine) return;
+      setSyncing(true);
+      for (const entry of list) {
+        try {
+          const fd = new FormData();
+          fd.append(
+            'selfie',
+            new File([entry.selfieBlob], 'selfie.jpg', { type: 'image/jpeg' }),
+          );
+          fd.append('type', entry.type === 'in' ? 'check_in_office' : 'check_out_office');
+          if (entry.lat != null && entry.lng != null) {
+            fd.append('lat', String(entry.lat));
+            fd.append('lng', String(entry.lng));
+          }
+          fd.append('clientTs', new Date(entry.clientTimestamp).toISOString());
+          const res = await checkIn(fd);
+          if (res.ok) await removeFromQueue(entry.id);
+        } catch {
+          // Network blip mid-drain; leave the entry, next online tick retries.
+          break;
+        }
+      }
+      const after = await listQueue();
+      if (cancelled) return;
+      setQueueCount(after.length);
+      setSyncing(false);
+      if (after.length === 0 && list.length > 0) {
+        router.refresh();
+      }
+    };
+
+    void drain();
+    const onOnline = () => void drain();
+    window.addEventListener('online', onOnline);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', onOnline);
+    };
+  }, [router]);
 
   const startCamera = async () => {
     setResult(null);
@@ -109,20 +172,66 @@ export function CheckInPanel() {
         fd.append('accuracy', String(coords.acc));
       }
       fd.append('clientTs', new Date().toISOString());
-      const res = await checkIn(fd);
-      if (res.ok) {
-        setResult({
-          ok: true,
-          text:
-            res.verification === 'verified'
-              ? `تم التسجيل ✓${res.fence ? ` — ${res.fence}` : ''}`
-              : 'سُجّل، لكن الموقع خارج النطاق المحدّد (سيُراجَع).',
-        });
-        setPhoto(null);
-        setCoords(null);
-        router.refresh();
-      } else {
-        setResult({ ok: false, text: res.error ?? 'تعذّر التسجيل' });
+
+      // If the device is offline, skip the round-trip and queue immediately.
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        try {
+          await enqueue({
+            type: type.startsWith('check_out') ? 'out' : 'in',
+            selfieBlob: photo.blob,
+            lat: coords?.lat ?? null,
+            lng: coords?.lng ?? null,
+            clientTimestamp: Date.now(),
+          });
+          setQueueCount((c) => c + 1);
+          setResult({
+            ok: true,
+            text: 'لا اتصال — تم حفظ التسجيل محلياً وسيُرسل تلقائياً عند عودة الاتصال.',
+          });
+          setPhoto(null);
+          setCoords(null);
+        } catch {
+          setResult({ ok: false, text: 'تعذّر الحفظ المحلي.' });
+        }
+        return;
+      }
+
+      try {
+        const res = await checkIn(fd);
+        if (res.ok) {
+          setResult({
+            ok: true,
+            text:
+              res.verification === 'verified'
+                ? `تم التسجيل ✓${res.fence ? ` — ${res.fence}` : ''}`
+                : 'سُجّل، لكن الموقع خارج النطاق المحدّد (سيُراجَع).',
+          });
+          setPhoto(null);
+          setCoords(null);
+          router.refresh();
+        } else {
+          setResult({ ok: false, text: res.error ?? 'تعذّر التسجيل' });
+        }
+      } catch {
+        // Network error mid-submit → queue and recover later.
+        try {
+          await enqueue({
+            type: type.startsWith('check_out') ? 'out' : 'in',
+            selfieBlob: photo.blob,
+            lat: coords?.lat ?? null,
+            lng: coords?.lng ?? null,
+            clientTimestamp: Date.now(),
+          });
+          setQueueCount((c) => c + 1);
+          setResult({
+            ok: true,
+            text: 'انقطع الاتصال — حُفظ محلياً وسيُرسل عند عودة الاتصال.',
+          });
+          setPhoto(null);
+          setCoords(null);
+        } catch {
+          setResult({ ok: false, text: 'تعذّر الإرسال أو الحفظ المحلي.' });
+        }
       }
     });
   };
@@ -132,6 +241,14 @@ export function CheckInPanel() {
 
   return (
     <div className="space-y-4">
+      {queueCount > 0 && (
+        <div className="flex items-center gap-2 rounded-md border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-3 py-2 text-[12px] text-[var(--warning)]">
+          <CloudOff size={13} />
+          {syncing
+            ? `يُرفع الآن… (${queueCount} في الطابور)`
+            : `${queueCount} تسجيل محفوظ محلياً — سيُرسل عند توفر الاتصال.`}
+        </div>
+      )}
       <label className="block space-y-1.5">
         <span className="text-[12px] text-[var(--text-muted)]">نوع التسجيل</span>
         <select value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>

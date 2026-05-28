@@ -16,9 +16,9 @@
  *   - equipment_utilization_pct   (company)
  *   - tasks_overdue_count         (person, per profile)
  *   - lead_conversion_pct         (company, derived from leads outcome)
+ *   - attendance_present_pct      (company, PWA check-ins; C3)
  *
  * Not yet implemented (need data Antagna doesn't have yet):
- *   - attendance_present_pct       — needs PWA check-ins
  *   - nps_avg, client_complaints   — needs survey data
  *   - monthly_revenue_sar          — needs invoice/payment data
  */
@@ -167,6 +167,39 @@ export const kpiEngine = schedules.task({
       period_end: end,
       value: Number(cRow?.pct ?? 0),
       metadata: { total: cRow?.total ?? 0, converted: cRow?.converted ?? 0 },
+    });
+
+    // C3 — attendance_present_pct. % of active profiles who checked in today
+    // (any of the "check_in_*" / remote_start types).
+    const att = await db.execute(sql`
+      WITH active_people AS (
+        SELECT id FROM profiles WHERE active = true
+      ),
+      present_today AS (
+        SELECT DISTINCT profile_id
+        FROM attendance_records
+        WHERE type IN ('check_in_office','check_in_shoot','remote_start')
+          AND server_timestamp >= ${start}::timestamptz
+          AND server_timestamp <  (${end}::timestamptz + interval '1 day')
+      )
+      SELECT
+        (SELECT count(*) FROM active_people)::int  AS total,
+        (SELECT count(*) FROM present_today)::int  AS present,
+        CASE WHEN (SELECT count(*) FROM active_people) = 0 THEN 0
+             ELSE ROUND(
+               ((SELECT count(*) FROM present_today) * 100.0
+                / (SELECT count(*) FROM active_people))::numeric, 2)
+        END AS pct
+    `);
+    const aRow = (att as unknown as { total: number; present: number; pct: number }[])[0];
+    snapshots.push({
+      kpi_key: 'attendance_present_pct',
+      scope_entity_type: null,
+      scope_entity_id: null,
+      period_start: start,
+      period_end: end,
+      value: Number(aRow?.pct ?? 0),
+      metadata: { total: aRow?.total ?? 0, present: aRow?.present ?? 0 },
     });
 
     // Ensure all KPI keys referenced above exist in kpi_definitions; if missing,

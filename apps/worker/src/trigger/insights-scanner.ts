@@ -145,6 +145,18 @@ Output JSON only.`;
       console.error('[insights-scanner] learning-aggregator trigger failed', e),
     );
 
+    // Piggyback the deadline notifier (same 2-h cadence, keeps us under the
+    // Trigger.dev Pro 10-schedule cap). Fan-out via /api/internal/notify.
+    let deadlineSummary: { items: number; fanned: number } | { skipped: string } = {
+      skipped: 'not_run',
+    };
+    try {
+      const { runDeadlineNotifier } = await import('./deadline-notifier');
+      deadlineSummary = await runDeadlineNotifier();
+    } catch (err) {
+      console.error('[insights-scanner] deadline-notifier failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,
