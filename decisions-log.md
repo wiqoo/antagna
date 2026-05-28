@@ -396,6 +396,35 @@ the permissions doc.
 **Reversibility:** Easy — flip the registration handler back on, but plan
 the position-on-invite flow regardless.
 
+### D-041 — Sprint 0 Phase A reconciled to live-DB reality (clarifies D-038)
+**Context:** The permissions spec (`01PERMISSIONSforClaudeCode.md`, saved to repo
+2026-05-29) and the D-038 naming plan collide with what's actually in the
+antagna-v2 DB (`nicijexpmpekzuzevarf`). Read on 2026-05-29:
+`capabilities`=21 rows (the shooter/editor skills catalog, used in 8 source
+files), `user_capabilities`=19, `skills`=0, `user_skills`=0, `permissions`=50,
+`role_default_permissions`=144, `profiles`=17.
+**Decision — how Phase A actually lands:**
+1. `skills`/`user_skills` already exist but are EMPTY → DROP them first, then
+   rename `capabilities`→`skills` + `user_capabilities`→`user_skills`. (D-038's
+   "rename capabilities→skills" can't be a blind RENAME — the target name is
+   occupied by empty stubs.)
+2. The spec's "capabilities" = fine-grained access codes. Antagna already has a
+   `permissions` table (50 keys) + `role_default_permissions` (144 maps). The
+   new codes (`projects.read.financial`, `.client_contacts`, `.internal_notes`,
+   …) EXTEND `permissions` — we do NOT create a fresh `capabilities` table.
+   `role_default_permissions` → `position_default_permissions`.
+3. The masking helper is **`user_has_permission(key)`**, not the spec's
+   `user_has_capability(...)` — it reads the existing `permissions` graph.
+   (Spec Part 3 SQL is illustrative; align names to the real schema.)
+4. Spec **Part 3 RLS-first** is superseded by **D-039** (app-layer `can()` +
+   safe views; RLS belt-and-suspenders only). Where the spec says "enforce in
+   RLS," read "enforce in views + `requirePermission()`."
+**Why:** Executing the handoff's literal wording would error (name collision)
+or fork the permission model into two parallel systems (`capabilities` vs
+`permissions`). One graph, renamed cleanly, is the maintainable path.
+**Reversibility:** Moderate — same as D-038; one focused PR migrates schema +
+the ~8 dependent source files, applied + redeployed together.
+
 ---
 
 ## Pending Decisions (to revisit in later pillars)

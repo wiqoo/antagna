@@ -2,10 +2,14 @@
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
 > so this page always reflects real progress. Plan: `PRODUCT-VISION.md` + `PHASE-2-PLAN.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-28 — Phases A·B·C·D sealed + 🚀 deployed
-> live to antagna-v2 prod (https://antagna-v2.vercel.app). Cowork audit (proposal) bugs swept
-> through. PHASE-2-PLAN locked: Sprint 0 (Permissions architecture, 4w) → Sprints 1-4 (8w) =
-> 12 weeks total. 162 equipment imported from live volt-os. Decisions D-037 → D-040 locked.**
+> `.claude/plans` (approved). **Last updated: 2026-05-29 — Permissions spec
+> (`01PERMISSIONSforClaudeCode.md`) landed in repo. Sprint 0 Phase A STARTED.
+> Live-DB audit reconciled the naming plan → D-041 (drop empty `skills` stubs
+> before rename; new access codes extend `permissions` not a new `capabilities`
+> table; helper = `user_has_permission`; spec Part 3 RLS-first superseded by
+> D-039). Prior: Phases A·B·C·D sealed + 🚀 live on antagna-v2
+> (https://antagna-v2.vercel.app). Cowork audit swept. PHASE-2-PLAN locked:
+> Sprint 0 (4w) → Sprints 1-4 (8w) = 12 weeks. Decisions D-037 → D-041 locked.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
 
 ## 🐛 Bug sweep — Cowork audit (2026-05-28)
@@ -26,8 +30,8 @@
 - [x] **#15** `/tasks` TTFB — 3 sequential probes: 1.44s / 0.48s / 0.48s. Confirmed Vercel cold-start; warm requests are 480ms. Not a real perf bug.
 
 ## 📐 Phase 2 — Strategic re-architecture (12 weeks, see PHASE-2-PLAN.md)
-**Sprint 0 — Permissions architecture (Weeks 1-4)** · locked decisions D-037/D-038/D-039/D-040:
-- [ ] Phase A — Rename `capabilities → skills`; extend `permissions` with fine-grained codes (`projects.read.all`/`.assigned`/`.financial`/`.client_contacts`/`.internal_notes` + per-domain mirrors); rename `role_default_permissions → position_default_permissions` + seed 16-position matrix.
+**Sprint 0 — Permissions architecture (Weeks 1-4)** · locked decisions D-037/D-038/D-039/D-040/D-041 · spec: `01PERMISSIONSforClaudeCode.md`:
+- [~] Phase A — **(reconciled per D-041)** Drop empty `skills`/`user_skills` stubs → rename `capabilities → skills` + `user_capabilities → user_skills` (21+19 live rows); extend `permissions` with fine-grained codes (`projects.read.all`/`.assigned`/`.financial`/`.client_contacts`/`.internal_notes` + per-domain mirrors) — NOT a new `capabilities` table; rename `role_default_permissions → position_default_permissions` + seed 16-position matrix. Then sweep ~8 source files `capabilities → skills`.
 - [ ] Phase B — `positions` table + `profiles.position_key` + `user_position_overrides` (multi-hat for Abu Luka GM+Creative, Mohammed Production+SysAdmin+Researcher).
 - [ ] Phase C — `user_has_permission()` + `user_assigned_to_project()` + `app.current_profile_id` GUC in `withActor()`.
 - [ ] Phase D — Safe views (`v_projects_safe`/`v_clients_safe`/`v_contacts_safe`/`v_email_threads_safe`/`v_equipment_safe`/`v_profiles_safe`) + pages switch to views + write-side guards.
