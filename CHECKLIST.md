@@ -54,7 +54,7 @@
 - [x] **System map** `/system-map` — interactive Obsidian-style force graph (react-force-graph): modules + data stores + AI, color-coded by type, sized by importance, AI-flow links highlighted; hover→focus a node's links, click→zoom, drag→pan. Linked from `/admin`. Verified visually.
 
 ## Cross-cutting (from critical review)
-- [ ] Data seeding/import (from `volt-os`) so pages aren't empty
+- [x] Data seeding (hybrid per D-038 spirit) — 162 equipment rows + photos + AI-extracted specs imported from volt-os live (`jhfkgmomntkgzzycdbmt`) into antagna-v2 on 2026-05-28. Result: 172 total equipment, 136 with photos, 14 normalized categories, 148 with ai_meta + 153 with compatibility_tags from volt-os's earlier AI pass. CRM + employees stay manual per the Hybrid pick.
 - [x] Unified notification service — **`lib/notify.ts` built**: reads the recipient's A7 channel prefs + `ui_language`, fans out to **in-app** (notifications row) + **email** (Resend) + **WhatsApp** (sendText) in their language, records requested/delivered. First consumer wired: **project assignment** (`on_assignment`). All channels wired: **deadlines** (deadlineNotifier, 2h via insights-scanner) · **alerts** (alertNotifier, 5min via alert-scanner — recipient_strategy → role mapping → fan-out + notified_profile_ids stamp) · **daily-digest** (dailyDigest, mornings via daily-brief — open tasks + due-today + unread emails per active profile) · **mentions** (postComment parses @email-prefix tokens → on_mention fan-out, skipping the author + already-notified PM).
 - [x] Automated tests — **Vitest** (12 unit tests on roleLanding + project-stage helpers in `apps/web`) + **Playwright E2E** (apps/e2e: dashboard, projects-list, inbox, view-as, gmail-admin, **equipment+kits**, **attendance**, **command-palette** — 8 specs). CI job in `.github/workflows/ci.yml` (`unit-tests` + `e2e`) runs both on push/PR; E2E gracefully no-ops if `E2E_*` secrets aren't set in repo Settings.
 - [x] Every page verified mobile (390) + basic a11y + RTL/LTR — Playwright sweep at 390x844 on 9 surfaces (dashboard/tasks/projects/equipment/attendance/team/whatsapp/inbox/social): 0 horizontal overflow, every page has an `<h1>`, 0 img-without-alt, 0 button-without-aria after the topbar-logout fix. RTL preserved by direction inheritance from `<html dir>`.
@@ -65,7 +65,7 @@
 /reports · /admin(+subs) · /settings→account · /login · /register · /welcome
 
 ## Manual items from Mohammed (I'll remind at each)
-- [ ] Approve me reading `volt-os` LIVE DB for a one-time data import (or "start fresh")
-- [ ] Auth: invite-only vs self-signup + missing team emails (Abu Luka, Ahmed)
+- [x] Volt-os live DB read authorized + executed 2026-05-28 (equipment import + team-email lookup for Ahmed + Abu Luka — both saved in [[project_team_emails]] memory).
+- [x] Auth: **invite-only** locked (D-040) + missing team emails pulled from live: Ahmed → ahmedakj.1423@gmail.com, Abu Luka → mo.malki88@gmail.com.
 - [ ] Attendance: office/site geofence coordinates + radius; selfie required?
 - [ ] Optional/later: Sentry `/mcp` OAuth (local) · DNS flip `antagna.me`→Vercel
