@@ -47,29 +47,19 @@ export default async function NewClientPage({
         <Card>
           <form action={createClient} className="space-y-6">
             {leadId && <input type="hidden" name="leadId" value={leadId} />}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_1fr]">
-              <Field label="الكود" required>
-                <input
-                  type="text"
-                  name="code"
-                  required
-                  placeholder="MYNM"
-                  pattern="[A-Z0-9_-]{2,16}"
-                  title="حروف كبيرة وأرقام فقط، 2–16 حرف"
-                  className="form-input font-mono uppercase"
-                />
-              </Field>
-              <Field label="الاسم (عربي)" required>
-                <input
-                  type="text"
-                  name="nameAr"
-                  required
-                  defaultValue={prefillName}
-                  placeholder="مينام"
-                  className="form-input"
-                />
-              </Field>
-            </div>
+
+            {/* Code is auto-generated server-side from the English/Arabic name. */}
+
+            <Field label="الاسم (عربي)" required>
+              <input
+                type="text"
+                name="nameAr"
+                required
+                defaultValue={prefillName}
+                placeholder="مينام"
+                className="form-input"
+              />
+            </Field>
 
             <Field label="Name (English)">
               <input
@@ -81,27 +71,51 @@ export default async function NewClientPage({
             </Field>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="النوع">
+              <Field
+                label="للحساب"
+                hint="Volt (إنتاج) أم محتوى أبو لوكا — يحدد التقارير ومسارات الاعتماد."
+                required
+              >
+                <select name="forBrandUnit" defaultValue="volt_production" className="form-input">
+                  <option value="volt_production">Volt — إنتاج</option>
+                  <option value="abu_luka">محتوى أبو لوكا</option>
+                </select>
+              </Field>
+              <Field
+                label="نوع العميل"
+                hint="هل تتعامل مع العلامة مباشرةً أم عبر وكالة وسيطة؟"
+              >
                 <select
                   name="clientType"
                   defaultValue="brand"
                   className="form-input"
                 >
-                  <option value="brand">brand — علامة تجارية</option>
-                  <option value="dealer">dealer — موزع</option>
-                  <option value="agency">agency — وكالة</option>
-                  <option value="other">other — آخر</option>
+                  <option value="brand">العلامة مباشرةً (brand)</option>
+                  <option value="agency">وكالة وسيطة (agency)</option>
+                  <option value="dealer">موزِّع (dealer)</option>
+                  <option value="other">أخرى</option>
                 </select>
               </Field>
-              <Field label="القطاع">
-                <input
-                  type="text"
-                  name="industry"
-                  placeholder="real estate, automotive…"
-                  className="form-input"
-                />
-              </Field>
             </div>
+
+            <Field label="القطاع">
+              <select name="industry" defaultValue="" className="form-input" id="industry-select">
+                <option value="">— اختر القطاع —</option>
+                <option value="real_estate">عقارات</option>
+                <option value="automotive">سيارات</option>
+                <option value="f_and_b">مطاعم وأغذية</option>
+                <option value="retail">تجزئة</option>
+                <option value="beauty_fashion">موضة وجمال</option>
+                <option value="tech">تقنية وستارت أب</option>
+                <option value="other">أخرى…</option>
+              </select>
+              <input
+                type="text"
+                name="industryOther"
+                placeholder="اكتب القطاع لو اخترت أخرى"
+                className="form-input mt-2"
+              />
+            </Field>
 
             <Field label="الاسم القانوني">
               <input
@@ -192,10 +206,12 @@ export default async function NewClientPage({
 function Field({
   label,
   required,
+  hint,
   children,
 }: {
   label: string;
   required?: boolean;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -204,6 +220,11 @@ function Field({
         {label}
         {required && <span className="text-[var(--accent)]"> *</span>}
       </span>
+      {hint && (
+        <span className="block text-[11px] leading-relaxed text-[var(--text-dim)]">
+          {hint}
+        </span>
+      )}
       {children}
     </label>
   );

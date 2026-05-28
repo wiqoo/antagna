@@ -25,27 +25,52 @@ async function withActor() {
 export async function createClient(formData: FormData) {
   const actorId = await withActor();
 
-  const code = formData.get('code')?.toString().trim().toUpperCase();
   const nameAr = formData.get('nameAr')?.toString().trim();
   const nameEn = formData.get('nameEn')?.toString().trim() || null;
   const legalName = formData.get('legalName')?.toString().trim() || null;
   const clientType = formData.get('clientType')?.toString() || 'brand';
-  const industry = formData.get('industry')?.toString().trim() || null;
+  // Industry: dropdown ('other' lets a free-text industryOther override).
+  const industryPick = formData.get('industry')?.toString().trim() || null;
+  const industryOther = formData.get('industryOther')?.toString().trim() || null;
+  const industry =
+    industryPick === 'other'
+      ? industryOther || null
+      : industryPick;
   const country = formData.get('country')?.toString().trim() || 'SA';
   const city = formData.get('city')?.toString().trim() || null;
   const websiteUrl = formData.get('websiteUrl')?.toString().trim() || null;
   const vatNumber = formData.get('vatNumber')?.toString().trim() || null;
   const crNumber = formData.get('crNumber')?.toString().trim() || null;
+  // Which Volt sub-brand owns this client (Mohammed's spec).
+  const forBrandUnit = formData.get('forBrandUnit')?.toString() || 'volt_production';
 
-  if (!code || !nameAr) throw new Error('code + nameAr required');
+  if (!nameAr) throw new Error('nameAr required');
 
+  // Auto-generate a code from the English (or Arabic) name — Mohammed's audit
+  // flagged the visible-but-useless Code field. Server keeps it for the URL
+  // segment + Dafterah ref but never asks the user.
+  const slug =
+    (nameEn ?? nameAr).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) ||
+    'CLNT';
+  let code = slug;
+  for (let suffix = 2; suffix < 100; suffix++) {
+    const rs = (await db.execute<{ n: number }>(
+      sql`SELECT count(*)::int AS n FROM clients WHERE code = ${code}`,
+    )) as unknown as { n: number }[];
+    if ((rs[0]?.n ?? 0) === 0) break;
+    code = `${slug}${suffix}`;
+  }
+
+  const customFields = { for_brand_unit: forBrandUnit };
   const res = await db.execute<{ id: string }>(sql`
     INSERT INTO clients (code, name_ar, name_en, legal_name, client_type, industry,
-                         country, city, website_url, vat_number, cr_number, created_by)
+                         country, city, website_url, vat_number, cr_number,
+                         custom_fields, created_by)
     VALUES (
       ${code}, ${nameAr}, ${nameEn}, ${legalName},
       ${clientType}::client_type, ${industry}, ${country}, ${city},
       ${websiteUrl}, ${vatNumber}, ${crNumber},
+      ${JSON.stringify(customFields)}::jsonb,
       ${actorId ? sql`${actorId}::uuid` : sql`NULL`}
     )
     RETURNING id
