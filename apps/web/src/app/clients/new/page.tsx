@@ -48,7 +48,7 @@ export default async function NewClientPage({
           <form action={createClient} className="space-y-6">
             {leadId && <input type="hidden" name="leadId" value={leadId} />}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_1fr]">
-              <Field label="Code" required>
+              <Field label="الكود" required>
                 <input
                   type="text"
                   name="code"
@@ -140,7 +140,7 @@ export default async function NewClientPage({
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="VAT number">
+              <Field label="الرقم الضريبي">
                 <input
                   type="text"
                   name="vatNumber"
@@ -148,7 +148,7 @@ export default async function NewClientPage({
                   className="form-input font-mono"
                 />
               </Field>
-              <Field label="CR number">
+              <Field label="رقم السجل التجاري">
                 <input
                   type="text"
                   name="crNumber"

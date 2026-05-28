@@ -116,14 +116,14 @@ export function SyncPanel({ email }: { email: string }) {
                 </span>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-[var(--text-dim)] md:grid-cols-4">
-                <Stat label="Threads fetched" value={result.report.threadsFetched} />
-                <Stat label="Threads processed" value={result.report.threadsProcessed} />
+                <Stat label="محادثات مجلوبة" value={result.report.threadsFetched} />
+                <Stat label="محادثات معالَجة" value={result.report.threadsProcessed} />
                 <Stat
-                  label="Messages new"
+                  label="رسائل جديدة"
                   value={result.report.messagesInserted}
                   tone="success"
                 />
-                <Stat label="Messages skipped" value={result.report.messagesSkipped} />
+                <Stat label="رسائل متجاوَزة" value={result.report.messagesSkipped} />
               </div>
               <p className="mt-2 text-[10px] text-[var(--text-dim)]">
                 <span className="font-mono">query: {result.report.query}</span> · بدأ{' '}
@@ -200,20 +200,20 @@ export function SyncPanel({ email }: { email: string }) {
                 </span>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-[var(--text-dim)] md:grid-cols-4">
-                <Stat label="Eligible" value={summary.report.eligibleThreads} />
+                <Stat label="مؤهَّل" value={summary.report.eligibleThreads} />
                 <Stat
-                  label="Summarized"
+                  label="مُلخَّصة"
                   value={summary.report.summarizedThreads}
                   tone="success"
                 />
-                <Stat label="In tokens" value={summary.report.totalInputTokens} />
-                <Stat label="Out tokens" value={summary.report.totalOutputTokens} />
+                <Stat label="رموز الإدخال" value={summary.report.totalInputTokens} />
+                <Stat label="رموز الإخراج" value={summary.report.totalOutputTokens} />
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] text-[var(--text-dim)]">
                 <Stat label="Auto-closed" value={summary.report.threadsAutoClosed} />
                 <Stat label="Linked → client" value={summary.report.threadsLinkedToClient} />
                 <Stat
-                  label="Leads created"
+                  label="فُرَص أُنشئت"
                   value={summary.report.leadsCreated}
                   tone="success"
                 />

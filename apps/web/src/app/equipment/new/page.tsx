@@ -43,7 +43,7 @@ export default async function NewEquipmentPage() {
         <Card>
           <form action={createEquipment} className="space-y-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_1fr]">
-              <Field label="Code" required>
+              <Field label="الكود" required>
                 <input
                   type="text"
                   name="code"
@@ -95,7 +95,7 @@ export default async function NewEquipmentPage() {
             </Field>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Serial number">
+              <Field label="الرقم التسلسلي">
                 <input
                   type="text"
                   name="serialNumber"

@@ -157,7 +157,7 @@ export function RouteForm({ profiles }: { profiles: ProfileOpt[] }) {
               ))}
             </select>
           </Field>
-          <Field label="Label key" hint="مثال: sales | finance">
+          <Field label="مفتاح التسمية" hint="مثال: sales | finance">
             <input
               dir="ltr"
               value={form.setLabelKey}

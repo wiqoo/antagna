@@ -17,9 +17,18 @@
  *   - tasks_overdue_count         (person, per profile)
  *   - lead_conversion_pct         (company, derived from leads outcome)
  *   - attendance_present_pct      (company, PWA check-ins; C3)
+ *   - team_size_count             (company, active profiles)
+ *   - tasks_completed_count       (company, 30-day rolling)
+ *   - shoots_completed_count      (company, 30-day rolling)
+ *   - projects_count_last_12mo    (company, top-line growth)
+ *   - days_brief_to_quote         (company, median 90d)
+ *   - days_quote_to_award         (company, median 90d)
  *
  * Not yet implemented (need data Antagna doesn't have yet):
  *   - nps_avg, client_complaints   — needs survey data
+ *   - monthly_revenue_sar, delivered_value_mtd, profit_margin_pct,
+ *     avg_payment_days, repeat_rate, revenue_last_12mo_sar — needs Dafterah
+ *     invoice/payment refs (D-022 webhook)
  *   - monthly_revenue_sar          — needs invoice/payment data
  */
 import { schedules } from '@trigger.dev/sdk';
@@ -168,6 +177,100 @@ export const kpiEngine = schedules.task({
       value: Number(cRow?.pct ?? 0),
       metadata: { total: cRow?.total ?? 0, converted: cRow?.converted ?? 0 },
     });
+
+    // ── Additional handlers (Cowork audit bug #6 — 20/28 KPIs had no engine
+    // handler, only a row in kpi_definitions. The 6 below close the gap for
+    // every metric we have data for; the remaining 14 need Dafterah / NPS /
+    // survey ingestion to come online first.) ────────────────────────────────
+
+    // team_size_count — active profiles right now.
+    {
+      const r = (await db.execute(sql`SELECT count(*)::int AS n FROM profiles WHERE active = true`)) as unknown as { n: number }[];
+      snapshots.push({
+        kpi_key: 'team_size_count', scope_entity_type: null, scope_entity_id: null,
+        period_start: start, period_end: end, value: Number(r[0]?.n ?? 0),
+      });
+    }
+
+    // tasks_completed_count — project_tasks marked completed in the trailing
+    // 30 days.
+    {
+      const r = (await db.execute(sql`
+        SELECT count(*)::int AS n FROM project_tasks
+        WHERE status = 'completed' AND completed_at >= now() - interval '30 days'
+      `)) as unknown as { n: number }[];
+      snapshots.push({
+        kpi_key: 'tasks_completed_count', scope_entity_type: null, scope_entity_id: null,
+        period_start: start, period_end: end, value: Number(r[0]?.n ?? 0),
+      });
+    }
+
+    // shoots_completed_count — projects whose shoot_ends_at fell in the
+    // trailing 30 days and the project moved past 'shooting'.
+    {
+      const r = (await db.execute(sql`
+        SELECT count(*)::int AS n FROM projects
+        WHERE shoot_ends_at >= now() - interval '30 days'
+          AND shoot_ends_at <= now()
+          AND stage::text IN ('editing','review','delivered')
+      `)) as unknown as { n: number }[];
+      snapshots.push({
+        kpi_key: 'shoots_completed_count', scope_entity_type: null, scope_entity_id: null,
+        period_start: start, period_end: end, value: Number(r[0]?.n ?? 0),
+      });
+    }
+
+    // projects_count_last_12mo — projects created in the last 12 months
+    // (regardless of stage). Useful for top-line growth.
+    {
+      const r = (await db.execute(sql`
+        SELECT count(*)::int AS n FROM projects
+        WHERE created_at >= now() - interval '12 months'
+      `)) as unknown as { n: number }[];
+      snapshots.push({
+        kpi_key: 'projects_count_last_12mo', scope_entity_type: null, scope_entity_id: null,
+        period_start: start, period_end: end, value: Number(r[0]?.n ?? 0),
+      });
+    }
+
+    // days_brief_to_quote — median days between brief_received_at and quoted_at
+    // for projects quoted in the last 90 days. Median over avg to dampen
+    // outlier rushes/delays.
+    {
+      const r = (await db.execute(sql`
+        SELECT COALESCE(
+          percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (quoted_at - brief_received_at)) / 86400.0),
+          0
+        )::float8 AS d
+        FROM projects
+        WHERE brief_received_at IS NOT NULL
+          AND quoted_at IS NOT NULL
+          AND quoted_at >= now() - interval '90 days'
+      `)) as unknown as { d: number }[];
+      snapshots.push({
+        kpi_key: 'days_brief_to_quote', scope_entity_type: null, scope_entity_id: null,
+        period_start: start, period_end: end, value: Number(r[0]?.d ?? 0),
+      });
+    }
+
+    // days_quote_to_award — median days between quoted_at and approved_at
+    // for projects approved in the last 90 days.
+    {
+      const r = (await db.execute(sql`
+        SELECT COALESCE(
+          percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (approved_at - quoted_at)) / 86400.0),
+          0
+        )::float8 AS d
+        FROM projects
+        WHERE quoted_at IS NOT NULL
+          AND approved_at IS NOT NULL
+          AND approved_at >= now() - interval '90 days'
+      `)) as unknown as { d: number }[];
+      snapshots.push({
+        kpi_key: 'days_quote_to_award', scope_entity_type: null, scope_entity_id: null,
+        period_start: start, period_end: end, value: Number(r[0]?.d ?? 0),
+      });
+    }
 
     // C3 — attendance_present_pct. % of active profiles who checked in today
     // (any of the "check_in_*" / remote_start types).

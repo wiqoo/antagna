@@ -135,7 +135,7 @@ export default async function EditProjectPage({
 
             <Section title="الفريق">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Field label="Account Manager">
+                <Field label="مدير الحساب">
                   <select
                     name="amId"
                     defaultValue={project.accountManagerId ?? ''}
@@ -149,7 +149,7 @@ export default async function EditProjectPage({
                     ))}
                   </select>
                 </Field>
-                <Field label="Project Manager">
+                <Field label="مدير المشروع">
                   <select
                     name="pmId"
                     defaultValue={project.projectManagerId ?? ''}
@@ -163,7 +163,7 @@ export default async function EditProjectPage({
                     ))}
                   </select>
                 </Field>
-                <Field label="Production Manager">
+                <Field label="مدير الإنتاج">
                   <select
                     name="productionManagerId"
                     defaultValue={project.productionManagerId ?? ''}
@@ -219,7 +219,7 @@ export default async function EditProjectPage({
             </Section>
 
             <Section title="روابط و ملاحظات">
-              <Field label="Drive folder URL">
+              <Field label="رابط مجلد Drive">
                 <input
                   type="url"
                   name="driveFolderUrl"

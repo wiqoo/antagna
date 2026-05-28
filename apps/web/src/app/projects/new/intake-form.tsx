@@ -642,19 +642,19 @@ export function IntakeForm({
       {/* Section 4: Ownership & Crew */}
       <Section eyebrow="٥. الفريق والملكية" icon={<Users size={14} />} hidden={step !== 4}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Row label="Account Manager">
+          <Row label="مدير الحساب">
             <select name="amId" value={amId} onChange={(e) => setAmId(e.target.value)} className="form-input">
               <option value="">— غير محدد —</option>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
             </select>
           </Row>
-          <Row label="Project Manager">
+          <Row label="مدير المشروع">
             <select name="pmId" value={pmId} onChange={(e) => setPmId(e.target.value)} className="form-input">
               <option value="">— غير محدد —</option>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
             </select>
           </Row>
-          <Row label="Production Manager">
+          <Row label="مدير الإنتاج">
             <select name="productionManagerId" value={productionManagerId} onChange={(e) => setProductionManagerId(e.target.value)} className="form-input">
               <option value="">— غير محدد —</option>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}

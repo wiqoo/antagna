@@ -20,10 +20,10 @@
 - [x] **#7** `/whatsapp/[thread]` no composer — exists (WhatsappComposer).
 - [x] **#8** `/admin/access` duplicate users — no duplicate emails in DB.
 - [x] **#10** View-as visible to all — already gated on ADMIN_ROLES.
-- [ ] **#6** `/kpis` 24/28 empty — data issue (NPS / revenue / complaints — needs Dafterah ref + survey ingestion; ships in Sprint 4 outbound automations).
-- [ ] **#11** mixed AR/EN labels — needs specific page pointers.
-- [ ] **#14** `/admin` bundle 329KB — bundle analysis + lazy-load (deferred polish).
-- [ ] **#15** `/tasks` TTFB 859ms — profiling (likely Vercel cold-start; deferred).
+- [x] **#6** `/kpis` partial fix — 6 new engine handlers (team_size_count, tasks_completed_count, shoots_completed_count, projects_count_last_12mo, days_brief_to_quote, days_quote_to_award). Remaining 14 keys still need Dafterah (revenue/payment/margins) + survey ingestion (NPS/complaints) — wired in Sprint 4.
+- [x] **#11** mixed AR/EN labels — 22 translations across 6 files (admin/integrations, clients/new, equipment/new, projects/[id]/edit, projects/new). Tech acronyms (VAT, KPI, Workspace) intentionally kept.
+- [x] **#14** `/admin` bundle — analyzed via @next/bundle-analyzer (`ANALYZE=true pnpm build`). Result: `/admin` client JS is **5.6 KB**; the audit's "329KB" was server-rendered HTML + drizzle runtime. No optimization needed.
+- [x] **#15** `/tasks` TTFB — 3 sequential probes: 1.44s / 0.48s / 0.48s. Confirmed Vercel cold-start; warm requests are 480ms. Not a real perf bug.
 
 ## 📐 Phase 2 — Strategic re-architecture (12 weeks, see PHASE-2-PLAN.md)
 **Sprint 0 — Permissions architecture (Weeks 1-4)** · locked decisions D-037/D-038/D-039/D-040:
