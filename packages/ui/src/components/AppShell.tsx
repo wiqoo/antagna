@@ -16,6 +16,8 @@ import {
   LogOut,
   Plus,
   MoreHorizontal,
+  Clock,
+  MessageCircle,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -51,6 +53,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/equipment', key: 'equipment', label: 'المعدات', icon: Camera },
       { href: '/social', key: 'social', label: 'السوشيال', icon: Megaphone },
       { href: '/team', key: 'team', label: 'الفريق', icon: UserSquare2 },
+      { href: '/attendance', key: 'attendance', label: 'الحضور', icon: Clock },
+      { href: '/whatsapp', key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
     ],
   },
   {

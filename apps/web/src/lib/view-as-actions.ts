@@ -4,7 +4,9 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { VIEW_AS_COOKIE, getRealProfile } from './view-as';
 
-const ADMIN_ROLES = new Set(['system_admin', 'system_manager']);
+// Keep in sync with Shell.tsx's ADMIN_ROLES. `system_manager` was the phantom
+// role I reconciled to `general_manager` in A1 (decisions-log D-007).
+const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
 
 async function requireAdmin(): Promise<void> {
   const real = await getRealProfile();
