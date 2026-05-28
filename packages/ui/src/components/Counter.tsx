@@ -13,6 +13,10 @@ type Props = {
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
+// Always en-US Latin digits + grouping commas, regardless of the user's locale.
+// Mohammed's audit hit a "9.688" display where a stray float in a stat tile was
+// rendered with the browser-default decimal/grouping convention — locking the
+// default branch to maximumFractionDigits: 0 keeps every tile consistent.
 function formatValue(n: number, key: FormatKey | undefined): string {
   switch (key) {
     case 'k':
@@ -24,7 +28,7 @@ function formatValue(n: number, key: FormatKey | undefined): string {
     case 'days':
       return `${n.toFixed(1)}`;
     default:
-      return n.toLocaleString('en-US');
+      return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
   }
 }
 

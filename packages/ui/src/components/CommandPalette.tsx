@@ -139,13 +139,15 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--text-dim)] hover:border-[var(--line-strong)] hover:text-[var(--text-muted)] md:flex"
+        aria-label="ابحث عن مشروع، عميل، شخص، معدة"
+        className="hidden h-9 w-full min-w-[260px] items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)] md:flex"
       >
-        <Search size={12} />
-        <span>بحث…</span>
-        <span className="mx-2 h-3 w-px bg-[var(--line)]" />
-        <Kbd>⌘</Kbd>
-        <Kbd>K</Kbd>
+        <Search size={14} />
+        <span>ابحث في Antagna — مشروع، عميل، شخص، معدة…</span>
+        <span className="ms-auto inline-flex items-center gap-1">
+          <Kbd>⌘</Kbd>
+          <Kbd>K</Kbd>
+        </span>
       </button>
 
       {open && (

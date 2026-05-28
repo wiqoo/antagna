@@ -257,7 +257,8 @@ export default async function CalendarPage({
     0,
   );
 
-  const otherRanges = [7, 14, 30];
+  // 45 ≈ the schema-side ceiling enforced above; mirrors a full "next month" view.
+  const otherRanges = [7, 14, 30, 45];
 
   // AI hints
   const todayKey = startISO;

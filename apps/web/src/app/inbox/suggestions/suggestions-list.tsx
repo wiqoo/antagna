@@ -73,7 +73,15 @@ function SuggestionCard({ item }: { item: SuggestionItem }) {
             >
               {item.typeLabel}
             </StatusPill>
-            <span className="font-mono text-[10px] text-[var(--text-dim)]">
+            <span
+              className="cursor-help font-mono text-[10px] text-[var(--text-dim)] underline decoration-dotted underline-offset-4"
+              title={
+                'الثقة = احتمال صحة الاقتراح بعد دمج تقديرات الـ AI الأولية بمعدّل قبول البشر التاريخي (A4 learning loop).\n' +
+                '≥ 85% high — تنفيذ مباشر\n' +
+                '50–84% medium — مراجعة قبل التطبيق\n' +
+                '< 50% low — اقتراح ضعيف يحتاج تحقّقاً يدوياً'
+              }
+            >
               {Math.round(conf * 100)}% confidence
             </span>
             {item.threadSubject && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import {
   Sparkles, Loader2, Plus, X, Building2, Film, MapPin,
   Users, ChevronDown, ChevronUp,
@@ -87,6 +87,26 @@ export function IntakeForm({
   commitAction: (formData: FormData) => void | Promise<void>;
 }) {
   const [isPending, startTransition] = useTransition();
+  // Rolling progress hint while the AI parses (Mohammed's audit: "8s of silence
+  // before the wizard jumps" — UX upgrade to a status carousel).
+  const PARSE_HINTS = [
+    'يقرأ النصّ…',
+    'يستخرج العميل والميزانية…',
+    'يحلّل التواريخ والمواقع…',
+    'يقترح الـ deliverables…',
+    'يضع لمسات أخيرة…',
+  ];
+  const [parseHintIdx, setParseHintIdx] = useState(0);
+  useEffect(() => {
+    if (!isPending) {
+      setParseHintIdx(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setParseHintIdx((h) => Math.min(h + 1, PARSE_HINTS.length - 1));
+    }, 1500);
+    return () => clearInterval(id);
+  }, [isPending]);
   const [briefText, setBriefText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedBrief | null>(null);
@@ -214,8 +234,27 @@ export function IntakeForm({
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   }
 
+  // Pre-submit guard: makes step-5 "click but no nav" impossible by failing
+  // fast with a visible message if a required field was lost between steps.
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  function preSubmit(e: React.FormEvent<HTMLFormElement>) {
+    setSubmitError(null);
+    if (!clientId) {
+      e.preventDefault();
+      setStep(1);
+      setSubmitError('اختَر العميل أولاً (الخطوة الثانية).');
+      return;
+    }
+    if (!titleEn.trim()) {
+      e.preventDefault();
+      setStep(1);
+      setSubmitError('عنوان المشروع (الإنجليزي) مطلوب.');
+      return;
+    }
+  }
+
   return (
-    <form action={commitAction} className="space-y-6">
+    <form action={commitAction} onSubmit={preSubmit} className="space-y-6">
       {/* AI hidden fields — always submitted regardless of step */}
       <input type="hidden" name="sourceText" value={briefText} />
       <input type="hidden" name="parsedSummary" value={parsed?.objective ?? ''} />
@@ -289,7 +328,7 @@ export function IntakeForm({
             className="magnet inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-[13px] font-semibold text-black hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {isPending ? 'يحلّل…' : 'حلّل بالـ AI'}
+            {isPending ? PARSE_HINTS[parseHintIdx] : 'حلّل بالـ AI'}
           </button>
         </div>
         {parseError && <p className="text-[12px] text-[var(--danger)]">⚠ {parseError}</p>}
@@ -676,14 +715,20 @@ export function IntakeForm({
             </button>
           )}
           {isLast && (
-            <button
-              type="submit"
-              className="magnet inline-flex h-10 items-center gap-2 rounded-md px-5 text-[13px] font-semibold text-white"
-              style={{ background: 'var(--accent-gradient)' }}
-            >
-              <Sparkles size={15} />
-              إنشاء المشروع
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              {submitError && (
+                <p className="text-[11px] text-[var(--danger)]">{submitError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={!clientId || !titleEn.trim()}
+                className="magnet inline-flex h-10 items-center gap-2 rounded-md px-5 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ background: 'var(--accent-gradient)' }}
+              >
+                <Sparkles size={15} />
+                إنشاء المشروع
+              </button>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">

@@ -154,5 +154,12 @@ export function resolveLayout(
     sizes[id] = stored.sizes?.[id] ?? CARD_BY_ID[id]?.defaultSize ?? 'md';
   }
 
+  // Defensive fallback: if a corrupted cookie ends up hiding every card the
+  // user has in their order, render the role default instead of a blank board.
+  // (Mohammed's audit hit this — "briefing visible, every other card empty".)
+  const hiddenSet = new Set(hidden);
+  const wouldRenderAny = order.some((id) => !hiddenSet.has(id));
+  if (!wouldRenderAny) return roleDefaultLayout(role);
+
   return { order, sizes, hidden };
 }
