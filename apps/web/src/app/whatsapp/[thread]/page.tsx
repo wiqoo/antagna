@@ -7,6 +7,8 @@ import { Shell } from '@/components/Shell';
 import { ArrowLeft, ImageIcon } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { WhatsappComposer } from './composer';
+import { createTaskFromThread } from '../actions';
+import { ListChecks } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,16 +44,26 @@ export default async function WhatsappThreadPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/whatsapp/${thread}`);
 
-  const messages = rows<Msg>(
-    await db.execute(sql`
-      SELECT id::text AS id, direction, body_text AS "bodyText",
-             message_type AS "messageType", media_url AS "mediaUrl",
-             from_e164 AS "fromE164", received_at AS "receivedAt"
-      FROM whatsapp_messages
-      WHERE thread_key = ${threadKey}
-      ORDER BY received_at ASC
-      LIMIT 300`),
-  );
+  const [messages, openProjects] = await Promise.all([
+    db
+      .execute(
+        sql`SELECT id::text AS id, direction, body_text AS "bodyText",
+                  message_type AS "messageType", media_url AS "mediaUrl",
+                  from_e164 AS "fromE164", received_at AS "receivedAt"
+            FROM whatsapp_messages
+            WHERE thread_key = ${threadKey}
+            ORDER BY received_at ASC LIMIT 300`,
+      )
+      .then((r) => rows<Msg>(r)),
+    db
+      .execute(
+        sql`SELECT id::text AS id, COALESCE(title_ar, title) AS title
+            FROM projects
+            WHERE stage NOT IN ('archived','lost','cancelled','delivered')
+            ORDER BY updated_at DESC NULLS LAST LIMIT 50`,
+      )
+      .then((r) => rows<{ id: string; title: string }>(r)),
+  ]);
 
   // The number we can actually send to: the thread key if it's a phone, else
   // the most recent real +E.164 we've seen inbound (LID threads may not resolve).
@@ -126,6 +138,65 @@ export default async function WhatsappThreadPage({
             })
           )}
         </div>
+
+        {openProjects.length > 0 && (
+          <details className="mt-1 border-t border-[var(--line)] pt-3">
+            <summary className="flex cursor-pointer items-center gap-2 text-[12px] text-[var(--text-muted)] hover:text-[var(--accent)]">
+              <ListChecks size={13} />
+              أنشئ مهمة من هذه المحادثة
+            </summary>
+            <form
+              action={createTaskFromThread.bind(null, threadKey)}
+              className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px_120px_120px_auto]"
+            >
+              <input
+                type="text"
+                name="title"
+                required
+                placeholder="عنوان المهمة"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-[12px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              />
+              <select
+                name="projectId"
+                required
+                defaultValue=""
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-[12px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              >
+                <option value="">— المشروع —</option>
+                {openProjects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="priority"
+                defaultValue="normal"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 text-[12px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              >
+                <option value="low">منخفضة</option>
+                <option value="normal">عادية</option>
+                <option value="high">عالية</option>
+                <option value="urgent">عاجلة</option>
+              </select>
+              <input
+                type="date"
+                name="dueAt"
+                dir="ltr"
+                className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 font-mono text-[12px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-black hover:opacity-90"
+              >
+                إنشاء
+              </button>
+            </form>
+            <p className="mt-2 text-[10px] text-[var(--text-dim)]">
+              المهمة ستحوي رابطاً لهذه المحادثة + آخر رسالة كسياق.
+            </p>
+          </details>
+        )}
 
         <WhatsappComposer threadKey={threadKey} toE164={toE164} />
       </Card>

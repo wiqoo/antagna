@@ -58,3 +58,68 @@ export async function sendWhatsappMessage(
   revalidatePath('/whatsapp');
   return { ok: true };
 }
+
+/** B4: spin up a project_task straight from a WhatsApp thread so the request
+ *  doesn't get lost in the conversation. Anchors the source thread in the
+ *  description for traceability. */
+export async function createTaskFromThread(
+  threadKey: string,
+  formData: FormData,
+): Promise<void> {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const [actor] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.authUserId, user.id))
+    .limit(1);
+
+  const projectId = formData.get('projectId')?.toString();
+  const title = formData.get('title')?.toString().trim();
+  const priority = formData.get('priority')?.toString() || 'normal';
+  const dueAt = formData.get('dueAt')?.toString() || null;
+  if (!projectId || !title) return;
+
+  // Pull the last inbound message of this thread for context (shown in the
+  // task's description, with a deep-link back).
+  const lastInbound = (await db.execute(sql`
+    SELECT body_text AS "bodyText"
+    FROM whatsapp_messages
+    WHERE thread_key = ${threadKey} AND direction = 'inbound'
+    ORDER BY received_at DESC LIMIT 1
+  `)) as unknown as Array<{ bodyText: string | null }>;
+  const snippet = lastInbound[0]?.bodyText?.slice(0, 280) ?? '';
+
+  const description =
+    `أُنشئت من محادثة WhatsApp.\n` +
+    `الرابط: /whatsapp/${encodeURIComponent(threadKey)}\n` +
+    (snippet ? `\nآخر رسالة:\n${snippet}` : '');
+
+  await db.execute(sql`
+    INSERT INTO project_tasks
+      (project_id, title, description, status, priority, due_at, created_by)
+    VALUES (
+      ${projectId}::uuid, ${title}, ${description},
+      'pending', ${priority}::task_priority,
+      ${dueAt ? sql`${dueAt}::timestamptz` : sql`NULL`},
+      ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
+    )
+  `);
+
+  await writeActivity({
+    actorId: actor?.id ?? null,
+    entityType: 'project_task',
+    action: 'task_created_from_whatsapp',
+    summaryAr: `مهمة جديدة من WhatsApp: ${title}`,
+    summaryEn: `New task from WhatsApp: ${title}`,
+    projectId,
+    metadata: { thread_key: threadKey },
+  });
+
+  revalidatePath(`/whatsapp/${encodeURIComponent(threadKey)}`);
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/board`);
+}

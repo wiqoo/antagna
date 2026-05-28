@@ -47,6 +47,7 @@ import {
   Pencil,
   Plus,
   X,
+  LayoutGrid,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
@@ -688,10 +689,19 @@ export default async function ProjectDetailPage({
         {/* Tasks */}
         <Card padded={false}>
           <div className="p-6 pb-4">
-            <CardHeader
-              title="المهام"
-              subtitle={`${tasks.length} مهمة في المجموع`}
-            />
+            <div className="flex items-start justify-between gap-3">
+              <CardHeader
+                title="المهام"
+                subtitle={`${tasks.length} مهمة في المجموع`}
+              />
+              <Link
+                href={`/projects/${id}/board`}
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+              >
+                <LayoutGrid size={13} />
+                لوحة كانبان
+              </Link>
+            </div>
             <form
               action={addProjectTask.bind(null, id)}
               className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_140px_120px_auto]"

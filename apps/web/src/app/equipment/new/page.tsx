@@ -7,6 +7,7 @@ import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { createEquipment } from '../actions';
+import { IdentifyFromPhoto } from './identify-from-photo';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,8 @@ export default async function NewEquipmentPage() {
           title="إضافة معدّة"
           subtitle="حدد الـ code والموديل والفئة. القيم المالية اختيارية."
         />
+
+        <IdentifyFromPhoto />
 
         <Card>
           <form action={createEquipment} className="space-y-5">
