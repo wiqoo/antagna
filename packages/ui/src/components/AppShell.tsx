@@ -259,6 +259,7 @@ export function AppShell({
                 <button
                   type="submit"
                   title="تسجيل خروج"
+                  aria-label="تسجيل خروج"
                   className="grid h-7 w-7 place-items-center rounded-md text-[var(--text-dim)] hover:bg-white/5 hover:text-[var(--danger)]"
                 >
                   <LogOut size={13} />
