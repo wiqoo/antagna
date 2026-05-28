@@ -133,5 +133,35 @@
     "reset": "Reset",
     "cards": "cards",
     "rearrangeHint": "Drag to rearrange · resize · hide"
+  },
+  "pages": {
+    "tasks": {
+      "eyebrow": "Daily work",
+      "title": "Your tasks",
+      "subtitleOpen": "open tasks on you right now",
+      "subtitleAll": "all your tasks",
+      "showAll": "All tasks",
+      "showOpenOnly": "Open only"
+    },
+    "projects": {
+      "eyebrow": "Production · CRM",
+      "title": "Projects",
+      "subtitle": "Every Volt production project — stage, owner, due date."
+    },
+    "equipment": {
+      "eyebrow": "Equipment Inventory",
+      "title": "Equipment",
+      "subtitle": "Cameras, lenses, lighting, audio — everything Volt shoots with."
+    },
+    "attendance": {
+      "eyebrow": "PWA",
+      "title": "Attendance",
+      "subtitle": "Check in with a selfie + GPS location."
+    },
+    "social": {
+      "eyebrow": "Social Media",
+      "title": "Social",
+      "subtitle": "Managed accounts, published content, sponsored deals."
+    }
   }
 }

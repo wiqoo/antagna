@@ -21,6 +21,7 @@ import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Instagram, Youtube, Music, AtSign, Megaphone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getTranslations } from 'next-intl/server';
 import { createContentPost, createSponsoredDeal } from './actions';
 import { CalendarGrid } from './calendar-grid';
 
@@ -48,6 +49,7 @@ const POST_STATUS_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'success
 
 export default async function SocialPage() {
   const supabase = await getSupabaseServerClient();
+  const t = await getTranslations('pages.social');
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/social');
 
@@ -129,9 +131,9 @@ export default async function SocialPage() {
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/social">
       <PageHeader
-        eyebrow="Social Media"
-        title="السوشيال ميديا"
-        subtitle="حسابات مُدارة، محتوى منشور، صفقات رعاية — Pillar 7. لا يزال OAuth runtime يدوياً."
+        eyebrow={t('eyebrow')}
+        title={t('title')}
+        subtitle={t('subtitle')}
       />
 
       <section className="grid grid-cols-3 gap-4 stagger-in">

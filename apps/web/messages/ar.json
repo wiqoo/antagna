@@ -133,5 +133,35 @@
     "reset": "إعادة ضبط",
     "cards": "بطاقة",
     "rearrangeHint": "اسحب لإعادة الترتيب · غيّر الحجم · أخفِ"
+  },
+  "pages": {
+    "tasks": {
+      "eyebrow": "العمل اليومي",
+      "title": "مهامك",
+      "subtitleOpen": "مهام مفتوحة عليك الآن",
+      "subtitleAll": "كل مهامك",
+      "showAll": "كل المهام",
+      "showOpenOnly": "المفتوحة فقط"
+    },
+    "projects": {
+      "eyebrow": "Production · CRM",
+      "title": "المشاريع",
+      "subtitle": "كل مشاريع إنتاج Volt — الحالة، المسؤول، الموعد."
+    },
+    "equipment": {
+      "eyebrow": "Equipment Inventory",
+      "title": "المعدات",
+      "subtitle": "كاميرات، عدسات، إضاءة، صوت — كل ما يدير إنتاج Volt."
+    },
+    "attendance": {
+      "eyebrow": "PWA",
+      "title": "الحضور والانصراف",
+      "subtitle": "سجِّل حضورك بصورة سيلفي + موقع GPS."
+    },
+    "social": {
+      "eyebrow": "Social Media",
+      "title": "السوشيال ميديا",
+      "subtitle": "حسابات مُدارة، محتوى منشور، صفقات رعاية."
+    }
   }
 }

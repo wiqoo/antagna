@@ -32,6 +32,7 @@ import {
   Boxes,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,7 @@ const STATUS_LABEL_AR: Record<string, string> = {
 
 export default async function EquipmentPage() {
   const supabase = await getSupabaseServerClient();
+  const t = await getTranslations('pages.equipment');
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -178,9 +180,9 @@ export default async function EquipmentPage() {
         />
       )}
       <PageHeader
-        eyebrow="Equipment Inventory"
-        title="المعدات"
-        subtitle="كاميرات، عدسات، إضاءة، صوت — كل ما يدير إنتاج Volt."
+        eyebrow={t('eyebrow')}
+        title={t('title')}
+        subtitle={t('subtitle')}
         action={
           <div className="flex gap-2">
             <Link

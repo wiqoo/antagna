@@ -5,6 +5,7 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState } from '@antagna/u
 import { Shell } from '@/components/Shell';
 import { Clock, MapPin, Plus } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getTranslations } from 'next-intl/server';
 import { CheckInPanel } from './checkin-panel';
 import { addGeoFence } from './actions';
 
@@ -42,6 +43,7 @@ type Rec = {
 
 export default async function AttendancePage() {
   const supabase = await getSupabaseServerClient();
+  const t = await getTranslations('pages.attendance');
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -90,9 +92,9 @@ export default async function AttendancePage() {
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/attendance">
       <PageHeader
-        eyebrow="Attendance"
-        title="الحضور والانصراف"
-        subtitle="سجّل حضورك بصورة ذاتية وتحديد الموقع من جهازك."
+        eyebrow={t('eyebrow')}
+        title={t('title')}
+        subtitle={t('subtitle')}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

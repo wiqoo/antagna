@@ -22,6 +22,7 @@ import {
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ListChecks, Plus, CheckCircle2, Play, Circle } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { setTaskStatus, createDailyTask } from './actions';
 
@@ -50,6 +51,8 @@ export default async function TasksPage({
 }) {
   const sp = await searchParams;
   const showAll = sp.show === 'all';
+  const t = await getTranslations('pages.tasks');
+  const tCommon = await getTranslations('topbar');
 
   const supabase = await getSupabaseServerClient();
   const {
@@ -176,15 +179,15 @@ export default async function TasksPage({
         />
       )}
       <PageHeader
-        eyebrow={`مرحباً ${actor.displayName}`}
-        title="مهامك"
-        subtitle={`${projTasks.length + dailies.length} مهمة ${showAll ? 'في الإجمالي' : 'مفتوحة'}`}
+        eyebrow={`${tCommon('greeting')} ${actor.displayName}`}
+        title={t('title')}
+        subtitle={`${projTasks.length + dailies.length} · ${showAll ? t('subtitleAll') : t('subtitleOpen')}`}
         action={
           <Link
             href={showAll ? '/tasks' : '/tasks?show=all'}
             className="inline-flex h-9 items-center rounded-md border border-[var(--line)] bg-[var(--surface)] px-3.5 text-sm text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
           >
-            {showAll ? 'المفتوحة فقط' : 'كل المهام'}
+            {showAll ? t('showOpenOnly') : t('showAll')}
           </Link>
         }
       />

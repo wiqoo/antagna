@@ -24,6 +24,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles, Rows3, Columns3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getTranslations } from 'next-intl/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { ProjectsBoard, type BoardRow } from './projects-board';
 
@@ -49,6 +50,7 @@ export default async function ProjectsListPage({
   const sp = await searchParams;
 
   const supabase = await getSupabaseServerClient();
+  const t = await getTranslations('pages.projects');
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -220,8 +222,8 @@ export default async function ProjectsListPage({
         />
       )}
       <PageHeader
-        eyebrow="Projects"
-        title="المشاريع"
+        eyebrow={t('eyebrow')}
+        title={t('title')}
         subtitle={`${count} مشروع · صفحة ${page} من ${totalPages}`}
         action={
           <div className="flex items-center gap-2">
