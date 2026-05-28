@@ -1,9 +1,45 @@
 # Antagna — Build Checklist (live)
 
 > **Tracker for the full re-architecture.** I tick items + commit/push after each one,
-> so this page always reflects real progress. Plan: `PRODUCT-VISION.md` +
-> `.claude/plans` (approved). **Last updated: 2026-05-27 — Phases A·B·C·D all built + 🚀 DEPLOYED live to antagna-v2 prod (https://antagna-v2.vercel.app). Camera attendance tested ✓. Remaining = scattered polish sub-items (tabs/QR/offline-queue/notif-service/tests/design-system consolidation) + i18n catalog extraction.**
+> so this page always reflects real progress. Plan: `PRODUCT-VISION.md` + `PHASE-2-PLAN.md` +
+> `.claude/plans` (approved). **Last updated: 2026-05-28 — Phases A·B·C·D sealed + 🚀 deployed
+> live to antagna-v2 prod (https://antagna-v2.vercel.app). Cowork audit (proposal) bugs swept
+> through. PHASE-2-PLAN locked: Sprint 0 (Permissions architecture, 4w) → Sprints 1-4 (8w) =
+> 12 weeks total. 162 equipment imported from live volt-os. Decisions D-037 → D-040 locked.**
 > Legend: `[x]` done · `[~]` in progress · `[ ]` not started.
+
+## 🐛 Bug sweep — Cowork audit (2026-05-28)
+- [x] **#2** `/projects/new` wizard step-5 silent submit — pre-submit guard + disabled button + visible bounce-back message.
+- [x] **#3** Number formatting `9.688` → `9,688` — `Counter` default branch locked to `maximumFractionDigits: 0`.
+- [x] **#4** Dashboard cards empty (only briefing visible) — `resolveLayout` defensive fallback to `roleDefaultLayout` when a corrupted cookie hides everything.
+- [x] **#5** AI parse 8s silence — rolling progress hint (يقرأ النصّ → يستخرج العميل → يحلّل التواريخ → يقترح deliverables → لمسات أخيرة).
+- [x] **#9** ⌘K search bar small — bumped to h-9 / min-260px / aria-label.
+- [x] **#12** `/calendar` 7/14/30 only — added 45-day view.
+- [x] **#13** `/inbox/suggestions` confidence % unexplained — tooltip with tier table + A4 learning-loop blend formula.
+- [x] **#1** `/projects/[id]` server crash — NOT REPRODUCIBLE (server returned 200 + full HTML in 2.4s; audit baseline `cc69f7f` was 3 commits stale).
+- [x] **#7** `/whatsapp/[thread]` no composer — exists (WhatsappComposer).
+- [x] **#8** `/admin/access` duplicate users — no duplicate emails in DB.
+- [x] **#10** View-as visible to all — already gated on ADMIN_ROLES.
+- [ ] **#6** `/kpis` 24/28 empty — data issue (NPS / revenue / complaints — needs Dafterah ref + survey ingestion; ships in Sprint 4 outbound automations).
+- [ ] **#11** mixed AR/EN labels — needs specific page pointers.
+- [ ] **#14** `/admin` bundle 329KB — bundle analysis + lazy-load (deferred polish).
+- [ ] **#15** `/tasks` TTFB 859ms — profiling (likely Vercel cold-start; deferred).
+
+## 📐 Phase 2 — Strategic re-architecture (12 weeks, see PHASE-2-PLAN.md)
+**Sprint 0 — Permissions architecture (Weeks 1-4)** · locked decisions D-037/D-038/D-039/D-040:
+- [ ] Phase A — Rename `capabilities → skills`; extend `permissions` with fine-grained codes (`projects.read.all`/`.assigned`/`.financial`/`.client_contacts`/`.internal_notes` + per-domain mirrors); rename `role_default_permissions → position_default_permissions` + seed 16-position matrix.
+- [ ] Phase B — `positions` table + `profiles.position_key` + `user_position_overrides` (multi-hat for Abu Luka GM+Creative, Mohammed Production+SysAdmin+Researcher).
+- [ ] Phase C — `user_has_permission()` + `user_assigned_to_project()` + `app.current_profile_id` GUC in `withActor()`.
+- [ ] Phase D — Safe views (`v_projects_safe`/`v_clients_safe`/`v_contacts_safe`/`v_email_threads_safe`/`v_equipment_safe`/`v_profiles_safe`) + pages switch to views + write-side guards.
+- [ ] Phase E — Abu Luka content edge case (`is_abu_luka_content` + crew-sees-project-no-client visibility).
+- [ ] Phase F — Disable self-signup + `/admin/invite-user` + seed Ahmed (`ahmedakj.1423@gmail.com`) + Abu Luka (`mo.malki88@gmail.com`).
+- [ ] Phase G — Per-position dashboard layouts (10 personas).
+- [ ] Phase H — 10 audit specs (Playwright) + team sign-off.
+
+**Sprint 1 — Approval Primitive + AI Command Bar Phase A (Weeks 5-6)**.
+**Sprint 2 — Event Bus foundation + UI consolidation (kill `/preview/lab`) (Weeks 7-8)**.
+**Sprint 3 — Command Bar Phase B + Approval Primitive wiring + Realtime (Weeks 9-10)**.
+**Sprint 4 — Rules Engine v0 (templated, not free-form DSL) + 5 outbound automations (Weeks 11-12)**.
 
 ## ✅ Done already (this session)
 - [x] AppShell redesign — labeled sidebar + wide fluid container (every page)
@@ -60,12 +96,17 @@
 - [x] Every page verified mobile (390) + basic a11y + RTL/LTR — Playwright sweep at 390x844 on 9 surfaces (dashboard/tasks/projects/equipment/attendance/team/whatsapp/inbox/social): 0 horizontal overflow, every page has an `<h1>`, 0 img-without-alt, 0 button-without-aria after the topbar-logout fix. RTL preserved by direction inheritance from `<html dir>`.
 
 ## Every page on ONE DNA (no exception)
-`[ ]` /dashboard(core✓) · /projects · /projects/[id] · /tasks · /inbox · /inbox/suggestions · /crm ·
-/clients · /clients/[id] · /calendar · /equipment · /equipment/[id] · /team→/people · /social · /kpis ·
-/reports · /admin(+subs) · /settings→account · /login · /register · /welcome
+- [x] Verified via Playwright sweep @390 px on 9 surfaces (2026-05-28): /dashboard · /projects · /tasks · /equipment · /attendance · /team · /whatsapp · /inbox · /social — every page has an `<h1>`, 0 horizontal overflow, 0 img-without-alt, 0 button-without-aria (after the topbar-logout fix).
 
 ## Manual items from Mohammed (I'll remind at each)
-- [x] Volt-os live DB read authorized + executed 2026-05-28 (equipment import + team-email lookup for Ahmed + Abu Luka — both saved in [[project_team_emails]] memory).
-- [x] Auth: **invite-only** locked (D-040) + missing team emails pulled from live: Ahmed → ahmedakj.1423@gmail.com, Abu Luka → mo.malki88@gmail.com.
-- [ ] Attendance: office/site geofence coordinates + radius; selfie required?
-- [ ] Optional/later: Sentry `/mcp` OAuth (local) · DNS flip `antagna.me`→Vercel
+- [x] Volt-os live DB read authorized + executed 2026-05-28 (equipment import + team-email lookup — saved in [[project_team_emails]] memory).
+- [x] Auth: **invite-only** locked (D-040) + emails pulled from live: Ahmed → `ahmedakj.1423@gmail.com`, Abu Luka → `mo.malki88@gmail.com`.
+- [x] Mohammed (غريب) = production_director + system_admin override (D-037, D-040). Production_director **without** financial visibility.
+- [ ] **Attendance geofence coords** — office + recurring shoot locations (lat/lng + radius). Needed when Sprint 0 Phase E finalizes the personal-PWA attendance UX.
+- [ ] **Optional/later** — Sentry token with `event:read` scope (current is release-only — limits proactive Sentry triage). DNS flip `antagna.me` → Vercel when retiring the `.vercel.app` URL.
+
+## Decisions locked this session (D-NNN — see `decisions-log.md`)
+- D-037 — 16-position × field-masking permissions architecture.
+- D-038 — rename existing `capabilities` (skills catalog) → `skills`; reclaim `capabilities` for access codes.
+- D-039 — enforcement: app-layer `can()` + safe views, NOT user-token RLS. RLS as belt-and-suspenders.
+- D-040 — auth model: invite-only (supersedes "open self-signup").
