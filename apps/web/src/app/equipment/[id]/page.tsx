@@ -112,7 +112,67 @@ export default async function EquipmentDetailPage({
     actor: string | null;
   }>(actR);
 
-  const specEntries = eq.specs ? Object.entries(eq.specs) : [];
+  // Specs render — drop empty/N/A rows, surface human-friendly labels, group
+  // priority fields first, and flatten the volt-os ai_meta object so it never
+  // shows as "[object Object]" (Mohammed's audit hit this on BAG-001).
+  const SPEC_LABELS_AR: Record<string, string> = {
+    short_name: 'الاسم المختصر',
+    short_name_en: 'Short name',
+    model_name_official: 'الاسم الرسمي',
+    product_line: 'فئة المنتج',
+    key_specs: 'مواصفات أساسية',
+    mount_points: 'نقاط التركيب',
+    power_input: 'الإدخال',
+    power_output: 'الإخراج',
+    data_io: 'منافذ البيانات',
+    compatibility_tags: 'التوافق',
+    complementary_items: 'عناصر مكمِّلة',
+    mandatory_companions: 'مرافقات إلزامية',
+    recommended_accessories: 'إكسسوارات موصى بها',
+    use_cases: 'حالات الاستخدام',
+    weight_grams: 'الوزن (جرام)',
+    dimensions_cm: 'الأبعاد (سم)',
+    release_year: 'سنة الإصدار',
+    confidence: 'ثقة التصنيف',
+    missing_info: 'معلومات ناقصة',
+    supercategory: 'الفئة الأم',
+    subcategory: 'الفئة الفرعية',
+    tags: 'وسوم',
+    firmware_version_latest: 'أحدث firmware',
+  };
+  const SPEC_ORDER = [
+    'short_name','short_name_en','model_name_official','product_line',
+    'key_specs','weight_grams','dimensions_cm','release_year',
+    'mount_points','power_input','power_output','data_io',
+    'compatibility_tags','complementary_items','mandatory_companions',
+    'recommended_accessories','use_cases','tags','subcategory',
+    'supercategory','firmware_version_latest','confidence','missing_info',
+  ];
+  function isEmpty(v: unknown): boolean {
+    if (v == null) return true;
+    if (typeof v === 'string') return v.trim() === '' || v.trim().toUpperCase() === 'N/A';
+    if (Array.isArray(v)) return v.length === 0;
+    if (typeof v === 'object') return Object.keys(v as object).length === 0;
+    return false;
+  }
+  function renderSpecValue(v: unknown): string {
+    if (Array.isArray(v)) return v.filter(Boolean).join(' · ');
+    if (typeof v === 'object' && v !== null) return JSON.stringify(v);
+    return String(v);
+  }
+  const rawSpecs = (eq.specs ?? {}) as Record<string, unknown>;
+  // Surface ai_meta highlights but keep the raw json as a collapsed details.
+  const aiMeta = rawSpecs.ai_meta as Record<string, unknown> | undefined;
+  const specEntries = Object.entries(rawSpecs)
+    .filter(([k, v]) => k !== 'ai_meta' && !isEmpty(v))
+    .sort(([a], [b]) => {
+      const ia = SPEC_ORDER.indexOf(a);
+      const ib = SPEC_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
 
   // QR label (server-rendered SVG) — scanning opens this item's page.
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://antagna-v2.vercel.app';
@@ -229,16 +289,32 @@ export default async function EquipmentDetailPage({
             </div>
           </Card>
 
-          {specEntries.length > 0 && (
+          {(specEntries.length > 0 || aiMeta) && (
             <Card padded={false}>
               <div className="p-6 pb-4">
-                <CardHeader title="المواصفات" />
+                <CardHeader title="المواصفات" subtitle="مستخرج من فحص AI" />
               </div>
-              <dl className="px-6 pb-6 grid grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
-                {specEntries.map(([k, v]) => (
-                  <Row key={k} k={k} v={String(v)} />
-                ))}
-              </dl>
+              {specEntries.length > 0 && (
+                <dl className="px-6 pb-2 grid grid-cols-1 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-2">
+                  {specEntries.map(([k, v]) => (
+                    <Row
+                      key={k}
+                      k={SPEC_LABELS_AR[k] ?? k.replace(/_/g, ' ')}
+                      v={renderSpecValue(v)}
+                    />
+                  ))}
+                </dl>
+              )}
+              {aiMeta && (
+                <details className="border-t border-[var(--line)] px-6 py-4 text-[12px]">
+                  <summary className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text)]">
+                    التفاصيل الكاملة (AI metadata)
+                  </summary>
+                  <pre className="mt-3 max-h-[280px] overflow-auto rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-3 text-[11px] leading-relaxed text-[var(--text-muted)]" dir="ltr">
+{JSON.stringify(aiMeta, null, 2)}
+                  </pre>
+                </details>
+              )}
             </Card>
           )}
 

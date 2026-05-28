@@ -145,8 +145,12 @@ function MobileMore({ activePath, labels }: { activePath?: string; labels?: NavL
         <MoreHorizontal size={18} strokeWidth={1.6} className="text-[var(--text-dim)]" />
         <span className="text-[9px] leading-none">{lbl(labels, 'more', 'المزيد')}</span>
       </summary>
+      {/* Anchored to the viewport (not the trigger), so the popover always sits
+          centered above the bottom dock regardless of which item triggers it.
+          Mohammed's audit hit this on iPhone — the popover was spilling off the
+          left side of the screen when "More" was the leftmost RTL item. */}
       <div
-        className="absolute bottom-full start-1/2 mb-2 hidden min-w-[220px] -translate-x-1/2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block"
+        className="fixed bottom-[82px] left-1/2 z-[120] hidden min-w-[260px] max-w-[min(92vw,360px)] -translate-x-1/2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block"
         style={{ boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6)' }}
       >
         {NAV_GROUPS.slice(1).map((g, gi) => (

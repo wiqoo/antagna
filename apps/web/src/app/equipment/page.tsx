@@ -52,7 +52,15 @@ const STATUS_LABEL_AR: Record<string, string> = {
   retired: 'متقاعد',
 };
 
-export default async function EquipmentPage() {
+export default async function EquipmentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; category?: string }>;
+}) {
+  const sp = await searchParams;
+  const statusFilter = sp.status?.trim() || null;
+  const categoryFilter = sp.category?.trim() || null;
+
   const supabase = await getSupabaseServerClient();
   const t = await getTranslations('pages.equipment');
   const {
@@ -118,6 +126,14 @@ export default async function EquipmentPage() {
       .limit(30),
   ]);
 
+  // Apply URL filters (?status=… / ?category=…) — the AI hints' actions link
+  // here, and chips below let users clear or switch.
+  const filteredItems = items.filter((it) => {
+    if (statusFilter && it.status !== statusFilter) return false;
+    if (categoryFilter && it.category !== categoryFilter) return false;
+    return true;
+  });
+
   const totalCount = items.length;
   const availableCount = statusCounts.find((s) => s.status === 'available')?.count ?? 0;
   const checkedOutCount = statusCounts.find((s) => s.status === 'checked_out')?.count ?? 0;
@@ -127,7 +143,7 @@ export default async function EquipmentPage() {
     0,
   );
 
-  const byCategory = items.reduce<Record<string, typeof items>>((acc, it) => {
+  const byCategory = filteredItems.reduce<Record<string, typeof items>>((acc, it) => {
     (acc[it.category] ??= []).push(it);
     return acc;
   }, {});
@@ -157,7 +173,7 @@ export default async function EquipmentPage() {
       text: `${repairCount} معدّة في الصيانة`,
       insight: 'تحقق من ETA الإصلاح قبل الحجز القادم.',
       urgent: repairCount >= 3,
-      actions: [{ label: 'اعرض في الصيانة', href: '#in-repair' }],
+      actions: [{ label: 'اعرض في الصيانة', href: '/equipment?status=repair' }],
     });
   }
   if (lowBattery > 0 && hints.length < 3) {
@@ -165,7 +181,7 @@ export default async function EquipmentPage() {
       index: String(hints.length + 1).padStart(2, '0'),
       text: `${lowBattery} معدّة تحتاج شحن قبل التصوير القادم`,
       insight: 'تحقّق من البطاريات/الذاكرة في كل واحدة منها.',
-      actions: [{ label: 'افتح الجاهزة', href: '#available' }],
+      actions: [{ label: 'افتح الجاهزة', href: '/equipment?status=available' }],
     });
   }
 
@@ -209,6 +225,43 @@ export default async function EquipmentPage() {
           </div>
         }
       />
+
+      {(statusFilter || categoryFilter) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-[var(--text-dim)]">تصفية نشطة:</span>
+          {statusFilter && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1 text-[12px] text-[var(--accent)]">
+              الحالة: {STATUS_LABEL_AR[statusFilter] ?? statusFilter}
+              <Link
+                href={`/equipment${categoryFilter ? `?category=${categoryFilter}` : ''}`}
+                aria-label="إزالة فلتر الحالة"
+              >
+                ✕
+              </Link>
+            </span>
+          )}
+          {categoryFilter && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1 text-[12px] text-[var(--accent)]">
+              الفئة: {categoryFilter}
+              <Link
+                href={`/equipment${statusFilter ? `?status=${statusFilter}` : ''}`}
+                aria-label="إزالة فلتر الفئة"
+              >
+                ✕
+              </Link>
+            </span>
+          )}
+          <Link
+            href="/equipment"
+            className="text-[11px] text-[var(--text-muted)] underline hover:text-[var(--text)]"
+          >
+            مسح كل الفلاتر
+          </Link>
+          <span className="ms-auto text-[11px] text-[var(--text-dim)]">
+            {filteredItems.length} من {totalCount}
+          </span>
+        </div>
+      )}
 
       <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-4">
         <StatBox
@@ -265,7 +318,7 @@ export default async function EquipmentPage() {
         </p>
       </div>
 
-      <section className="space-y-5">
+      <section id="reservations" className="space-y-5 scroll-mt-24">
         <header className="flex items-end justify-between gap-4">
           <div>
             <p className="section-rule" style={{ minWidth: 160 }}>
