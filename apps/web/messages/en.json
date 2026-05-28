@@ -16,14 +16,16 @@
     "groupWork": "Work",
     "groupAnalytics": "Analytics & Admin",
     "more": "More",
-    "sidebar": "Sidebar",
-    "bottomNav": "Bottom navigation"
+    "sidebar": "Side menu",
+    "bottomNav": "Bottom navigation",
+    "attendance": "Attendance",
+    "whatsapp": "WhatsApp threads"
   },
   "topbar": {
     "newProject": "Project",
     "search": "Search",
     "logout": "Sign out",
-    "greeting": "Welcome"
+    "greeting": "Hello"
   },
   "common": {
     "save": "Save",
@@ -34,7 +36,94 @@
     "english": "English",
     "all": "All",
     "open": "Open",
-    "review": "Review"
+    "review": "Review",
+    "add": "Add",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "remove": "Remove",
+    "update": "Update",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "filter": "Filter",
+    "sort": "Sort",
+    "export": "Export",
+    "print": "Print",
+    "share": "Share",
+    "copy": "Copy",
+    "download": "Download",
+    "upload": "Upload",
+    "yes": "Yes",
+    "no": "No",
+    "more": "More",
+    "less": "Less",
+    "showAll": "Show all",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "ok": "OK",
+    "close": "Close"
+  },
+  "status": {
+    "pending": "Pending",
+    "inProgress": "In progress",
+    "blocked": "Blocked",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "available": "Available",
+    "busy": "Busy",
+    "tentative": "Tentative",
+    "archived": "Archived",
+    "draft": "Draft",
+    "scheduled": "Scheduled",
+    "published": "Published",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "active": "Active",
+    "inactive": "Inactive",
+    "urgent": "Urgent",
+    "high": "High",
+    "normal": "Normal",
+    "low": "Low"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot your password?",
+    "resetPassword": "Reset password",
+    "rememberMe": "Remember me",
+    "welcomeBack": "Welcome back"
+  },
+  "errors": {
+    "generic": "Something went wrong.",
+    "network": "Couldn't reach the server.",
+    "unauthorized": "Unauthorized.",
+    "forbidden": "Permission denied.",
+    "notFound": "Not found.",
+    "validation": "Some fields are invalid.",
+    "tryAgain": "Try again"
+  },
+  "empty": {
+    "noResults": "No results.",
+    "noData": "No data.",
+    "noPermission": "You don't have permission to view this.",
+    "comingSoon": "Coming soon"
+  },
+  "form": {
+    "required": "Required",
+    "optional": "Optional"
   },
   "dashboard": {
     "board": "Board",
@@ -43,6 +132,6 @@
     "addCard": "Add card",
     "reset": "Reset",
     "cards": "cards",
-    "rearrangeHint": "Drag to reorder · resize · hide"
+    "rearrangeHint": "Drag to rearrange · resize · hide"
   }
 }

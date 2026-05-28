@@ -16,6 +16,7 @@ export {
 export { MobileNav } from './components/MobileNav';
 export { CommandPalette } from './components/CommandPalette';
 export { Counter } from './components/Counter';
+export { StatBox } from './components/StatBox';
 export { AIHints, type AIHint } from './components/AIHints';
 export { DashCard, MiniStat, CardsGrid } from './components/DashCard';
 export { FileUpload } from './components/FileUpload';

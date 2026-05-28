@@ -11,6 +11,7 @@ import {
   AIHints,
   type AIHint,
 } from '@antagna/ui';
+import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { UserSquare2, Briefcase, Users, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -311,30 +312,3 @@ export default async function TeamPage() {
   );
 }
 
-function StatBox({
-  label,
-  value,
-  sub,
-  tone = 'default',
-}: {
-  label: string;
-  value: number;
-  sub?: string;
-  tone?: 'default' | 'success';
-}) {
-  const num =
-    tone === 'success' ? 'text-[var(--success)]' : 'text-[var(--text)]';
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-        {label}
-      </p>
-      <p className={`mt-5 text-[44px] font-bold leading-none tabular ${num}`}>
-        {value}
-      </p>
-      {sub && (
-        <p className="mt-2 text-[11px] text-[var(--text-muted)]">{sub}</p>
-      )}
-    </div>
-  );
-}

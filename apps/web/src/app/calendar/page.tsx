@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { PageHeader, Card, StatusPill, EmptyState, AIHints, type AIHint } from '@antagna/ui';
+import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
 import { Calendar, CalendarClock, Truck, Camera } from 'lucide-react';
@@ -522,30 +523,3 @@ export default async function CalendarPage({
   );
 }
 
-function StatBox({
-  label,
-  value,
-  icon,
-  tone = 'default',
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  tone?: 'default' | 'warning';
-}) {
-  const numColor =
-    tone === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--text)]';
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-          {label}
-        </span>
-        <span className="text-[var(--text-dim)]">{icon}</span>
-      </div>
-      <p className={`mt-4 text-[36px] font-bold leading-none tabular ${numColor}`}>
-        {value}
-      </p>
-    </div>
-  );
-}

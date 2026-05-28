@@ -18,6 +18,7 @@ import {
   AIHints,
   type AIHint,
 } from '@antagna/ui';
+import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
 import {
@@ -478,44 +479,3 @@ export default async function EquipmentPage() {
   );
 }
 
-function StatBox({
-  label,
-  value,
-  sub,
-  icon,
-  tone = 'default',
-}: {
-  label: string;
-  value: number;
-  sub?: string;
-  icon?: React.ReactNode;
-  tone?: 'default' | 'success' | 'warning' | 'danger';
-}) {
-  const numColor =
-    tone === 'success'
-      ? 'text-[var(--success)]'
-      : tone === 'warning'
-        ? 'text-[var(--warning)]'
-        : tone === 'danger'
-          ? 'text-[var(--danger)]'
-          : 'text-[var(--text)]';
-
-  return (
-    <div className="group relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-          {label}
-        </span>
-        {icon && <span className="text-[var(--text-dim)]">{icon}</span>}
-      </div>
-      <div className="mt-5">
-        <span
-          className={`text-[44px] font-bold leading-none tracking-tight tabular ${numColor}`}
-        >
-          <Counter to={value} />
-        </span>
-      </div>
-      {sub && <p className="mt-2 text-[11px] text-[var(--text-muted)]">{sub}</p>}
-    </div>
-  );
-}

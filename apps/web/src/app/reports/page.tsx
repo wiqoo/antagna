@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { PageHeader, Card, StatusPill, EmptyState, Counter, AIHints, type AIHint } from '@antagna/ui';
+import { StatBox } from '@antagna/ui';
 import { RevenueChart } from './revenue-chart';
 import { Shell } from '@/components/Shell';
 import { FileText, TrendingUp, Briefcase } from 'lucide-react';
@@ -423,41 +424,3 @@ export default async function ReportsPage() {
   );
 }
 
-function StatBox({
-  label,
-  value,
-  format,
-  icon,
-  tone = 'default',
-}: {
-  label: string;
-  value: number;
-  format?: 'plain' | 'k' | 'sar' | 'pct';
-  icon: React.ReactNode;
-  tone?: 'default' | 'accent' | 'warning';
-}) {
-  const num =
-    tone === 'accent'
-      ? 'text-[var(--accent)]'
-      : tone === 'warning'
-        ? 'text-[var(--warning)]'
-        : 'text-[var(--text)]';
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-6">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-          {label}
-        </p>
-        <span className="text-[var(--text-dim)]">{icon}</span>
-      </div>
-      <p
-        className={`mt-5 text-[36px] font-bold leading-none tracking-tight tabular ${num}`}
-      >
-        <Counter
-          to={value}
-          format={format}
-        />
-      </p>
-    </div>
-  );
-}

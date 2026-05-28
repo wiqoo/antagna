@@ -17,6 +17,7 @@ import {
   Avatar,
   MoneyDisplay,
 } from '@antagna/ui';
+import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Instagram, Youtube, Music, AtSign, Megaphone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -139,7 +140,7 @@ export default async function SocialPage() {
         <StatBox
           label="إجمالي متابعين"
           value={totalFollowers}
-          formatted={`${totalFollowers.toLocaleString('en-US')}`}
+          format={`${totalFollowers.toLocaleString('en-US')}`}
         />
         <StatBox label="صفقات نشطة" value={deals.filter((d) => d.status === 'agreed' || d.status === 'in_progress').length} />
       </section>
@@ -467,23 +468,3 @@ export default async function SocialPage() {
   );
 }
 
-function StatBox({
-  label,
-  value,
-  formatted,
-}: {
-  label: string;
-  value: number;
-  formatted?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
-        {label}
-      </p>
-      <p className="mt-4 text-[36px] font-bold leading-none tracking-tight tabular text-[var(--text)]">
-        {formatted ?? value}
-      </p>
-    </div>
-  );
-}
