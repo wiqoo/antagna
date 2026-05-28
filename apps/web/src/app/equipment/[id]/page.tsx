@@ -12,6 +12,7 @@ import {
   BatteryCharging,
   Package,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { EquipmentControls, type Reservation } from './equipment-controls';
 
@@ -113,6 +114,15 @@ export default async function EquipmentDetailPage({
 
   const specEntries = eq.specs ? Object.entries(eq.specs) : [];
 
+  // QR label (server-rendered SVG) — scanning opens this item's page.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://antagna-v2.vercel.app';
+  const qrSvg = await QRCode.toString(`${siteUrl}/equipment/${eq.id}`, {
+    type: 'svg',
+    margin: 1,
+    width: 150,
+    color: { dark: '#000000', light: '#ffffff' },
+  });
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/equipment">
       <Link
@@ -184,6 +194,23 @@ export default async function EquipmentDetailPage({
               />
             )}
           </dl>
+
+          {/* QR label — print + stick on the gear; scanning opens this page */}
+          <div className="mt-4 flex items-center gap-3 border-t border-[var(--line)] pt-4">
+            <div
+              className="h-[88px] w-[88px] shrink-0 rounded-md bg-white p-1.5"
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+            />
+            <div className="min-w-0 text-[12px] text-[var(--text-muted)]">
+              <p className="font-medium text-[var(--text)]">ملصق QR</p>
+              <p className="mt-0.5 text-[var(--text-dim)]">
+                اطبعه والصقه على المعدة — مسحه يفتح هذه الصفحة مباشرةً.
+              </p>
+              <span className="mt-1 inline-block font-mono text-[10px] text-[var(--text-dim)]">
+                {eq.code}
+              </span>
+            </div>
+          </div>
         </Card>
 
         {/* Middle+right: controls + specs */}
