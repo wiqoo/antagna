@@ -21,6 +21,7 @@ import { Shell } from '@/components/Shell';
 import { Instagram, Youtube, Music, AtSign, Megaphone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { createContentPost, createSponsoredDeal } from './actions';
+import { CalendarGrid } from './calendar-grid';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,7 @@ export default async function SocialPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/social');
 
-  const [accounts, posts, deals] = await Promise.all([
+  const [accounts, posts, deals, monthR] = await Promise.all([
     db
       .select({
         id: managedAccounts.id,
@@ -103,7 +104,22 @@ export default async function SocialPage() {
       .leftJoin(clients, eq(clients.id, sponsoredDeals.sponsorClientId))
       .orderBy(desc(sponsoredDeals.createdAt))
       .limit(20),
+    db.execute(sql`
+      SELECT id::text AS id, title, code, channels,
+             planned_publish_at AS "plannedPublishAt", status::text AS status
+      FROM content_posts
+      WHERE planned_publish_at >= date_trunc('month', now())
+        AND planned_publish_at <  date_trunc('month', now()) + interval '1 month'
+      ORDER BY planned_publish_at`),
   ]);
+  const monthPosts = (monthR as unknown) as Array<{
+    id: string;
+    title: string;
+    code: string | null;
+    channels: string[];
+    plannedPublishAt: string;
+    status: string;
+  }>;
 
   const totalFollowers = accounts.reduce(
     (s, a) => s + (a.followerCount ?? 0),
@@ -296,6 +312,19 @@ export default async function SocialPage() {
             </ul>
           </Card>
         )}
+      </section>
+
+      {/* Content calendar (month grid of scheduled posts) */}
+      <section className="space-y-4">
+        <header>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
+            — تقويم النشر
+          </p>
+          <h2 className="mt-3 text-xl font-semibold text-[var(--text)]">
+            content calendar
+          </h2>
+        </header>
+        <CalendarGrid posts={monthPosts} />
       </section>
 
       {/* Deals */}
