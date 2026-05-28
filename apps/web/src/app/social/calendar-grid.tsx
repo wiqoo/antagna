@@ -4,7 +4,6 @@ type Post = {
   id: string;
   title: string;
   code: string | null;
-  channels: string[];
   plannedPublishAt: string;
   status: string;
 };

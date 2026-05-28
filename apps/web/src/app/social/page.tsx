@@ -106,7 +106,7 @@ export default async function SocialPage() {
       .orderBy(desc(sponsoredDeals.createdAt))
       .limit(20),
     db.execute(sql`
-      SELECT id::text AS id, title, code, channels,
+      SELECT id::text AS id, title, code,
              planned_publish_at AS "plannedPublishAt", status::text AS status
       FROM content_posts
       WHERE planned_publish_at >= date_trunc('month', now())
@@ -117,7 +117,6 @@ export default async function SocialPage() {
     id: string;
     title: string;
     code: string | null;
-    channels: string[];
     plannedPublishAt: string;
     status: string;
   }>;
