@@ -126,12 +126,23 @@ ${proj.activity_summary}`;
       console.error('[daily-brief] failed to trigger smart-suggestions:', err);
     }
 
+    // Piggyback the daily-digest notifier (same morning cadence, keeps us
+    // under Trigger.dev Pro's 10-schedule cap).
+    let digestSummary: unknown = { skipped: 'not_run' };
+    try {
+      const { runDailyDigest } = await import('./daily-digest');
+      digestSummary = await runDailyDigest();
+    } catch (err) {
+      console.error('[daily-brief] daily-digest failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,
       projectsConsidered: projectsArr.length,
       briefsCount,
       totalCostUsd,
+      digestSummary,
     };
   },
 });

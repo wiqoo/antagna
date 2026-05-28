@@ -91,6 +91,16 @@ export const alertScanner = schedules.task({
       console.error('[alert-scanner] whatsapp-media-scanner failed:', err);
     }
 
+    // Piggyback the alert-notifier: any fires from this run that aren't
+    // already notified get fanned out to recipients via /api/internal/notify.
+    let alertNotifSummary: unknown = { skipped: 'not_run' };
+    try {
+      const { runAlertNotifier } = await import('./alert-notifier');
+      alertNotifSummary = await runAlertNotifier();
+    } catch (err) {
+      console.error('[alert-scanner] alert-notifier failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,
@@ -98,6 +108,7 @@ export const alertScanner = schedules.task({
       firedCount,
       cooldownSkipped,
       mediaSummary,
+      alertNotifSummary,
     };
   },
 });

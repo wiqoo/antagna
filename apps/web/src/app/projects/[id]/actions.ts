@@ -143,6 +143,40 @@ export async function postComment(projectId: string, body: string) {
     }).catch((e) => console.error('[postComment notify]', e));
   }
 
+  // @mentions — match each @token against email prefix (the part before @).
+  // Notify each matched profile (excluding the author and PM-already-notified).
+  const tokens = Array.from(
+    new Set(
+      (body.match(/@([A-Za-z0-9._-]{2,32})/g) ?? []).map((t) =>
+        t.slice(1).toLowerCase(),
+      ),
+    ),
+  );
+  if (tokens.length > 0) {
+    const mentioned = (await db.execute(sql`
+      SELECT id::text AS id, email
+      FROM profiles
+      WHERE active = true
+        AND split_part(LOWER(email), '@', 1) = ANY(${tokens}::text[])
+    `)) as unknown as { id: string; email: string }[];
+    const snippet = body.trim().slice(0, 100);
+    for (const m of mentioned) {
+      if (m.id === actor.id) continue;
+      if (m.id === proj?.pm) continue; // already notified on_comment
+      await notify({
+        recipientId: m.id,
+        event: 'on_mention',
+        content: {
+          ar: { title: `ذُكِرت في «${proj?.t ?? ''}»`, body: snippet },
+          en: { title: `Mentioned in "${proj?.t ?? ''}"`, body: snippet },
+        },
+        linkUrl: `/projects/${projectId}`,
+        entityType: 'project',
+        entityId: projectId,
+      }).catch((e) => console.error('[postComment mention]', e));
+    }
+  }
+
   revalidatePath(`/projects/${projectId}`);
   return { ok: true };
 }

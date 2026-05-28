@@ -55,7 +55,7 @@
 
 ## Cross-cutting (from critical review)
 - [ ] Data seeding/import (from `volt-os`) so pages aren't empty
-- [~] Unified notification service — **`lib/notify.ts` built**: reads the recipient's A7 channel prefs + `ui_language`, fans out to **in-app** (notifications row) + **email** (Resend) + **WhatsApp** (sendText) in their language, records requested/delivered. First consumer wired: **project assignment** (`on_assignment`). Remaining: wire into alerts/deadlines/daily-digest/mentions.
+- [x] Unified notification service — **`lib/notify.ts` built**: reads the recipient's A7 channel prefs + `ui_language`, fans out to **in-app** (notifications row) + **email** (Resend) + **WhatsApp** (sendText) in their language, records requested/delivered. First consumer wired: **project assignment** (`on_assignment`). All channels wired: **deadlines** (deadlineNotifier, 2h via insights-scanner) · **alerts** (alertNotifier, 5min via alert-scanner — recipient_strategy → role mapping → fan-out + notified_profile_ids stamp) · **daily-digest** (dailyDigest, mornings via daily-brief — open tasks + due-today + unread emails per active profile) · **mentions** (postComment parses @email-prefix tokens → on_mention fan-out, skipping the author + already-notified PM).
 - [ ] Automated tests — Vitest (authz/executors/locale) + Playwright E2E (login, approve, checkout, check-in) in CI
 - [x] Every page verified mobile (390) + basic a11y + RTL/LTR — Playwright sweep at 390x844 on 9 surfaces (dashboard/tasks/projects/equipment/attendance/team/whatsapp/inbox/social): 0 horizontal overflow, every page has an `<h1>`, 0 img-without-alt, 0 button-without-aria after the topbar-logout fix. RTL preserved by direction inheritance from `<html dir>`.
 
