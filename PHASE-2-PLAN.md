@@ -3,7 +3,7 @@
 > **Source:** Cowork audit proposal (2026-05-28) + Claude Code opinion + bug-sweep results.
 > **State at plan baseline:** `b3bt4i7oe` deploy READY — all P0 bugs in proposal addressed (with 4 marked NOT-REPRODUCIBLE because the audit was 3 commits stale).
 > **Owner:** Mohammed (decisions, scope) · Claude Code (execution).
-> **Cadence:** 4 sprints × 2 weeks = 8 weeks. Buffer built into each sprint.
+> **Cadence:** Sprint 0 (4 weeks: Permissions architecture) + 4 sprints × 2 weeks = **12 weeks total**. Buffer built into each sprint.
 
 ---
 
@@ -17,7 +17,113 @@
 
 ---
 
-## Sprint 1 (Weeks 1-2) — Foundation + killer-feature seed
+## Sprint 0 (Weeks 1-4) — Permissions architecture foundation
+
+> **Inserted after reading `01PERMISSIONSforClaudeCode.md` on 2026-05-28.**
+> The original 8-week Phase 2 plan (Sprints 1-4 below) shifts to weeks 5-12.
+> Locked decisions: D-037 (positions + masking), D-038 (rename
+> `capabilities`→`skills`), D-039 (app-layer + safe views), D-040 (invite-only).
+
+### Sprint 0 goal
+The 16-position permission system from the doc is live end-to-end: every page
+sees only what the position-on-profile allows; the 10 audit test cases pass;
+the rename `capabilities→skills` is complete with no orphan references.
+
+### Phase A — Vocabulary reconciliation (Week 1)
+- Migration: rename `capabilities → skills`, `user_capabilities → user_skills`,
+  related FK + index renames. Drizzle schema update.
+- Migration: extend `permissions` table with the new fine-grained codes
+  (`projects.read.all`, `projects.read.assigned`, `projects.read.financial`,
+  `projects.read.client_contacts`, `projects.read.internal_notes`, +
+  per-domain mirrors for clients/email/equipment/financials/team).
+- Migration: rename `role_default_permissions → position_default_permissions`,
+  seed the 16-position matrix from Part 1 of the doc.
+- Audit: every file with a `capabilities` reference (~15) is updated cleanly.
+- Tests: vitest spec confirming the old + new names don't both exist anywhere.
+
+### Phase B — Schema additions (Week 1)
+- Migration: `positions` table (key, name_ar, name_en, inherits_position).
+- Migration: `profiles.position_key` (nullable until backfill).
+- Migration: backfill — map current `profile.role` values to the closest
+  `position_key`. Document edge cases (e.g., Mohammed needs `production_director`
+  + system_admin capability override).
+- Migration: `user_position_overrides` for the multi-hat people (Abu Luka
+  wears GM + Creative Director; Mohammed wears Production Director + System
+  Admin + Researcher). The override layer survives a role-only swap.
+
+### Phase C — Helper functions + auth context (Week 2)
+- `user_has_permission(p_permission text)` — replaces/extends the existing
+  `has_permission()` with position-aware lookup.
+- `user_assigned_to_project(p_project_id uuid)` — joins
+  `project_assignments` + the PM/AM/ProdM fields.
+- `app.current_profile_id` GUC setter wired into the existing `withActor()`
+  helper in `apps/web/src/lib/actions.ts`.
+
+### Phase D — Safe views + write-side guards (Week 2-3)
+- `v_projects_safe` — masks financial/internal_notes/dafterah_refs per the
+  Field-Visibility matrix.
+- `v_clients_safe` — masks cr_number/vat_number/legal_name for non-finance.
+- `v_contacts_safe` — gated by clients.read.contacts + assignment context.
+- `v_email_threads_safe` — per-thread access based on assigned_profile_id
+  + capability.
+- `v_equipment_safe` — masks `purchase_price_sar`/`insurance_value_sar` for
+  non-finance/non-procurement.
+- `v_profiles_safe` — masks salary + performance_reviews for non-HR/non-GM.
+- Application reads switch to the views (one PR per major page).
+- Server actions enforce write-side: `requirePermission('projects.write.update.assigned')`
+  before any update, etc.
+
+### Phase E — Abu Luka edge case (Week 3)
+- `projects.is_abu_luka_content` boolean column + index.
+- The `v_projects_safe` view's WHERE clause handles the special visibility
+  rule (crew sees the project but no client info / no financial).
+- Brand-deal visibility for sponsorships on Abu Luka content — restricted to
+  AM (منصوري) + Producer (حمادة) + Production oversight (Mohammed) + Finance.
+- One Playwright spec per edge: "محسن sees Abu Luka project but
+  contracted_value is NULL", "منصوري sees full deal details", etc.
+
+### Phase F — Invite-only auth (Week 3-4)
+- Disable public self-signup in Supabase Auth config.
+- Build `/admin/invite-user` page: form (email, display_name, position_key,
+  starting_capabilities[]). Action issues a Supabase magic-link invite + seeds
+  `profiles` with the position.
+- Welcome flow: first login forces password set + reads position from the
+  profile; no role-claiming.
+- Migration: backfill emails for **Abu Luka + Ahmed** (the gaps in
+  `config/roles.yaml`) — manual entry, Mohammed-supplied.
+
+### Phase G — Per-position dashboards (Week 4)
+- Use `roleDefaultLayout()` infrastructure (already in
+  `apps/web/src/app/dashboard/cards/catalog.ts`). Extend with the per-position
+  card recipes from Part 7 of the doc.
+- One PR per position: GM, Production Director, PM, AM, Videographer,
+  Equipment Tech, Procurement, Finance Manager, Accountant, HR.
+
+### Phase H — Audit (Week 4)
+- Implement the 10 test cases from Part 6 of the doc as Playwright specs.
+- Run against the seeded staging data (a member of every position exists).
+- Document any exceptions in `decisions-log.md` (D-NNN per exception).
+- Team walkthrough: each persona logs in to confirm they see only what they
+  expect — sign-off before Sprint 1.
+
+### Sprint 0 deliverables checklist
+- [ ] Migration: rename capabilities → skills (+ all FK/index/code refs).
+- [ ] Migration: extend permissions with fine-grained codes.
+- [ ] Migration: positions table + position_default_permissions.
+- [ ] Migration: profiles.position_key + backfill + overrides.
+- [ ] Helper functions: user_has_permission + user_assigned_to_project.
+- [ ] Safe views for projects/clients/contacts/email/equipment/profiles.
+- [ ] Application pages switched to the views.
+- [ ] Abu Luka content visibility implemented.
+- [ ] Self-signup disabled + invite flow live.
+- [ ] Per-position dashboard layouts.
+- [ ] 10 Playwright audit specs passing.
+- [ ] Team sign-off (each persona walked through).
+- [ ] D-037 through D-040 logged.
+
+---
+
+## Sprint 1 (Weeks 5-6) — Foundation + killer-feature seed
 
 ### Sprint goal
 Two things land: (1) a real production-ready **Universal Approval Primitive** that replaces 1 of the 4 existing approval flows, (2) a working **AI Command Bar Phase A** (read-only) gathering usage telemetry.
@@ -58,7 +164,7 @@ Two things land: (1) a real production-ready **Universal Approval Primitive** th
 
 ---
 
-## Sprint 2 (Weeks 3-4) — UI consolidation + Event Bus foundation
+## Sprint 2 (Weeks 7-8) — UI consolidation + Event Bus foundation
 
 ### Sprint goal
 Visible UI quality jump + the event-driven backbone goes in *alongside* the existing cron schedule (no breaking change).
@@ -97,7 +203,7 @@ Visible UI quality jump + the event-driven backbone goes in *alongside* the exis
 
 ---
 
-## Sprint 3 (Weeks 5-6) — Command Bar Phase B + Approval wiring
+## Sprint 3 (Weeks 9-10) — Command Bar Phase B + Approval wiring
 
 ### Sprint goal
 The Command Bar starts **doing** things (single-entity create) and the Approval Primitive picks up the remaining 3 flows.
@@ -135,7 +241,7 @@ The Command Bar starts **doing** things (single-entity create) and the Approval 
 
 ---
 
-## Sprint 4 (Weeks 7-8) — Rules engine + outbound automation
+## Sprint 4 (Weeks 11-12) — Rules engine + outbound automation
 
 ### Sprint goal
 Cross-domain rules engine ships with a curated set of templated rules (not free-form DSL), and 5 outbound automations close the inbound-only loop.

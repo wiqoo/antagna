@@ -344,6 +344,60 @@ default layouts.
 
 ---
 
+## 2026-05-28 — Permissions architecture (Phase 2 Sprint 0)
+
+### D-037 — Strict positions + field-level masking (Permissions Architecture v1)
+**Decision:** Adopt the "01PERMISSIONSforClaudeCode.md" architecture wholesale:
+16 positions × per-field visibility matrix × per-entity access rules. Replaces
+the coarse `role` model with a position-driven, capability-gated system.
+**Why:** A 17-person production company needs fine-grained data isolation
+(financial visible to финance only, Abu Luka content masked from non-AM crew,
+freelancers blind to client contacts). The audit matrix from the doc is the
+spec. Production Director gets system_admin but NOT financial — explicit.
+**Reversibility:** Hard once data is masked through `v_*_safe` views — pages
+will assume the masked shape. Plan for it carefully.
+
+### D-038 — Naming: rename existing `capabilities` table → `skills`
+**Decision:** Reclaim `capabilities` for the access-control codes the new
+architecture introduces. The current `capabilities` table (21 rows: shooter,
+editor, drone_pilot, sound_engineer…) becomes `skills`; `user_capabilities`
+becomes `user_skills`. `has_capability()` function gets the access-code
+semantic.
+**Why:** Two parallel concepts called "capabilities" would be confusing;
+the proposal's vocabulary is more standard. Existing `permissions` table
+(50 rows: project.read, project.create…) extends with fine-grained codes
+(`projects.read.all`, `projects.read.financial`, …) and `role_default_permissions`
+becomes `position_default_permissions`.
+**Reversibility:** Moderate — one focused PR migrates schema + ~15 source
+files. Apply before the rest of Sprint 0 work hits the schema.
+
+### D-039 — Enforcement: app-layer `can()` + safe views, NOT user-token RLS
+**Decision:** Keep the service-role connection pattern. Enforce entity-level
+access via `requirePermission()` in actions + `where`-clause filters in views.
+Enforce field-level masking via `v_*_safe` views (`CASE WHEN user_has_capability(...)`
+per sensitive column). RLS stays enabled as belt-and-suspenders but isn't the
+primary gate.
+**Why:** Switching the app to per-user PG connections (so RLS actually fires)
+is a refactor that breaks workers + the existing `withActor()` pattern.
+Views + can() achieve the same outcome with less risk; supersedes the
+proposal's "Postgres RLS as primary" stance.
+**Reversibility:** Easy — adding RLS as the primary gate later is a config
+flip if the foundation is in place.
+
+### D-040 — Auth model: invite-only (supersedes earlier verbal "open self-signup")
+**Decision:** Admins (system_admin / hr_manager) invite users with a position
+assigned at invite time. New `auth.users` rows without a `profiles.position_key`
+get NO access. Public self-signup is OFF.
+**Why:** The position-driven permission model is incompatible with open
+self-signup — a self-registered user has no position → undefined behavior or
+default-overly-permissive. Strict positions need strict identity provisioning.
+Earlier Phase-2 question pick of "Open self-signup" reversed after reading
+the permissions doc.
+**Reversibility:** Easy — flip the registration handler back on, but plan
+the position-on-invite flow regardless.
+
+---
+
 ## Pending Decisions (to revisit in later pillars)
 
 - **Inngest tier**: free vs paid — depends on background workflow volume (decided in Pillar 10)
