@@ -6,10 +6,15 @@ import {
   emailThreads,
   emailDrafts,
   whatsappMessages,
-  clients,
   contacts,
   profiles,
   projects,
+  withProfileScope,
+  vEmailThreadsSafe,
+  vClientsSafe,
+  vContactsSafe,
+  vTeamSafe,
+  vProjectsSafe,
 } from '@antagna/db';
 import {
 
@@ -25,6 +30,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Mail, MessageCircle, Send } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getEffectiveProfileId } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,28 +65,41 @@ export default async function InboxPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/inbox');
 
+  const pid = await getEffectiveProfileId();
+
   const [threads, drafts, whatsapps, queueDepth] = await Promise.all([
-    db
-      .select({
-        id: emailThreads.id,
-        subject: emailThreads.subject,
-        status: emailThreads.status,
-        messageCount: emailThreads.messageCount,
-        lastMessageAt: emailThreads.lastMessageAt,
-        aiSummary: emailThreads.aiSummary,
-        clientNameAr: clients.nameAr,
-        primaryContactName: contacts.fullName,
-        assignedName: profiles.displayName,
-        projectCode: projects.code,
-        projectId: projects.id,
-      })
-      .from(emailThreads)
-      .leftJoin(clients, eq(clients.id, emailThreads.clientId))
-      .leftJoin(contacts, eq(contacts.id, emailThreads.primaryContactId))
-      .leftJoin(profiles, eq(profiles.id, emailThreads.assignedProfileId))
-      .leftJoin(projects, eq(projects.id, emailThreads.projectId))
-      .orderBy(desc(emailThreads.lastMessageAt))
-      .limit(30),
+    withProfileScope(pid, (tx) =>
+      tx
+        .select({
+          id: vEmailThreadsSafe.id,
+          subject: vEmailThreadsSafe.subject,
+          status: vEmailThreadsSafe.status,
+          messageCount: vEmailThreadsSafe.messageCount,
+          lastMessageAt: vEmailThreadsSafe.lastMessageAt,
+          aiSummary: vEmailThreadsSafe.aiSummary,
+          clientNameAr: vClientsSafe.nameAr,
+          primaryContactName: vContactsSafe.fullName,
+          assignedName: vTeamSafe.displayName,
+          projectCode: vProjectsSafe.code,
+          projectId: vProjectsSafe.id,
+        })
+        .from(vEmailThreadsSafe)
+        .leftJoin(vClientsSafe, eq(vClientsSafe.id, vEmailThreadsSafe.clientId))
+        .leftJoin(
+          vContactsSafe,
+          eq(vContactsSafe.id, vEmailThreadsSafe.primaryContactId),
+        )
+        .leftJoin(
+          vTeamSafe,
+          eq(vTeamSafe.id, vEmailThreadsSafe.assignedProfileId),
+        )
+        .leftJoin(
+          vProjectsSafe,
+          eq(vProjectsSafe.id, vEmailThreadsSafe.projectId),
+        )
+        .orderBy(desc(vEmailThreadsSafe.lastMessageAt))
+        .limit(30),
+    ),
     db
       .select({
         id: emailDrafts.id,
@@ -223,7 +242,7 @@ export default async function InboxPage() {
                     <p className="font-medium text-[var(--text)]">
                       {t.subject ?? '(بدون عنوان)'}
                     </p>
-                    <StatusPill tone={THREAD_STATUS_TONE[t.status] ?? 'neutral'}>
+                    <StatusPill tone={(t.status ? THREAD_STATUS_TONE[t.status] : undefined) ?? 'neutral'}>
                       {t.status}
                     </StatusPill>
                   </div>

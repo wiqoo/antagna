@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { sql } from 'drizzle-orm';
-import { db } from '@antagna/db';
+import { eq, sql } from 'drizzle-orm';
+import { db, withProfileScope, vTeamSafe } from '@antagna/db';
 import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Award, Briefcase, History, Mail, Phone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getEffectiveProfileId } from '@/lib/authz';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 
 export const dynamic = 'force-dynamic';
@@ -45,12 +46,28 @@ export default async function TeamMemberPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/team/${id}`);
 
-  const [pR, capR, asgR, actR] = await Promise.all([
-    db.execute(sql`
-      SELECT id::text AS id, display_name AS "displayName", display_name_en AS "displayNameEn",
-             role, status::text AS status, email, phone_e164 AS "phoneE164",
-             whatsapp_e164 AS "whatsappE164"
-      FROM profiles WHERE id = ${id}::uuid LIMIT 1`),
+  const pid = await getEffectiveProfileId();
+
+  const [personRows, capR, asgR, actR] = await Promise.all([
+    // Masked profile read goes through v_team_safe inside withProfileScope so the
+    // view's current_effective_profile_id() GUC masks email/phone/salary per the
+    // logged-in (or viewed-as) user. WRITES stay on base tables.
+    withProfileScope(pid, (tx) =>
+      tx
+        .select({
+          id: sql<string>`${vTeamSafe.id}::text`.as('id'),
+          displayName: vTeamSafe.displayName,
+          displayNameEn: vTeamSafe.displayNameEn,
+          role: vTeamSafe.role,
+          status: sql<string>`${vTeamSafe.status}::text`.as('status'),
+          email: vTeamSafe.email,
+          phoneE164: vTeamSafe.phoneE164,
+          whatsappE164: vTeamSafe.whatsappE164,
+        })
+        .from(vTeamSafe)
+        .where(eq(vTeamSafe.id, id))
+        .limit(1),
+    ),
     db.execute(sql`
       SELECT c.name_ar AS name, c.category
       FROM user_skills uc JOIN skills c ON c.key = uc.skill_key
@@ -71,7 +88,7 @@ export default async function TeamMemberPage({
       ORDER BY created_at DESC LIMIT 25`),
   ]);
 
-  const person = rows<Person>(pR)[0];
+  const person = personRows[0] as Person | undefined;
   if (!person) notFound();
   const caps = rows<{ name: string; category: string }>(capR);
   const assignments = rows<{
