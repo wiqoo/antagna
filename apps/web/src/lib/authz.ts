@@ -6,8 +6,16 @@
  * This module is the real app-layer gate. It resolves the **effective** profile
  * (view-as aware, via getCurrentProfile) and asks the existing DB functions
  * `has_permission(profile_id, key)` / `has_capability(profile_id, key)` — the
- * single source of truth for resolution (override → system_admin bypass → role
- * default). We do NOT re-implement that logic in TS.
+ * single source of truth for resolution. As of Sprint 0 (D-037/D-041) that is:
+ * per-user override → position default across all effective positions (primary
+ * `position_key` + multi-hat `user_position_overrides`) → `'*'` wildcard
+ * (general_manager only). The old `role='system_admin'` blanket bypass was
+ * REMOVED, so a system_admin / production_director stays bound by field-level
+ * restrictions (spec Test 10). We do NOT re-implement that logic in TS.
+ *
+ * Field-level masking is NOT done here — it lives in the `v_*_safe` views,
+ * which read the `app.current_profile_id` GUC set by `withProfileScope()`
+ * (@antagna/db). `can()` gates ACTIONS; the views mask COLUMNS.
  *
  * Usage:
  *   - Server Components (page guards):  await requirePermission('equipment.write')
