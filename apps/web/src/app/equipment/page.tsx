@@ -179,7 +179,7 @@ export default async function EquipmentPage({
         title={t('title')}
         subtitle={t('subtitle')}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/equipment/reservations"
               className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
