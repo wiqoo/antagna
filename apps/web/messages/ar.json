@@ -27,7 +27,9 @@
     "bottomNav": "شريط التنقّل",
     "attendance": "الحضور",
     "whatsapp": "محادثات WhatsApp",
-    "meetings": "الاجتماعات"
+    "meetings": "الاجتماعات",
+    "search": "بحث",
+    "changelog": "سجل التغييرات"
   },
   "topbar": {
     "newProject": "مشروع",

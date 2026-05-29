@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Card, CardHeader, StatBox, StatusPill, EmptyState } from '@antagna/ui';
-import { BrainCircuit, Database, Trash2 } from 'lucide-react';
+import { BrainCircuit, Database, Trash2, Sparkles, ChevronLeft } from 'lucide-react';
 import { ChunkActions } from './chunk-actions';
 import { BrainMaintenance } from './brain-maintenance';
 
@@ -53,6 +54,25 @@ export function BrainPanel({
 
   return (
     <div className="space-y-4">
+      <Link
+        href="/admin/ai-insights"
+        className="group flex items-center gap-3 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/[0.03] p-4 transition-colors hover:border-[var(--accent)]/60"
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--surface-hover)] text-[var(--accent)]">
+          <Sparkles size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-[var(--text)]">رؤى الذكاء الاصطناعي · حلقة التعلّم</p>
+          <p className="truncate text-xs text-[var(--text-muted)]">
+            معدّل قبول الاقتراحات، الثقة المُكتسبة، نتائج القرارات، والانتقالات المحجوبة
+          </p>
+        </div>
+        <ChevronLeft
+          size={16}
+          className="shrink-0 text-[var(--text-dim)] transition-transform group-hover:-translate-x-0.5 group-hover:text-[var(--accent)]"
+        />
+      </Link>
+
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatBox label="إجمالي الذاكرة" value={counts.total} icon={<Database size={16} />} sub="ai_memory_chunks" />
         <StatBox label="معروضة (آخر 100)" value={chunks.length} icon={<BrainCircuit size={16} />} />

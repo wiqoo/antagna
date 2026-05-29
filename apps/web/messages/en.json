@@ -27,7 +27,9 @@
     "bottomNav": "Bottom navigation",
     "attendance": "Attendance",
     "whatsapp": "WhatsApp threads",
-    "meetings": "Meetings"
+    "meetings": "Meetings",
+    "search": "Search",
+    "changelog": "Changelog"
   },
   "topbar": {
     "newProject": "Project",

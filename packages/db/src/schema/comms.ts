@@ -64,6 +64,12 @@ export const emailThreads = pgTable('email_threads', {
   aiSummaryUpdatedAt: timestamp('ai_summary_updated_at', { withTimezone: true }),
   aiTopicTags: text('ai_topic_tags').array(),
 
+  // AI triage (migration 00000000000058). NULL = unclassified → treated as
+  // actionable so nothing is hidden before classifyThread() has run.
+  category: text('category'), // 'actionable' | 'marketing' | 'newsletter' | 'spam' | 'notification'
+  importance: text('importance'), // 'low' | 'medium' | 'high'
+  aiClassifiedAt: timestamp('ai_classified_at', { withTimezone: true }),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 });

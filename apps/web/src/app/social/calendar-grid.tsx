@@ -36,11 +36,13 @@ function colForJsDay(d: number) {
   return (d + 1) % 7;
 }
 
-/** Month grid (week starts Saturday) of scheduled content posts. Server component. */
-export function CalendarGrid({ posts }: { posts: Post[] }) {
+/** Month grid (week starts Saturday) of scheduled content posts. Server component.
+ *  `monthOffset` shifts the displayed month relative to now (0 = current). */
+export function CalendarGrid({ posts, monthOffset = 0 }: { posts: Post[]; monthOffset?: number }) {
   const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth(); // 0-based
+  const base = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + monthOffset, 1));
+  const y = base.getUTCFullYear();
+  const m = base.getUTCMonth(); // 0-based
 
   const firstOfMonth = new Date(Date.UTC(y, m, 1));
   const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();

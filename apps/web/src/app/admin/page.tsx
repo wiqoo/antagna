@@ -21,7 +21,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Users2, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server, FolderArchive, Building2 } from 'lucide-react';
+import { Shield, Users, Users2, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server, FolderArchive, Building2, History, MapPin, ListChecks, Link2, Tags } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
 import { can, canMany } from '@/lib/authz';
 import { seedDevData } from './seed-actions';
@@ -181,12 +181,52 @@ export default async function AdminPage() {
             subtitle="عرّف حقول بيانات إضافية لكل كيان (مشاريع، عملاء، معدات…)"
           />
         )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/locations"
+            icon={<MapPin size={18} />}
+            title="المواقع والسياجات"
+            subtitle="المكتب والاستوديو ومواقع التصوير + السياجات الجغرافية للحضور"
+          />
+        )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/stage-templates"
+            icon={<ListChecks size={18} />}
+            title="قوالب مهام المراحل"
+            subtitle="المهام التلقائية لكل مرحلة من مراحل المشروع — مرتّبة وقابلة للتفعيل"
+          />
+        )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/compatibility"
+            icon={<Link2 size={18} />}
+            title="قواعد التوافق"
+            subtitle="أيّ المعدات تعمل معاً (أو لا) — يعزّز اقتراحات الـ kit والتحقّق وقت الحجز"
+          />
+        )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/tags"
+            icon={<Tags size={18} />}
+            title="الوسوم"
+            subtitle="تصنيف موحّد للمشاريع والعملاء والمعدات مع عدّاد الاستخدام"
+          />
+        )}
         <AdminToolLink
           href="/admin/system"
           icon={<Server size={18} />}
           title="وحدة تحكّم النظام"
           subtitle="المفاتيح، حارس تكلفة الـ AI، البريد، الذاكرة، الإعدادات، والاشتراكات و Cron"
         />
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/ai-insights"
+            icon={<Sparkles size={18} />}
+            title="رؤى الذكاء الاصطناعي"
+            subtitle="حلقة التعلّم: معدّل قبول الاقتراحات، الثقة المُكتسبة، نتائج القرارات، والانتقالات المحجوبة"
+          />
+        )}
         <AdminToolLink
           href="/admin/automation"
           icon={<SlidersHorizontal size={18} />}
@@ -204,6 +244,12 @@ export default async function AdminPage() {
           icon={<Workflow size={18} />}
           title="خريطة النظام"
           subtitle="رسم تفاعلي للأقسام وتدفّق البيانات والأتمتة وربط الـ AI"
+        />
+        <AdminToolLink
+          href="/changelog"
+          icon={<History size={18} />}
+          title="سجل التغييرات والنشاط"
+          subtitle="إصدارات المنتج المنشورة وآخر نشاط على مستوى النظام بالكامل"
         />
       </section>
 

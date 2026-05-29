@@ -44,8 +44,8 @@ export async function Shell({
   const tNav = await getTranslations('nav');
   const tTop = await getTranslations('topbar');
   const navKeys = [
-    'myDay', 'dashboard', 'projects', 'tasks', 'inbox', 'approvals', 'notifications', 'calendar',
-    'clients', 'equipment', 'repairs', 'assets', 'social', 'team', 'employees', 'meetings', 'kpis', 'reports', 'admin', 'settings',
+    'myDay', 'dashboard', 'search', 'projects', 'tasks', 'inbox', 'approvals', 'notifications', 'calendar',
+    'clients', 'equipment', 'repairs', 'assets', 'social', 'team', 'employees', 'meetings', 'kpis', 'reports', 'changelog', 'admin', 'settings',
     'groupWork', 'groupAnalytics', 'more', 'sidebar', 'bottomNav',
   ] as const;
   const labels: Record<string, string> = Object.fromEntries(

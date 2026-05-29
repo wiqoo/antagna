@@ -228,3 +228,171 @@ export async function removeKitItem(itemId: string): Promise<void> {
   );
   revalidatePath('/equipment/kits');
 }
+
+// --- C1: kit BUILDER (volt-os /lab/setups + /builder parity) ---
+
+/**
+ * Create a new setup (kit) anchored on a primary item, in one shot.
+ * Used by the builder's "start a setup" step. Returns the new kit id so the
+ * builder can deep-link straight into editing it.
+ */
+export async function createSetup(formData: FormData): Promise<{
+  ok: boolean;
+  kitId?: string;
+  error?: string;
+}> {
+  const aid = await requirePermissionAction('equipment.update');
+
+  const nameAr = parseStr(formData.get('nameAr'));
+  const primaryEquipmentId = parseStr(formData.get('primaryEquipmentId'));
+  let code = parseStr(formData.get('code'));
+  if (!nameAr) return { ok: false, error: 'الاسم مطلوب' };
+
+  // Auto-generate a code if none supplied (SETUP-XXXX from the timestamp).
+  if (!code) {
+    code = `SETUP-${Date.now().toString(36).toUpperCase().slice(-5)}`;
+  }
+
+  let kitId: string | undefined;
+  try {
+    const res = await withActor(aid, (tx) =>
+      tx.execute<{ id: string }>(sql`
+        INSERT INTO kits (code, name_ar, primary_equipment_id, active)
+        VALUES (${code}, ${nameAr},
+                ${primaryEquipmentId ? sql`${primaryEquipmentId}::uuid` : sql`NULL`}, true)
+        ON CONFLICT (code) DO NOTHING
+        RETURNING id::text AS id
+      `),
+    );
+    kitId = (res as unknown as Array<{ id: string }>)[0]?.id;
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'تعذّر الإنشاء' };
+  }
+  if (!kitId) return { ok: false, error: 'الـ code مستخدَم بالفعل' };
+
+  revalidatePath('/equipment/kits');
+  return { ok: true, kitId };
+}
+
+/** Add an item to a setup by its id (item OR group), with mandatory + qty. */
+export async function addSetupItem(
+  kitId: string,
+  payload: {
+    equipmentId?: string | null;
+    equipmentGroupId?: string | null;
+    quantity?: number;
+    mandatory?: boolean;
+    notes?: string | null;
+  },
+): Promise<{ ok: boolean; error?: string }> {
+  const aid = await requirePermissionAction('equipment.update');
+  const qty = payload.quantity && payload.quantity > 0 ? payload.quantity : 1;
+  const mandatory = !!payload.mandatory;
+  if (!payload.equipmentId && !payload.equipmentGroupId) {
+    return { ok: false, error: 'لا عنصر' };
+  }
+  try {
+    await withActor(aid, (tx) =>
+      tx.execute(sql`
+        INSERT INTO kit_items (kit_id, equipment_id, equipment_group_id, quantity, is_mandatory, notes)
+        VALUES (
+          ${kitId}::uuid,
+          ${payload.equipmentId ? sql`${payload.equipmentId}::uuid` : sql`NULL`},
+          ${payload.equipmentGroupId ? sql`${payload.equipmentGroupId}::uuid` : sql`NULL`},
+          ${qty}, ${mandatory}, ${payload.notes ?? null}
+        )
+      `),
+    );
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'تعذّر الإضافة' };
+  }
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}
+
+/** Remove a setup item by id (builder version → returns status, no throw). */
+export async function removeSetupItem(itemId: string): Promise<{ ok: boolean }> {
+  const aid = await requirePermissionAction('equipment.update');
+  await withActor(aid, (tx) =>
+    tx.execute(sql`DELETE FROM kit_items WHERE id = ${itemId}::uuid`),
+  );
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}
+
+/** Flip an item between mandatory and optional. */
+export async function toggleSetupItemMandatory(
+  itemId: string,
+  mandatory: boolean,
+): Promise<{ ok: boolean }> {
+  const aid = await requirePermissionAction('equipment.update');
+  await withActor(aid, (tx) =>
+    tx.execute(sql`
+      UPDATE kit_items SET is_mandatory = ${mandatory} WHERE id = ${itemId}::uuid
+    `),
+  );
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}
+
+/** Bump an item's quantity. */
+export async function setSetupItemQuantity(
+  itemId: string,
+  quantity: number,
+): Promise<{ ok: boolean }> {
+  const aid = await requirePermissionAction('equipment.update');
+  const qty = quantity > 0 ? quantity : 1;
+  await withActor(aid, (tx) =>
+    tx.execute(sql`UPDATE kit_items SET quantity = ${qty} WHERE id = ${itemId}::uuid`),
+  );
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}
+
+/** Rename / re-anchor a setup (name + primary item + active flag). */
+export async function renameSetup(
+  kitId: string,
+  payload: { nameAr?: string; nameEn?: string | null; description?: string | null; active?: boolean },
+): Promise<{ ok: boolean; error?: string }> {
+  const aid = await requirePermissionAction('equipment.update');
+  const nameAr = payload.nameAr?.trim();
+  if (!nameAr) return { ok: false, error: 'الاسم مطلوب' };
+  await withActor(aid, (tx) =>
+    tx.execute(sql`
+      UPDATE kits SET
+        name_ar = ${nameAr},
+        name_en = ${payload.nameEn ?? null},
+        description = ${payload.description ?? null},
+        active = ${payload.active ?? true}
+      WHERE id = ${kitId}::uuid
+    `),
+  );
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}
+
+/** Anchor (or re-anchor) a setup onto a primary item. */
+export async function setSetupPrimary(
+  kitId: string,
+  equipmentId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const aid = await requirePermissionAction('equipment.update');
+  if (!equipmentId) return { ok: false, error: 'لا عنصر' };
+  await withActor(aid, (tx) =>
+    tx.execute(sql`
+      UPDATE kits SET primary_equipment_id = ${equipmentId}::uuid WHERE id = ${kitId}::uuid
+    `),
+  );
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}
+
+/** Delete an entire setup (cascades its items). */
+export async function deleteSetup(kitId: string): Promise<{ ok: boolean }> {
+  const aid = await requirePermissionAction('equipment.update');
+  await withActor(aid, (tx) =>
+    tx.execute(sql`DELETE FROM kits WHERE id = ${kitId}::uuid`),
+  );
+  revalidatePath('/equipment/kits');
+  return { ok: true };
+}

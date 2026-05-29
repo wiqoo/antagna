@@ -22,7 +22,11 @@ import {
   Paperclip,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { summarizeThreadAction, generateNextActionsAction } from '../actions';
+import {
+  summarizeThreadAction,
+  generateNextActionsAction,
+  classifyThreadFormAction,
+} from '../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +43,8 @@ type Thread = {
   aiSummary: string | null;
   aiSummaryUpdatedAt: string | null;
   aiTopicTags: string[] | null;
+  category: string | null;
+  importance: string | null;
   clientId: string | null;
   clientCode: string | null;
   clientNameAr: string | null;
@@ -75,11 +81,39 @@ const STATUS_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'success' | '
 
 const STATUS_AR: Record<string, string> = {
   new: 'جديد',
+  open: 'مفتوح',
   in_progress: 'قيد المعالجة',
   awaiting_reply: 'بانتظار الردّ',
+  waiting_client: 'بانتظار العميل',
   replied: 'تمّ الردّ',
+  closed: 'مؤرشف',
   archived: 'أرشيف',
+  spam: 'مخفي',
+};
+
+const CATEGORY_AR: Record<string, string> = {
+  actionable: 'يحتاج إجراء',
+  marketing: 'تسويق',
+  newsletter: 'نشرة',
+  notification: 'إشعار',
   spam: 'سبام',
+};
+const CATEGORY_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'danger'> = {
+  actionable: 'info',
+  marketing: 'neutral',
+  newsletter: 'neutral',
+  notification: 'neutral',
+  spam: 'danger',
+};
+const IMPORTANCE_AR: Record<string, string> = {
+  high: 'عالية',
+  medium: 'متوسطة',
+  low: 'منخفضة',
+};
+const IMPORTANCE_TONE: Record<string, 'neutral' | 'warning' | 'danger'> = {
+  high: 'danger',
+  medium: 'warning',
+  low: 'neutral',
 };
 
 export default async function InboxThreadPage({
@@ -104,6 +138,8 @@ export default async function InboxThreadPage({
              et.ai_summary AS "aiSummary",
              et.ai_summary_updated_at AS "aiSummaryUpdatedAt",
              et.ai_topic_tags AS "aiTopicTags",
+             et.category AS "category",
+             et.importance AS "importance",
              c.id::text AS "clientId", c.code AS "clientCode", c.name_ar AS "clientNameAr",
              ct.full_name AS "primaryContactName",
              p.id::text AS "projectId", p.code AS "projectCode",
@@ -162,6 +198,16 @@ export default async function InboxThreadPage({
         subtitle={`${thread.messageCount} رسالة${thread.clientNameAr ? ` · ${thread.clientNameAr}` : ''}${thread.projectCode && thread.projectId ? ` · مشروع ${thread.projectCode}` : ''}`}
         action={
           <div className="flex flex-wrap items-center gap-2">
+            {thread.category && (
+              <StatusPill tone={CATEGORY_TONE[thread.category] ?? 'neutral'}>
+                {CATEGORY_AR[thread.category] ?? thread.category}
+              </StatusPill>
+            )}
+            {thread.importance && (
+              <StatusPill tone={IMPORTANCE_TONE[thread.importance] ?? 'neutral'}>
+                أهمية {IMPORTANCE_AR[thread.importance] ?? thread.importance}
+              </StatusPill>
+            )}
             <StatusPill tone={STATUS_TONE[thread.status] ?? 'neutral'}>
               {STATUS_AR[thread.status] ?? thread.status}
             </StatusPill>
@@ -191,14 +237,24 @@ export default async function InboxThreadPage({
                     : 'لم يُلخَّص بعد'
                 }
               />
-              <form action={summarizeThreadAction.bind(null, thread.id)}>
-                <button
-                  type="submit"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
-                >
-                  <Sparkles size={12} /> لخّص الآن
-                </button>
-              </form>
+              <div className="flex items-center gap-2">
+                <form action={classifyThreadFormAction.bind(null, thread.id)}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] px-3 text-[11px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  >
+                    <Sparkles size={12} /> صنِّف
+                  </button>
+                </form>
+                <form action={summarizeThreadAction.bind(null, thread.id)}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+                  >
+                    <Sparkles size={12} /> لخّص الآن
+                  </button>
+                </form>
+              </div>
             </div>
             {thread.aiSummary ? (
               <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-muted)]">

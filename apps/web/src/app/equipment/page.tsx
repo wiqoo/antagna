@@ -30,6 +30,7 @@ import {
   CheckCircle2,
   ScanLine,
   Boxes,
+  BarChart3,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getTranslations } from 'next-intl/server';
@@ -203,7 +204,14 @@ export default async function EquipmentPage({
               className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
             >
               <Boxes size={15} />
-              الكيتات
+              السِتب
+            </Link>
+            <Link
+              href="/equipment/metrics"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
+            >
+              <BarChart3 size={15} />
+              المؤشرات
             </Link>
             <Link
               href="/equipment/scan"

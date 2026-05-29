@@ -26,6 +26,8 @@ import {
   FolderArchive,
   CalendarDays,
   IdCard,
+  Search,
+  History,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -49,6 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/my-day', key: 'myDay', label: 'يومي', icon: Sun },
       { href: '/dashboard', key: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
+      { href: '/search', key: 'search', label: 'بحث', icon: Search },
       { href: '/projects', key: 'projects', label: 'المشاريع', icon: Briefcase },
       { href: '/tasks', key: 'tasks', label: 'المهام', icon: ListChecks },
       { href: '/inbox', key: 'inbox', label: 'الوارد', icon: Inbox },
@@ -78,6 +81,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/kpis', key: 'kpis', label: 'مؤشرات الأداء', icon: BarChart3 },
       { href: '/reports', key: 'reports', label: 'التقارير', icon: FileText },
+      { href: '/changelog', key: 'changelog', label: 'سجل التغييرات', icon: History },
       { href: '/admin', key: 'admin', label: 'الإدارة', icon: Shield },
       { href: '/settings', key: 'settings', label: 'الإعدادات', icon: Settings },
     ],

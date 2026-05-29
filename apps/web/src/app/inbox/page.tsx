@@ -3,10 +3,8 @@ import { redirect } from 'next/navigation';
 import { desc, eq, sql } from 'drizzle-orm';
 import {
   db,
-  emailThreads,
   emailDrafts,
   whatsappMessages,
-  clients,
   contacts,
   profiles,
   projects,
@@ -28,6 +26,25 @@ import { InboxThreads, type InboxThreadRow } from './InboxThreads';
 
 export const dynamic = 'force-dynamic';
 
+type ThreadQueryRow = {
+  id: string;
+  subject: string | null;
+  status: string;
+  category: string | null;
+  importance: string | null;
+  messageCount: number | null;
+  lastMessageAt: string | null;
+  aiSummary: string | null;
+  clientNameAr: string | null;
+  primaryContactName: string | null;
+  assignedName: string | null;
+  projectCode: string | null;
+  projectId: string | null;
+  fromName: string | null;
+  fromEmail: string | null;
+  nextAction: string | null;
+};
+
 const DRAFT_STATUS_TONE: Record<
   string,
   'info' | 'warning' | 'danger' | 'success' | 'neutral'
@@ -48,28 +65,52 @@ export default async function InboxPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/inbox');
 
-  const [threads, drafts, whatsapps, queueDepth] = await Promise.all([
-    db
-      .select({
-        id: emailThreads.id,
-        subject: emailThreads.subject,
-        status: emailThreads.status,
-        messageCount: emailThreads.messageCount,
-        lastMessageAt: emailThreads.lastMessageAt,
-        aiSummary: emailThreads.aiSummary,
-        clientNameAr: clients.nameAr,
-        primaryContactName: contacts.fullName,
-        assignedName: profiles.displayName,
-        projectCode: projects.code,
-        projectId: projects.id,
-      })
-      .from(emailThreads)
-      .leftJoin(clients, eq(clients.id, emailThreads.clientId))
-      .leftJoin(contacts, eq(contacts.id, emailThreads.primaryContactId))
-      .leftJoin(profiles, eq(profiles.id, emailThreads.assignedProfileId))
-      .leftJoin(projects, eq(projects.id, emailThreads.projectId))
-      .orderBy(desc(emailThreads.lastMessageAt))
-      .limit(30),
+  const [threadsRaw, drafts, whatsapps, queueDepth] = await Promise.all([
+    // Raw SQL: we need the latest inbound message's sender + the latest
+    // message's ai_suggested_actions[0] as the "next action", which the query
+    // builder can't express cleanly. Pull a generous window (200) so the
+    // client-side noise filter still leaves plenty of actionable threads.
+    db.execute(sql`
+      SELECT
+        et.id::text AS "id",
+        et.subject AS "subject",
+        et.status::text AS "status",
+        et.category AS "category",
+        et.importance AS "importance",
+        et.message_count AS "messageCount",
+        et.last_message_at AS "lastMessageAt",
+        et.ai_summary AS "aiSummary",
+        c.name_ar AS "clientNameAr",
+        ct.full_name AS "primaryContactName",
+        pf.display_name AS "assignedName",
+        p.code AS "projectCode",
+        p.id::text AS "projectId",
+        inb.from_name AS "fromName",
+        inb.from_email AS "fromEmail",
+        na.next_action AS "nextAction"
+      FROM email_threads et
+      LEFT JOIN clients  c  ON c.id  = et.client_id
+      LEFT JOIN contacts ct ON ct.id = et.primary_contact_id
+      LEFT JOIN profiles pf ON pf.id = et.assigned_profile_id
+      LEFT JOIN projects p  ON p.id  = et.project_id
+      LEFT JOIN LATERAL (
+        SELECT from_name, from_email
+        FROM email_messages
+        WHERE thread_id = et.id AND direction = 'inbound'
+        ORDER BY sent_at DESC LIMIT 1
+      ) inb ON true
+      LEFT JOIN LATERAL (
+        SELECT (ai_suggested_actions->>0) AS next_action
+        FROM email_messages
+        WHERE thread_id = et.id
+          AND ai_suggested_actions IS NOT NULL
+          AND jsonb_typeof(ai_suggested_actions) = 'array'
+          AND jsonb_array_length(ai_suggested_actions) > 0
+        ORDER BY sent_at DESC LIMIT 1
+      ) na ON true
+      ORDER BY et.last_message_at DESC NULLS LAST
+      LIMIT 200
+    `),
     db
       .select({
         id: emailDrafts.id,
@@ -110,26 +151,41 @@ export default async function InboxPage() {
       .groupBy(emailDrafts.status),
   ]);
 
+  const threads = threadsRaw as unknown as ThreadQueryRow[];
+
   const threadRows: InboxThreadRow[] = threads.map((t) => ({
     id: t.id,
     subject: t.subject,
     status: t.status,
+    category: t.category,
+    importance: t.importance,
     messageCount: t.messageCount,
     lastMessageAt: t.lastMessageAt ? new Date(t.lastMessageAt).toISOString() : null,
     aiSummary: t.aiSummary,
+    nextAction: t.nextAction,
     clientNameAr: t.clientNameAr,
     primaryContactName: t.primaryContactName,
+    fromName: t.fromName,
+    fromEmail: t.fromEmail,
     assignedName: t.assignedName,
     projectCode: t.projectCode,
     projectId: t.projectId,
   }));
 
+  const NOISE = new Set(['marketing', 'newsletter', 'spam']);
+  const isNoise = (t: ThreadQueryRow) =>
+    t.status === 'spam' || (t.category != null && NOISE.has(t.category));
+  const cleanThreads = threads.filter((t) => !isNoise(t));
+  const noiseCount = threads.length - cleanThreads.length;
+  const unclassified = threads.filter((t) => t.category == null).length;
+  const highImportance = cleanThreads.filter((t) => t.importance === 'high').length;
+
   const awaitingReview =
     queueDepth.find((q) => q.status === 'awaiting_review')?.count ?? 0;
   const failed = queueDepth.find((q) => q.status === 'failed')?.count ?? 0;
 
-  const openThreads = threads.filter((t) => t.status === 'open');
-  const waitingClientThreads = threads.filter((t) => t.status === 'waiting_client').length;
+  const openThreads = cleanThreads.filter((t) => t.status === 'open');
+  const waitingClientThreads = cleanThreads.filter((t) => t.status === 'waiting_client').length;
   const oldOpen = openThreads.filter((t) => {
     if (!t.lastMessageAt) return false;
     return Date.now() - new Date(t.lastMessageAt).getTime() > 3 * 86_400_000;
@@ -154,6 +210,23 @@ export default async function InboxPage() {
       actions: [{ label: 'اعرض الفاشلة', href: '#drafts', primary: true }],
     });
   }
+  if (unclassified > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${unclassified} محادثة غير مُصنَّفة`,
+      insight: 'شغّل "صنِّف بالـ AI" ليفرز الوارد ويخفي التسويق والسبام تلقائياً.',
+      actions: [{ label: 'اذهب للوارد', href: '#threads', primary: true }],
+    });
+  }
+  if (highImportance > 0 && hints.length < 3) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${highImportance} محادثة عالية الأهمية تحتاج انتباهك`,
+      insight: 'صنّفها الـ AI كأولوية — افتحها أولاً.',
+      urgent: true,
+      actions: [{ label: 'افتحها', href: '#threads', primary: true }],
+    });
+  }
   if (oldOpen.length > 0 && hints.length < 3) {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),
@@ -168,7 +241,7 @@ export default async function InboxPage() {
       {hints.length > 0 && (
         <AIHints
           context="Antagna AI · الوارد"
-          headline={`${threads.length} thread · ${waitingClientThreads} في انتظار العميل`}
+          headline={`${cleanThreads.length} يحتاج انتباهك · ${noiseCount} ضوضاء مخفية`}
           hints={hints}
           compact
         />
@@ -178,8 +251,13 @@ export default async function InboxPage() {
         title="الوارد"
         subtitle={
           <>
-            {threads.length} thread · {whatsapps.length} WhatsApp · {drafts.length}{' '}
-            draft
+            {cleanThreads.length} يحتاج انتباهك · {noiseCount} ضوضاء مخفية ·{' '}
+            {whatsapps.length} WhatsApp · {drafts.length} draft
+            {highImportance > 0 && (
+              <span className="ms-2 text-[var(--danger)]">
+                · {highImportance} عالية الأهمية
+              </span>
+            )}
             {awaitingReview > 0 && (
               <span className="ms-2 text-[var(--accent)]">
                 · {awaitingReview} في انتظار الموافقة
@@ -192,16 +270,16 @@ export default async function InboxPage() {
         }
       />
 
-      {/* Threads — retrofitted onto ListWorkspace */}
+      {/* Threads — AI-triaged workspace */}
       <Card padded={false}>
-        <div className="p-6 pb-4">
+        <div id="threads" className="p-6 pb-4">
           <CardHeader
-            title="البريد الإلكتروني"
-            subtitle="آخر 30 thread"
+            title="البريد — مفروز بالـ AI"
+            subtitle="مُصنَّف تلقائياً · الضوضاء مخفية افتراضياً"
             action={
               <span className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)]">
                 <Mail size={12} />
-                {threads.length}
+                {cleanThreads.length}
               </span>
             }
           />
@@ -211,7 +289,7 @@ export default async function InboxPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div id="drafts" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card padded={false}>
           <div className="p-6 pb-4">
             <CardHeader
