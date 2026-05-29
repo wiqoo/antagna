@@ -99,7 +99,7 @@ export default async function MyDayPage() {
           SELECT id::text, source_key, status::text AS status
           FROM daily_tasks
           WHERE owner_id = ${me}::uuid
-            AND source_key = ANY(${wantKeys}::text[])
+            AND source_key = ANY(ARRAY[${sql.join(wantKeys.map((k) => sql`${k}`), sql`, `)}]::text[])
         `)
       : Promise.resolve([] as unknown as Array<{ id: string; source_key: string; status: string }>),
 
