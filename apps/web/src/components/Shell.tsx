@@ -44,7 +44,7 @@ export async function Shell({
   const tNav = await getTranslations('nav');
   const tTop = await getTranslations('topbar');
   const navKeys = [
-    'dashboard', 'projects', 'tasks', 'inbox', 'calendar', 'clients', 'equipment',
+    'myDay', 'dashboard', 'projects', 'tasks', 'inbox', 'calendar', 'clients', 'equipment',
     'social', 'team', 'kpis', 'reports', 'admin', 'settings', 'groupWork',
     'groupAnalytics', 'more', 'sidebar', 'bottomNav',
   ] as const;

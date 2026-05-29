@@ -2,33 +2,24 @@ import { describe, it, expect } from 'vitest';
 import { roleLanding } from '../role-landing';
 
 describe('roleLanding', () => {
-  it('sends PMs and production managers to /projects', () => {
-    expect(roleLanding('project_manager')).toBe('/projects');
-    expect(roleLanding('production_manager')).toBe('/projects');
-  });
-
-  it('sends AMs to /crm', () => {
-    expect(roleLanding('account_manager')).toBe('/crm');
-  });
-
-  it('sends HR to /team', () => {
-    expect(roleLanding('hr')).toBe('/team');
-  });
-
-  it('sends finance to /reports', () => {
-    expect(roleLanding('finance')).toBe('/reports');
-  });
-
-  it('sends sysadmins and GMs to /dashboard (overview bento)', () => {
+  it('keeps sysadmins and GMs on /dashboard (full overview bento)', () => {
     expect(roleLanding('system_admin')).toBe('/dashboard');
     expect(roleLanding('general_manager')).toBe('/dashboard');
   });
 
-  it('defaults ICs (user) and unknown roles to /tasks', () => {
-    expect(roleLanding('user')).toBe('/tasks');
-    expect(roleLanding('shooter')).toBe('/tasks');
-    expect(roleLanding(null)).toBe('/tasks');
-    expect(roleLanding(undefined)).toBe('/tasks');
-    expect(roleLanding('')).toBe('/tasks');
+  it('sends every non-admin position to /my-day', () => {
+    expect(roleLanding('project_manager')).toBe('/my-day');
+    expect(roleLanding('production_manager')).toBe('/my-day');
+    expect(roleLanding('account_manager')).toBe('/my-day');
+    expect(roleLanding('hr')).toBe('/my-day');
+    expect(roleLanding('finance')).toBe('/my-day');
+    expect(roleLanding('user')).toBe('/my-day');
+    expect(roleLanding('shooter')).toBe('/my-day');
+  });
+
+  it('defaults unknown / empty roles to /my-day', () => {
+    expect(roleLanding(null)).toBe('/my-day');
+    expect(roleLanding(undefined)).toBe('/my-day');
+    expect(roleLanding('')).toBe('/my-day');
   });
 });

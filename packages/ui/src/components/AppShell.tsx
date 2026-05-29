@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   Clock,
   MessageCircle,
+  Sun,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -39,6 +40,7 @@ export type NavLabels = Record<string, string>;
 const NAV_GROUPS: NavGroup[] = [
   {
     items: [
+      { href: '/my-day', key: 'myDay', label: 'يومي', icon: Sun },
       { href: '/dashboard', key: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
       { href: '/projects', key: 'projects', label: 'المشاريع', icon: Briefcase },
       { href: '/tasks', key: 'tasks', label: 'المهام', icon: ListChecks },

@@ -291,6 +291,11 @@ export const dailyTasks = pgTable('daily_tasks', {
   dueAt: timestamp('due_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
 
+  // Idempotency tag for system-generated rows (migration 055). The per-position
+  // My Day routine materializes one row per item per day keyed by
+  // source_key = 'routine:<item_key>:<YYYY-MM-DD>'. Null for hand-created tasks.
+  sourceKey: text('source_key'),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 });

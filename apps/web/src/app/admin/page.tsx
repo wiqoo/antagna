@@ -21,7 +21,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus } from 'lucide-react';
+import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
 import { can } from '@/lib/authz';
 import { seedDevData } from './seed-actions';
@@ -149,6 +149,12 @@ export default async function AdminPage() {
           icon={<KeyRound size={18} />}
           title="الأدوار والصلاحيات"
           subtitle="تحكّم دقيق لكل إجراء + استثناءات وقدرات لكل مستخدم"
+        />
+        <AdminToolLink
+          href="/admin/system"
+          icon={<Server size={18} />}
+          title="وحدة تحكّم النظام"
+          subtitle="المفاتيح، حارس تكلفة الـ AI، البريد، الذاكرة، الإعدادات، والاشتراكات و Cron"
         />
         <AdminToolLink
           href="/admin/automation"

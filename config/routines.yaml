@@ -1,0 +1,124 @@
+# Antagna — Per-Position Daily Routine (My Day checklist)
+#
+# Source of truth for the per-position "روتين اليوم" checklist rendered on
+# /my-day. Each position lists the recurring daily actions the holder should
+# tick off every working day. The app (apps/web/src/lib/routines.ts →
+# loadRoutines) reads THIS file; the My Day page materializes one daily_tasks
+# row per item per day (idempotently, keyed by source_key='routine:<key>:<date>')
+# so progress persists and shows on /tasks too.
+#
+# Derived from the 16-position model (migration 049) + the JDs / capabilities in
+# config/roles.yaml + the per-position dashboard boards in
+# apps/web/src/app/dashboard/cards/catalog.ts (POSITION_LAYOUT).
+#
+# Shape per position:
+#   <position_key>:
+#     - key: short_stable_id        # unique within the position; used in source_key
+#       title_ar: Arabic action      # what to do (UI string, Arabic primary)
+#       when: morning | midday | evening | anytime   # rough time-of-day hint
+#
+# `key` MUST stay stable — changing it orphans already-materialized rows for the
+# day. Add new items with new keys; don't rename old ones.
+
+positions:
+  general_manager:
+    - { key: review_at_risk,     title_ar: راجع المشاريع المتعثّرة وحدّد تدخّلك, when: morning }
+    - { key: clear_approvals,    title_ar: صفّ الموافقات المعلّقة على طاولتك,     when: morning }
+    - { key: check_revenue,      title_ar: راجع إيراد الشهر والتدفّق النقدي,       when: midday }
+    - { key: team_pulse,         title_ar: تابع نبض الفريق وأي اختناق بشري,        when: evening }
+
+  creative_director:
+    - { key: review_creative,    title_ar: راجع الأعمال الإبداعية المنتظرة موافقتك, when: morning }
+    - { key: shoots_today,       title_ar: اطّلع على تصوير اليوم ووجّه الـ brief,   when: morning }
+    - { key: stale_creative,     title_ar: تابع المحادثات الإبداعية المتوقّفة,       when: midday }
+    - { key: capacity_check,     title_ar: تأكّد من توزيع حمولة المصوّرين والمحرّرين, when: midday }
+
+  production_director:
+    - { key: capacity_review,    title_ar: راجع حمولة الفريق وتوقّع الـ overload,    when: morning }
+    - { key: shoots_ready,       title_ar: تأكّد جاهزية تصوير اليوم (طاقم + معدّات), when: morning }
+    - { key: equipment_status,   title_ar: تابع حالة المعدّات والبطاريات والتعارضات, when: midday }
+    - { key: at_risk_projects,   title_ar: تدخّل في المشاريع المعرّضة لتأخير التسليم, when: midday }
+    - { key: system_health,      title_ar: تحقّق من صحّة الربط وحالة المهام الخلفية, when: evening }
+
+  project_manager:
+    - { key: at_risk_check,      title_ar: راجع المشاريع المعرّضة للخطر اليوم,       when: morning }
+    - { key: clear_approvals,    title_ar: نفّذ الموافقات المنتظرة منك,             when: morning }
+    - { key: milestones_today,   title_ar: تابع milestones وتسليمات اليوم,          when: midday }
+    - { key: client_responses,   title_ar: تأكّد من الرد على العملاء خلال ساعتين,    when: midday }
+    - { key: update_board,       title_ar: حدّث حالة المهام على لوح المشروع,         when: evening }
+
+  account_manager:
+    - { key: stale_leads,        title_ar: راجع الـ leads الراكدة وأعد إحياءها,      when: morning }
+    - { key: reply_2h,           title_ar: رد على العملاء خلال ساعتين,             when: anytime }
+    - { key: triage_inbox,       title_ar: فرز صندوق الوارد واعتماد اقتراحات الـ AI, when: morning }
+    - { key: followups_due,      title_ar: أرسل المتابعات المستحقّة اليوم,          when: midday }
+    - { key: pipeline_review,    title_ar: راجع الـ pipeline وفرص هذا الأسبوع,       when: evening }
+
+  videographer:
+    - { key: today_shoots,       title_ar: راجع تصوير اليوم ومواقعه ومواعيده,       when: morning }
+    - { key: gear_check,         title_ar: جهّز وافحص معدّاتك قبل الخروج,           when: morning }
+    - { key: upload_footage,     title_ar: ارفع لقطات اليوم للمونتاج,              when: evening }
+    - { key: editing_queue,      title_ar: تابع قائمة المونتاج المطلوبة منك,        when: midday }
+
+  video_editor:
+    - { key: editing_queue,      title_ar: راجع قائمة المونتاج وحدّد أولوية اليوم,   when: morning }
+    - { key: deliver_cuts,       title_ar: سلّم النسخ الجاهزة للمراجعة,            when: midday }
+    - { key: apply_revisions,    title_ar: نفّذ ملاحظات المراجعة على الأعمال,        when: midday }
+    - { key: shoots_awareness,   title_ar: اطّلع على تصوير اليوم لتخطيط مونتاج الغد, when: evening }
+
+  photo_editor:
+    - { key: editing_queue,      title_ar: راجع قائمة معالجة الصور وأولويّتها,       when: morning }
+    - { key: deliver_edits,      title_ar: سلّم الصور المعالَجة للمراجعة,           when: midday }
+    - { key: apply_revisions,    title_ar: نفّذ ملاحظات المراجعة على الصور,          when: midday }
+    - { key: shoots_awareness,   title_ar: اطّلع على تصوير اليوم لاستلام الصور,      when: evening }
+
+  equipment_technician:
+    - { key: battery_check,      title_ar: افحص واشحن البطاريات الناقصة,           when: morning }
+    - { key: prep_shoots,        title_ar: جهّز معدّات تصوير اليوم وتأكّد اكتمالها,   when: morning }
+    - { key: returns_due,        title_ar: تابع المعدّات المستحقّة الإرجاع اليوم,    when: midday }
+    - { key: resolve_conflicts,  title_ar: حلّ أي تعارض في حجوزات المعدّات,         when: midday }
+    - { key: maintenance,        title_ar: نفّذ الصيانة الدوريّة المجدولة,           when: evening }
+
+  procurement:
+    - { key: open_pos,           title_ar: تابع أوامر الشراء المفتوحة وحالتها,       when: morning }
+    - { key: deliveries_today,   title_ar: استلم وتحقّق من توريدات اليوم,           when: midday }
+    - { key: vendor_payments,    title_ar: راجع مستحقّات الموردين القريبة,          when: midday }
+    - { key: low_stock,          title_ar: تحقّق من تنبيهات نقص المخزون,            when: evening }
+
+  financial_manager:
+    - { key: cash_position,      title_ar: راجع المركز النقدي وتدفّقات اليوم,        when: morning }
+    - { key: margins_review,     title_ar: راجع هوامش المشاريع المطلوب اعتمادها,     when: morning }
+    - { key: payments_due,       title_ar: اعتمد المدفوعات المستحقّة اليوم,         when: midday }
+    - { key: ai_spend,           title_ar: راقب إنفاق الـ AI وحدوده الشهريّة,        when: midday }
+    - { key: ar_aging,           title_ar: تابع تقادم الذمم المدينة (AR aging),      when: evening }
+
+  accountant:
+    - { key: enter_transactions, title_ar: أدخل قيود ومعاملات اليوم,               when: morning }
+    - { key: bank_recon,         title_ar: طابق كشوف البنك مع القيود,              when: midday }
+    - { key: expense_reports,    title_ar: راجع تقارير المصروفات المعلّقة,          when: midday }
+    - { key: ar_calls,           title_ar: نفّذ مكالمات التحصيل المجدولة اليوم,      when: midday }
+    - { key: petty_cash,         title_ar: راجع رصيد العهدة النقديّة,               when: evening }
+
+  hr_manager:
+    - { key: attendance,         title_ar: راجع حضور وانصراف الفريق اليوم,          when: morning }
+    - { key: leave_requests,     title_ar: عالج طلبات الإجازات المعلّقة,            when: morning }
+    - { key: recruitment,        title_ar: تابع التوظيف الجاري والمرشّحين,          when: midday }
+    - { key: reviews_due,        title_ar: حضّر تقييمات الأداء المستحقّة,            when: evening }
+
+  system_admin:
+    - { key: oauth_health,       title_ar: تحقّق من صحّة الربط والتوكنات,            when: morning }
+    - { key: worker_status,      title_ar: راجع حالة المهام الخلفية (Trigger.dev),   when: morning }
+    - { key: error_review,       title_ar: راجع الأخطاء والتنبيهات على Sentry,       when: midday }
+    - { key: ai_cost_guard,      title_ar: راقب إنفاق الـ AI وحدود الميزانية,        when: midday }
+    - { key: backups_check,      title_ar: تأكّد من نجاح النسخ الاحتياطي اليومي,     when: evening }
+
+  trainee:
+    - { key: daily_tasks,        title_ar: راجع مهام اليوم المسندة إليك,            when: morning }
+    - { key: shadow_shoot,       title_ar: رافق طاقم التصوير وتعلّم من الميدان,       when: midday }
+    - { key: practice,           title_ar: تدرّب على مهارة جديدة وسجّل ملاحظاتك,      when: evening }
+    - { key: report_progress,    title_ar: أبلغ مشرفك بما أنجزته اليوم,            when: evening }
+
+  freelancer:
+    - { key: my_tasks,           title_ar: راجع المهام المسندة إليك اليوم,          when: morning }
+    - { key: deliver_work,       title_ar: سلّم ما اكتمل للمراجعة,                 when: midday }
+    - { key: log_hours,          title_ar: سجّل ساعات وأيام عملك,                 when: evening }

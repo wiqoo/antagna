@@ -1,5 +1,6 @@
 {
   "nav": {
+    "myDay": "My Day",
     "dashboard": "Home",
     "projects": "Projects",
     "tasks": "Tasks",

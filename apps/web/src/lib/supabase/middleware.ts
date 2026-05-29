@@ -53,10 +53,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Logged-in user on /login or /register → /dashboard
+  // Logged-in user on /login or /register → '/' (the root dispatcher applies
+  // roleLanding: admins → /dashboard, everyone else → /my-day).
   if (user && isAuthPath) {
     const redirect = url.clone();
-    redirect.pathname = '/dashboard';
+    redirect.pathname = '/';
     redirect.search = '';
     return NextResponse.redirect(redirect);
   }

@@ -22,6 +22,14 @@ const nextConfig: NextConfig = {
   // so Node loads them via require() at runtime — the lazy import in
   // email-intel/attachments.ts then catches the failure and degrades.
   serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
+
+  // Force-include the repo-root config files the server reads at runtime
+  // (config/routines.yaml drives the per-position My Day routine). Vercel's
+  // file tracing can't statically see the runtime fs read, so it'd otherwise
+  // be missing from the serverless bundle. Path is relative to this app dir.
+  outputFileTracingIncludes: {
+    '/my-day': ['../../config/routines.yaml'],
+  },
 };
 
 export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
