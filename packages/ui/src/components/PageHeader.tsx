@@ -12,7 +12,7 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="fade-up flex items-end justify-between gap-4 border-b border-[var(--line)] pb-5">
+    <header className="fade-up flex flex-col gap-3 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
       <div className="min-w-0 space-y-1.5">
         {eyebrow && (
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
@@ -31,7 +31,7 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="shrink-0 max-sm:w-full">{action}</div>}
     </header>
   );
 }
