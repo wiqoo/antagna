@@ -37,3 +37,28 @@ export async function withProfileScope<T>(
     return fn(tx);
   });
 }
+
+/**
+ * Write-side actor scope (audit fix). Mutating server actions set the audit
+ * principal `app.acting_as` and then run the mutation / SECURITY DEFINER
+ * function (e.g. fn_checkout_equipment via current_user_has_permission). The
+ * GUC is transaction-local, and DATABASE_URL is the 6543 transaction pooler —
+ * so the set_config and the mutation MUST run on the SAME pinned connection,
+ * i.e. inside one db.transaction. The previous pattern (two separate bare
+ * db.execute calls) set the GUC on one pooled connection and ran the mutation
+ * on another, so the actor never reached the trigger/function (audit actor +
+ * permission checks resolved NULL).
+ *
+ * Usage:
+ *   await withActor(actorProfileId, (tx) =>
+ *     tx.execute(sql`SELECT fn_checkout_equipment(${reservationId}::uuid)`));
+ */
+export async function withActor<T>(
+  actorProfileId: string,
+  fn: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT set_config('app.acting_as', ${actorProfileId}, true)`);
+    return fn(tx);
+  });
+}
