@@ -62,7 +62,7 @@ export function NotificationsBell({
             لا توجد إشعارات.
           </div>
         ) : (
-          <ul className="max-h-[420px] overflow-y-auto divide-y divide-[var(--line)]">
+          <ul className="max-h-[360px] overflow-y-auto divide-y divide-[var(--line)]">
             {items.map((n) => (
               <li
                 key={n.id}
@@ -115,6 +115,12 @@ export function NotificationsBell({
             ))}
           </ul>
         )}
+        <a
+          href="/notifications"
+          className="block border-t border-[var(--line)] px-4 py-3 text-center text-xs font-semibold text-[var(--accent)] hover:bg-[var(--surface)]/50"
+        >
+          عرض كل الإشعارات
+        </a>
       </div>
     </details>
   );

@@ -48,6 +48,8 @@ import {
   Plus,
   X,
   LayoutGrid,
+  Repeat2,
+  CheckCircle2,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
@@ -69,6 +71,7 @@ import {
   approveDeliverable,
   requestRevisions,
 } from './approval-actions';
+import { startRevision, resolveRevision } from './revision-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -323,6 +326,80 @@ export default async function ProjectDetailPage({
         ORDER BY created_at DESC
       `),
     ]);
+
+  // Revision rounds (feedback cycles) + their change-request items, newest round first.
+  const revisionRows = (await db.execute(sql`
+    SELECT
+      rr.id::text AS round_id,
+      rr.round_number AS round_number,
+      rr.started_at AS started_at,
+      rr.resolved_at AS resolved_at,
+      rr.summary AS summary,
+      rr.client_feedback AS client_feedback,
+      p.display_name AS initiated_by,
+      ri.id::text AS item_id,
+      ri.item_number AS item_number,
+      ri.change_request AS change_request,
+      ri.status AS item_status
+    FROM revision_rounds rr
+    LEFT JOIN profiles p ON p.id = rr.initiated_by_id
+    LEFT JOIN revision_items ri ON ri.round_id = rr.id
+    WHERE rr.project_id = ${id}::uuid
+    ORDER BY rr.round_number DESC, ri.item_number NULLS LAST, ri.id
+  `)) as unknown as Array<{
+    round_id: string;
+    round_number: number;
+    started_at: string;
+    resolved_at: string | null;
+    summary: string | null;
+    client_feedback: string | null;
+    initiated_by: string | null;
+    item_id: string | null;
+    item_number: string | null;
+    change_request: string | null;
+    item_status: string | null;
+  }>;
+
+  type RevRound = {
+    id: string;
+    roundNumber: number;
+    startedAt: string;
+    resolvedAt: string | null;
+    summary: string | null;
+    clientFeedback: string | null;
+    initiatedBy: string | null;
+    items: Array<{
+      id: string;
+      itemNumber: string | null;
+      changeRequest: string | null;
+      status: string;
+    }>;
+  };
+  const revisionRounds: RevRound[] = [];
+  for (const row of revisionRows) {
+    let r = revisionRounds.find((x) => x.id === row.round_id);
+    if (!r) {
+      r = {
+        id: row.round_id,
+        roundNumber: Number(row.round_number),
+        startedAt: row.started_at,
+        resolvedAt: row.resolved_at,
+        summary: row.summary,
+        clientFeedback: row.client_feedback,
+        initiatedBy: row.initiated_by,
+        items: [],
+      };
+      revisionRounds.push(r);
+    }
+    if (row.item_id) {
+      r.items.push({
+        id: row.item_id,
+        itemNumber: row.item_number,
+        changeRequest: row.change_request,
+        status: row.item_status ?? 'open',
+      });
+    }
+  }
 
   // Activity timeline — the company-memory feed (write_activity), newest first.
   const activity = (await db.execute(sql`
@@ -993,6 +1070,156 @@ export default async function ProjectDetailPage({
                 </div>
               </li>
             ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Revisions — feedback rounds (revision_rounds + revision_items) */}
+      <Card padded={false}>
+        <div className="p-6 pb-4">
+          <CardHeader
+            title="المراجعات"
+            subtitle={
+              revisionRounds.length
+                ? `${revisionRounds.length} جولة · ${revisionRounds.filter((r) => !r.resolvedAt).length} مفتوحة`
+                : 'جولات التعديل والملاحظات'
+            }
+          />
+          <form
+            action={startRevision.bind(null, id)}
+            className="mt-3 space-y-2"
+          >
+            <input
+              type="text"
+              name="clientFeedback"
+              placeholder="ملاحظة العميل / سبب الجولة (اختياري)"
+              className="h-9 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
+            />
+            <textarea
+              name="items"
+              rows={2}
+              placeholder="التغييرات المطلوبة — سطر لكل تغيير (اختياري)"
+              className="w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-2.5 text-sm"
+            />
+            <div className="flex justify-end">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Repeat2 size={14} />}
+              >
+                ابدأ جولة مراجعة
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {revisionRounds.length === 0 ? (
+          <EmptyState
+            icon={<Repeat2 size={20} />}
+            title="لا جولات مراجعة بعد"
+            description="ابدأ جولة عند ورود ملاحظات من المدير أو العميل لتتبّع التغييرات المطلوبة."
+          />
+        ) : (
+          <ul className="divide-y divide-[var(--line)]">
+            {revisionRounds.map((r) => {
+              const openItems = r.items.filter((i) => i.status === 'open').length;
+              const isResolved = !!r.resolvedAt;
+              return (
+                <li key={r.id} className="px-6 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-[var(--text-dim)]">
+                          جولة #{r.roundNumber}
+                        </span>
+                        <StatusPill tone={isResolved ? 'success' : 'warning'}>
+                          {isResolved ? 'مُغلقة' : 'مفتوحة'}
+                        </StatusPill>
+                        {r.items.length > 0 && (
+                          <span className="text-xs text-[var(--text-dim)]">
+                            {r.items.length} تغيير
+                            {!isResolved && openItems > 0
+                              ? ` · ${openItems} مفتوح`
+                              : ''}
+                          </span>
+                        )}
+                      </div>
+                      {r.clientFeedback && (
+                        <p className="text-sm leading-relaxed text-[var(--text)]">
+                          {r.clientFeedback}
+                        </p>
+                      )}
+                      {r.summary && (
+                        <p className="text-xs text-[var(--text-muted)]">
+                          {r.summary}
+                        </p>
+                      )}
+                      <p className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-dim)]">
+                        {r.initiatedBy && <span>{r.initiatedBy}</span>}
+                        <span>·</span>
+                        <span className="font-mono">
+                          {new Date(r.startedAt).toISOString().slice(0, 10)}
+                        </span>
+                        {r.resolvedAt && (
+                          <>
+                            <span>· أُغلقت</span>
+                            <span className="font-mono">
+                              {new Date(r.resolvedAt).toISOString().slice(0, 10)}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    {!isResolved && (
+                      <form action={resolveRevision.bind(null, id, r.id)}>
+                        <button
+                          type="submit"
+                          className="magnet inline-flex h-8 items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                        >
+                          <CheckCircle2 size={13} />
+                          إغلاق الجولة
+                        </button>
+                      </form>
+                    )}
+                  </div>
+
+                  {r.items.length > 0 && (
+                    <ul className="mt-3 space-y-1.5">
+                      {r.items.map((it) => (
+                        <li
+                          key={it.id}
+                          className="flex items-center gap-3 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 px-3 py-2"
+                        >
+                          {it.itemNumber && (
+                            <span className="font-mono text-[11px] text-[var(--text-dim)]">
+                              {it.itemNumber}
+                            </span>
+                          )}
+                          <span className="flex-1 text-[13px] text-[var(--text)]">
+                            {it.changeRequest ?? '—'}
+                          </span>
+                          <StatusPill
+                            tone={
+                              it.status === 'done'
+                                ? 'success'
+                                : it.status === 'cancelled'
+                                  ? 'neutral'
+                                  : 'warning'
+                            }
+                          >
+                            {it.status === 'done'
+                              ? 'تم'
+                              : it.status === 'cancelled'
+                                ? 'مُلغى'
+                                : 'مفتوح'}
+                          </StatusPill>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

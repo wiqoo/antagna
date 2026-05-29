@@ -151,7 +151,7 @@ export default async function EquipmentPage({
       text: `${repairCount} معدّة في الصيانة`,
       insight: 'تحقق من ETA الإصلاح قبل الحجز القادم.',
       urgent: repairCount >= 3,
-      actions: [{ label: 'اعرض في الصيانة', href: '/equipment?status=repair' }],
+      actions: [{ label: 'افتح متتبّع الصيانة', href: '/equipment/repairs' }],
     });
   }
   if (lowBattery > 0 && hints.length < 3) {
@@ -179,6 +179,25 @@ export default async function EquipmentPage({
         subtitle={t('subtitle')}
         action={
           <div className="flex gap-2">
+            <Link
+              href="/equipment/reservations"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
+            >
+              <Calendar size={15} />
+              الحجوزات
+            </Link>
+            <Link
+              href="/equipment/repairs"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
+            >
+              <Wrench size={15} />
+              الصيانة
+              {repairCount > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--danger)] px-1.5 text-[10px] font-bold text-white">
+                  {repairCount}
+                </span>
+              )}
+            </Link>
             <Link
               href="/equipment/kits"
               className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--text)] hover:border-[var(--accent)]"
@@ -269,9 +288,12 @@ export default async function EquipmentPage({
               الأسبوعين القادمين
             </h2>
           </div>
-          <span className="text-[11px] text-[var(--text-muted)]">
-            {upcoming.length} حجز
-          </span>
+          <Link
+            href="/equipment/reservations"
+            className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent)]"
+          >
+            {upcoming.length} حجز · إدارة الحجوزات ←
+          </Link>
         </header>
 
         {upcoming.length === 0 ? (

@@ -19,6 +19,9 @@ import {
   Clock,
   MessageCircle,
   Sun,
+  Bell,
+  CheckCircle2,
+  Wrench,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -45,6 +48,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/projects', key: 'projects', label: 'المشاريع', icon: Briefcase },
       { href: '/tasks', key: 'tasks', label: 'المهام', icon: ListChecks },
       { href: '/inbox', key: 'inbox', label: 'الوارد', icon: Inbox },
+      { href: '/approvals', key: 'approvals', label: 'الاعتمادات', icon: CheckCircle2 },
+      { href: '/notifications', key: 'notifications', label: 'الإشعارات', icon: Bell },
       { href: '/calendar', key: 'calendar', label: 'التقويم', icon: Calendar },
     ],
   },
@@ -53,6 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/crm', key: 'clients', label: 'العملاء', icon: Users },
       { href: '/equipment', key: 'equipment', label: 'المعدات', icon: Camera },
+      { href: '/equipment/repairs', key: 'repairs', label: 'الصيانة', icon: Wrench },
       { href: '/social', key: 'social', label: 'السوشيال', icon: Megaphone },
       { href: '/team', key: 'team', label: 'الفريق', icon: UserSquare2 },
       { href: '/attendance', key: 'attendance', label: 'الحضور', icon: Clock },
@@ -79,7 +85,13 @@ function lbl(labels: NavLabels | undefined, key: string | undefined, fallback: s
 
 function isActive(activePath: string | undefined, href: string): boolean {
   if (!activePath) return false;
-  return href === '/dashboard' ? activePath === '/dashboard' : activePath.startsWith(href);
+  if (href === '/dashboard') return activePath === '/dashboard';
+  // /equipment must not steal the highlight from its more-specific sibling
+  // /equipment/repairs (which is its own nav item).
+  if (href === '/equipment') {
+    return activePath.startsWith('/equipment') && !activePath.startsWith('/equipment/repairs');
+  }
+  return activePath.startsWith(href);
 }
 
 /** A labeled sidebar row (icon + text). */

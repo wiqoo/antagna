@@ -11,6 +11,7 @@ import {
   History,
   BatteryCharging,
   Package,
+  Wrench,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
@@ -276,8 +277,14 @@ export default async function EquipmentDetailPage({
         {/* Middle+right: controls + specs */}
         <div className="space-y-4 lg:col-span-2">
           <Card padded={false}>
-            <div className="p-6 pb-4">
+            <div className="flex items-start justify-between gap-3 p-6 pb-4">
               <CardHeader title="الإجراءات والحجوزات" subtitle="تسليم، استرجاع، وحالة المعدة" />
+              <Link
+                href={`/equipment/repairs?equipment=${eq.id}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+              >
+                <Wrench size={13} /> الصيانة
+              </Link>
             </div>
             <div className="px-6 pb-6">
               <EquipmentControls
