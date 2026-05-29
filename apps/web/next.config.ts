@@ -71,7 +71,12 @@ export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
   // upload) must NEVER fail a production deploy. By default the plugin throws
   // and aborts the build; this handler downgrades it to a warning so the
   // deploy proceeds — source maps just upload on the next successful build.
-  errorHandler: (err) => {
-    console.warn('[sentry build] non-fatal:', err?.message ?? err);
+  // `errorHandler` lives on the webpack-plugin options, forwarded via the
+  // documented `unstable_sentryWebpackPluginOptions` passthrough (it's not a
+  // top-level SentryBuildOptions key in @sentry/nextjs v8).
+  unstable_sentryWebpackPluginOptions: {
+    errorHandler: (err: Error) => {
+      console.warn('[sentry build] non-fatal:', err?.message ?? err);
+    },
   },
 });
