@@ -66,4 +66,12 @@ export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
 
   // Tunnel /monitoring requests through this app to avoid ad-blockers.
   tunnelRoute: '/monitoring',
+
+  // A Sentry API hiccup (e.g. a transient 503 on `releases new` or source-map
+  // upload) must NEVER fail a production deploy. By default the plugin throws
+  // and aborts the build; this handler downgrades it to a warning so the
+  // deploy proceeds — source maps just upload on the next successful build.
+  errorHandler: (err) => {
+    console.warn('[sentry build] non-fatal:', err?.message ?? err);
+  },
 });
