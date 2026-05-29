@@ -83,6 +83,8 @@ export function CalendarGrid({ posts, monthOffset = 0 }: { posts: Post[]; monthO
         </p>
       </div>
 
+      <div className="overflow-x-auto">
+      <div className="min-w-[640px]">
       <div
         className="grid grid-cols-7 border-b border-[var(--line)] bg-[var(--bg-elevated)] text-center"
         dir="rtl"
@@ -149,6 +151,8 @@ export function CalendarGrid({ posts, monthOffset = 0 }: { posts: Post[]; monthO
             </div>
           );
         })}
+      </div>
+      </div>
       </div>
     </div>
   );

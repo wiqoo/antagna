@@ -341,7 +341,7 @@ export default async function CalendarPage({
         }
       />
 
-      <section className="grid grid-cols-3 gap-4 stagger-in">
+      <section className="grid grid-cols-1 gap-4 stagger-in sm:grid-cols-3">
         <StatBox
           label="جلسات تصوير"
           value={totalShoots}

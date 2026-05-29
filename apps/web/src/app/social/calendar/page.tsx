@@ -132,7 +132,7 @@ export default async function SocialCalendarPage({
 
       {/* Content calendar with month navigation */}
       <section className="space-y-4">
-        <header className="flex items-center justify-between gap-4">
+        <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-dim)]">
               — تقويم النشر

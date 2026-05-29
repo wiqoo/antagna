@@ -178,7 +178,7 @@ export default async function ApprovalsPage() {
         )}
       </section>
 
-      <div className="flex items-center justify-between border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
         <span>— Antagna Approvals</span>
         <span>Volt Production · Jeddah</span>
       </div>

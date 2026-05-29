@@ -53,7 +53,8 @@ export default async function EmailRoutesPage() {
         </Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <table className="w-full text-[12px]">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-[12px]">
             <thead className="border-b border-[var(--line)] bg-[var(--surface-2)]/40 text-[10px] uppercase tracking-wider text-[var(--text-dim)]">
               <tr>
                 <th className="px-3 py-2 text-start">ترتيب</th>
@@ -125,6 +126,7 @@ export default async function EmailRoutesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
 

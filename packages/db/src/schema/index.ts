@@ -5,6 +5,7 @@ export * from './briefs';
 export * from './money';
 export * from './equipment';
 export * from './equipment_workflow';
+export * from './orders';
 export * from './cross_cutting';
 export * from './permissions';
 export * from './crm';

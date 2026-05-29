@@ -6,9 +6,7 @@ import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
 import {
   PageHeader,
   Card,
-  StatusPill,
   EmptyState,
-  Avatar,
   AIHints,
   type AIHint,
 } from '@antagna/ui';
@@ -16,6 +14,7 @@ import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { UserSquare2, Briefcase, Users, Sparkles, Award } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { TeamWorkspace } from './TeamWorkspace';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,17 +96,12 @@ export default async function TeamPage() {
     capability_keys: string[] | null;
   }>;
 
-  const capsByKey = new Map(caps.map((c) => [c.key, c]));
+  // skill key → Arabic label, handed to the client workspace for chip rendering.
+  const capLabels: Record<string, string> = {};
+  for (const c of caps) capLabels[c.key] = c.nameAr;
 
   const active = peopleArr.filter((p) => p.status === 'active').length;
   const totalProjects = peopleArr.reduce((s, p) => s + Number(p.active_projects), 0);
-
-  // Group by department
-  const byDept: Record<string, typeof peopleArr> = {};
-  for (const p of peopleArr) {
-    const key = p.department_name ?? 'بدون قسم';
-    (byDept[key] ??= []).push(p);
-  }
 
   const overloaded = peopleArr.filter((p) => Number(p.active_projects) >= 4);
   const idle = peopleArr.filter(
@@ -183,101 +177,19 @@ export default async function TeamPage() {
         <StatBox label="مهام مشاريع" value={totalProjects} sub="إجمالي assignments" />
       </section>
 
-      {peopleArr.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={<UserSquare2 size={18} />}
-            title="لا يوجد أعضاء فريق بعد"
-            description="هيتم إنشاء الـ profiles تلقائياً عند تسجيل الفريق، أو من Pillar 15 migration."
-          />
-        </Card>
-      ) : (
-        Object.entries(byDept).map(([deptName, list]) => (
-          <section key={deptName} className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                — {deptName}
-              </h2>
-              <span className="text-[10px] text-[var(--text-dim)]">
-                {list.length} عضو
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-3 stagger-in md:grid-cols-2 lg:grid-cols-3">
-              {list.map((p) => {
-                const caps = (p.capability_keys ?? []).slice(0, 4);
-                const moreCaps = (p.capability_keys ?? []).length - caps.length;
-                return (
-                  <article
-                    key={p.id}
-                    className="rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/60 p-5"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Avatar name={p.display_name} size="lg" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/team/${p.id}`}
-                            className="truncate text-[14px] font-semibold text-[var(--text)] hover:text-[var(--accent)]"
-                          >
-                            {p.display_name}
-                          </Link>
-                          {p.status !== 'active' && (
-                            <StatusPill tone="neutral">{p.status}</StatusPill>
-                          )}
-                        </div>
-                        {p.job_title && (
-                          <p className="text-[11px] text-[var(--text-muted)]">
-                            {p.job_title}
-                          </p>
-                        )}
-                        <p className="font-mono text-[10px] text-[var(--text-dim)] truncate">
-                          {p.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--line)] pt-3 text-[11px]">
-                      <div>
-                        <p className="text-[var(--text-dim)]">المشاريع النشطة</p>
-                        <p className="mt-0.5 font-mono text-[16px] font-semibold text-[var(--text)]">
-                          {p.active_projects}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[var(--text-dim)]">المهارات</p>
-                        <p className="mt-0.5 font-mono text-[16px] font-semibold text-[var(--text)]">
-                          {p.capability_count}
-                        </p>
-                      </div>
-                    </div>
-
-                    {caps.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[var(--line)] pt-3">
-                        {caps.map((key) => {
-                          const cap = capsByKey.get(key);
-                          return (
-                            <span
-                              key={key}
-                              className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
-                            >
-                              {cap?.nameAr ?? key}
-                            </span>
-                          );
-                        })}
-                        {moreCaps > 0 && (
-                          <span className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-0.5 text-[10px] text-[var(--text-dim)]">
-                            +{moreCaps}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        ))
-      )}
+      <section id="team-list" className="scroll-mt-24">
+        {peopleArr.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<UserSquare2 size={18} />}
+              title="لا يوجد أعضاء فريق بعد"
+              description="هيتم إنشاء الـ profiles تلقائياً عند تسجيل الفريق، أو من Pillar 15 migration."
+            />
+          </Card>
+        ) : (
+          <TeamWorkspace people={peopleArr} capLabels={capLabels} />
+        )}
+      </section>
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
@@ -318,7 +230,7 @@ export default async function TeamPage() {
         </Card>
       </section>
 
-      <div className="flex items-center justify-between border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
         <span>— Antagna Team</span>
         <span>Volt Production · Jeddah</span>
       </div>

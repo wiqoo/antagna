@@ -266,9 +266,26 @@ export const activityEvents = pgTable(
   ],
 );
 
+// ── feedback (lightweight internal feedback inbox — /admin/feedback) ───────────
+//
+// Internal team feedback / bug reports / feature requests. Deliberately simple:
+// the admin inbox reads it, triages status. Migration 059 creates the table +
+// the `feedback.manage` permission key. Submission UI can come later; for now
+// rows are seeded or inserted via the (held) submit path.
+
+export const feedback = pgTable('feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+  category: text('category').notNull().default('general'), // 'bug' | 'feature' | 'general' | 'ux'
+  message: text('message').notNull(),
+  status: text('status').notNull().default('open'), // 'open' | 'in_review' | 'resolved' | 'dismissed'
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+});
+
 export type Attachment = typeof attachments.$inferSelect;
 export type Tag = typeof tags.$inferSelect;
 export type TagAssignment = typeof tagAssignments.$inferSelect;
 export type ExternalLink = typeof externalLinks.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type ActivityEvent = typeof activityEvents.$inferSelect;
+export type Feedback = typeof feedback.$inferSelect;

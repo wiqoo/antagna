@@ -21,7 +21,7 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Users2, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server, FolderArchive, Building2, History, MapPin, ListChecks, Link2, Tags } from 'lucide-react';
+import { Shield, Users, Users2, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server, FolderArchive, Building2, History, MapPin, ListChecks, Link2, Tags, Gauge, MessageSquare, MailWarning, ShoppingCart } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
 import { can, canMany } from '@/lib/authz';
 import { seedDevData } from './seed-actions';
@@ -36,7 +36,7 @@ export default async function AdminPage() {
 
   const [canInvite, gates] = await Promise.all([
     can('user.invite'),
-    canMany(['settings.update', 'access.manage']),
+    canMany(['settings.update', 'access.manage', 'procurement.manage']),
   ]);
 
   const [people, rules, kpis, permList, roleGrants] = await Promise.all([
@@ -153,6 +153,14 @@ export default async function AdminPage() {
           title="الأدوار والصلاحيات"
           subtitle="تحكّم دقيق لكل إجراء + استثناءات وقدرات لكل مستخدم"
         />
+        {gates['procurement.manage'] && (
+          <AdminToolLink
+            href="/orders"
+            icon={<ShoppingCart size={18} />}
+            title="أوامر الشراء"
+            subtitle="المشتريات من المورّدين — من المسودّة حتى الاستلام، مع سند طباعة"
+          />
+        )}
         <AdminToolLink
           href="/admin/departments"
           icon={<Building2 size={18} />}
@@ -211,6 +219,30 @@ export default async function AdminPage() {
             icon={<Tags size={18} />}
             title="الوسوم"
             subtitle="تصنيف موحّد للمشاريع والعملاء والمعدات مع عدّاد الاستخدام"
+          />
+        )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/team-utilization"
+            icon={<Gauge size={18} />}
+            title="حِمل الفريق"
+            subtitle="خريطة حرارية لعدد المشاريع النشطة لكل فرد مقابل سعته المريحة"
+          />
+        )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/signups"
+            icon={<MailWarning size={18} />}
+            title="طلبات الانضمام"
+            subtitle="الحسابات المدعوّة بانتظار إكمال التسجيل + إعادة إرسال الدعوة"
+          />
+        )}
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/feedback"
+            icon={<MessageSquare size={18} />}
+            title="صندوق الملاحظات"
+            subtitle="ملاحظات الفريق والأخطاء وطلبات الميزات — افرزها حتى الإغلاق"
           />
         )}
         <AdminToolLink

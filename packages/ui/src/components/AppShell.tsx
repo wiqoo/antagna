@@ -28,6 +28,7 @@ import {
   IdCard,
   Search,
   History,
+  ShoppingCart,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -66,6 +67,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/crm', key: 'clients', label: 'العملاء', icon: Users },
       { href: '/contacts', key: 'contacts', label: 'جهات الاتصال', icon: Contact },
       { href: '/equipment', key: 'equipment', label: 'المعدات', icon: Camera },
+      { href: '/orders', key: 'orders', label: 'أوامر الشراء', icon: ShoppingCart },
       { href: '/equipment/repairs', key: 'repairs', label: 'الصيانة', icon: Wrench },
       { href: '/assets', key: 'assets', label: 'أصول الشركة', icon: FolderArchive },
       { href: '/social', key: 'social', label: 'السوشيال', icon: Megaphone },
