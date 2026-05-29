@@ -59,11 +59,14 @@ export async function canMany(keys: string[]): Promise<Record<string, boolean>> 
   const out: Record<string, boolean> = Object.fromEntries(keys.map((k) => [k, false]));
   const pid = await getEffectiveProfileId();
   if (!pid || keys.length === 0) return out;
-  const rows = (await db.execute<{ key: string; ok: boolean }>(
-    sql`SELECT k AS key, has_permission(${pid}::uuid, k) AS ok
-        FROM unnest(${keys}::text[]) AS k`,
-  )) as unknown as { key: string; ok: boolean }[];
-  for (const r of rows) out[r.key] = r.ok === true;
+  // Resolve each key with a single-key has_permission call (parallel). The old
+  // `unnest(${keys}::text[])` form fed drizzle a JS array, which it expands into
+  // a comma list → `unnest('a','b'::text[])` → Postgres 42846 "cannot cast type
+  // record to text[]". Per-key calls are robust and cheap.
+  const results = await Promise.all(keys.map((k) => permits(pid, k)));
+  keys.forEach((k, i) => {
+    out[k] = results[i];
+  });
   return out;
 }
 
