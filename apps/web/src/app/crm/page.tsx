@@ -1,14 +1,13 @@
 import { redirect } from 'next/navigation';
 import { desc, eq, sql, isNull, and, ne } from 'drizzle-orm';
 import {
+  db,
+  clients,
   leads,
   clientHealthSnapshots,
   projects,
   profiles,
-  vClientsSafe,
-  withProfileScope,
 } from '@antagna/db';
-import { getEffectiveProfileId } from '@/lib/authz';
 import {
 
   PageHeader,
@@ -56,65 +55,61 @@ export default async function CrmPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/crm');
 
-  const pid = await getEffectiveProfileId();
-
-  const [clientRows, leadRows] = await withProfileScope(pid, (tx) =>
-    Promise.all([
-      tx
-        .select({
-          id: vClientsSafe.id,
-          code: vClientsSafe.code,
-          nameAr: vClientsSafe.nameAr,
-          nameEn: vClientsSafe.nameEn,
-          clientType: vClientsSafe.clientType,
-          averagePaymentDays: vClientsSafe.averagePaymentDays,
-          trustScore: vClientsSafe.trustScore,
-          totalRevenue: sql<string | null>`(
-            SELECT total_revenue_sar
-            FROM ${clientHealthSnapshots}
-            WHERE client_id = ${vClientsSafe.id}
-            ORDER BY snapshot_date DESC LIMIT 1
-          )`,
-          activeProjects: sql<number>`(
-            SELECT COUNT(*)::int FROM ${projects}
-            WHERE client_id = ${vClientsSafe.id}
-              AND stage NOT IN ('delivered','archived','lost','cancelled')
-          )`,
-          lastProjectAt: sql<Date | null>`(
-            SELECT MAX(created_at) FROM ${projects}
-            WHERE client_id = ${vClientsSafe.id}
-          )`,
-        })
-        .from(vClientsSafe)
-        .where(isNull(vClientsSafe.archivedAt))
-        .orderBy(
-          desc(
-            sql`(SELECT MAX(created_at) FROM ${projects} WHERE client_id = ${vClientsSafe.id})`,
-          ),
-        )
-        .limit(50),
-      tx
-        .select({
-          id: leads.id,
-          code: leads.code,
-          status: leads.status,
-          source: leads.source,
-          unmatchedFromEmail: leads.unmatchedFromEmail,
-          unmatchedFromName: leads.unmatchedFromName,
-          estimatedValue: leads.estimatedValueSar,
-          receivedAt: leads.receivedAt,
-          temperatureScore: leads.temperatureScore,
-          clientNameAr: vClientsSafe.nameAr,
-          assignedName: profiles.displayName,
-        })
-        .from(leads)
-        .leftJoin(vClientsSafe, eq(vClientsSafe.id, leads.clientId))
-        .leftJoin(profiles, eq(profiles.id, leads.assignedToProfileId))
-        .where(and(ne(leads.status, 'lost'), ne(leads.status, 'ghosted')))
-        .orderBy(desc(leads.receivedAt))
-        .limit(20),
-    ]),
-  );
+  const [clientRows, leadRows] = await Promise.all([
+    db
+      .select({
+        id: clients.id,
+        code: clients.code,
+        nameAr: clients.nameAr,
+        nameEn: clients.nameEn,
+        clientType: clients.clientType,
+        averagePaymentDays: clients.averagePaymentDays,
+        trustScore: clients.trustScore,
+        totalRevenue: sql<string | null>`(
+          SELECT total_revenue_sar
+          FROM ${clientHealthSnapshots}
+          WHERE client_id = ${clients.id}
+          ORDER BY snapshot_date DESC LIMIT 1
+        )`,
+        activeProjects: sql<number>`(
+          SELECT COUNT(*)::int FROM ${projects}
+          WHERE client_id = ${clients.id}
+            AND stage NOT IN ('delivered','archived','lost','cancelled')
+        )`,
+        lastProjectAt: sql<Date | null>`(
+          SELECT MAX(created_at) FROM ${projects}
+          WHERE client_id = ${clients.id}
+        )`,
+      })
+      .from(clients)
+      .where(isNull(clients.archivedAt))
+      .orderBy(
+        desc(
+          sql`(SELECT MAX(created_at) FROM ${projects} WHERE client_id = ${clients.id})`,
+        ),
+      )
+      .limit(50),
+    db
+      .select({
+        id: leads.id,
+        code: leads.code,
+        status: leads.status,
+        source: leads.source,
+        unmatchedFromEmail: leads.unmatchedFromEmail,
+        unmatchedFromName: leads.unmatchedFromName,
+        estimatedValue: leads.estimatedValueSar,
+        receivedAt: leads.receivedAt,
+        temperatureScore: leads.temperatureScore,
+        clientNameAr: clients.nameAr,
+        assignedName: profiles.displayName,
+      })
+      .from(leads)
+      .leftJoin(clients, eq(clients.id, leads.clientId))
+      .leftJoin(profiles, eq(profiles.id, leads.assignedToProfileId))
+      .where(and(ne(leads.status, 'lost'), ne(leads.status, 'ghosted')))
+      .orderBy(desc(leads.receivedAt))
+      .limit(20),
+  ]);
 
   const totalActive = clientRows.reduce(
     (s, c) => s + Number(c.activeProjects ?? 0),
@@ -362,10 +357,10 @@ export default async function CrmPage({
                           href={`/clients/${c.id}`}
                           className="flex items-center gap-3 hover:text-[var(--accent)]"
                         >
-                          <Avatar name={c.nameAr ?? '—'} size="sm" />
+                          <Avatar name={c.nameAr} size="sm" />
                           <div>
                             <div className="font-medium text-[var(--text)]">
-                              {c.nameAr ?? '—'}
+                              {c.nameAr}
                             </div>
                             <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-dim)]">
                               {c.nameEn && <span>{c.nameEn}</span>}

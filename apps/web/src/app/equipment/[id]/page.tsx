@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { sql, eq as dEq } from 'drizzle-orm';
-import { db, withProfileScope, vEquipmentSafe, equipmentGroups } from '@antagna/db';
-import { getEffectiveProfileId } from '@/lib/authz';
+import { sql } from 'drizzle-orm';
+import { db } from '@antagna/db';
 import { PageHeader, Card, CardHeader, StatusPill, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import {
@@ -69,40 +68,20 @@ export default async function EquipmentDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/equipment/${id}`);
 
-  // Equipment detail read goes through the per-user masking view. The GUC the
-  // view reads (current_effective_profile_id) is only set inside the
-  // withProfileScope transaction, so this SELECT MUST stay inside the wrapper.
-  const pid = await getEffectiveProfileId();
-
-  const [eqRows, resR, actR] = await Promise.all([
-    withProfileScope(pid, (tx) =>
-      tx
-        .select({
-          id: sql<string>`${vEquipmentSafe.id}::text`.as('id'),
-          code: vEquipmentSafe.code,
-          category: vEquipmentSafe.category,
-          manufacturer: vEquipmentSafe.manufacturer,
-          model: vEquipmentSafe.model,
-          modelNameAr: vEquipmentSafe.modelNameAr,
-          serialNumber: vEquipmentSafe.serialNumber,
-          status: sql<string>`${vEquipmentSafe.status}::text`.as('status'),
-          currentLocation: vEquipmentSafe.currentLocation,
-          photoUrl: vEquipmentSafe.photoUrl,
-          requiresCharging: vEquipmentSafe.requiresCharging,
-          lastChargedAt: sql<string | null>`${vEquipmentSafe.lastChargedAt}`.as('lastChargedAt'),
-          purchasePriceSar: vEquipmentSafe.purchasePriceSar,
-          insuranceValueSar: vEquipmentSafe.insuranceValueSar,
-          warrantyUntil: vEquipmentSafe.warrantyUntil,
-          notes: vEquipmentSafe.notes,
-          specs: vEquipmentSafe.specs,
-          // Display-only label; FK (groupId) may be masked to NULL → leftJoin + null-guard in JSX.
-          groupName: equipmentGroups.nameAr,
-        })
-        .from(vEquipmentSafe)
-        .leftJoin(equipmentGroups, dEq(equipmentGroups.id, vEquipmentSafe.groupId))
-        .where(dEq(vEquipmentSafe.id, id))
-        .limit(1),
-    ),
+  const [eqR, resR, actR] = await Promise.all([
+    db.execute(sql`
+      SELECT e.id::text AS id, e.code, e.category, e.manufacturer, e.model,
+             e.model_name_ar AS "modelNameAr", e.serial_number AS "serialNumber",
+             e.status::text AS status, e.current_location AS "currentLocation",
+             e.photo_url AS "photoUrl", e.requires_charging AS "requiresCharging",
+             e.last_charged_at AS "lastChargedAt",
+             e.purchase_price_sar AS "purchasePriceSar",
+             e.insurance_value_sar AS "insuranceValueSar",
+             e.warranty_until AS "warrantyUntil", e.notes, e.specs,
+             g.name_ar AS "groupName"
+      FROM equipment e
+      LEFT JOIN equipment_groups g ON g.id = e.group_id
+      WHERE e.id = ${id}::uuid LIMIT 1`),
     db.execute(sql`
       SELECT r.id::text AS id, r.status,
              r.project_id::text AS "projectId",
@@ -123,7 +102,7 @@ export default async function EquipmentDetailPage({
       ORDER BY a.created_at DESC LIMIT 30`),
   ]);
 
-  const eq = eqRows[0] as Equip | undefined;
+  const eq = rows<Equip>(eqR)[0];
   if (!eq) notFound();
   const reservations = rows<Reservation>(resR);
   const activity = rows<{

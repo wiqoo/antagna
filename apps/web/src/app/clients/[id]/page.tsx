@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import {
+  db,
+  clients,
+  contacts,
   contactMethods,
-  withProfileScope,
-  vClientsSafe,
-  vContactsSafe,
-  vProjectsSafe,
+  projects,
 } from '@antagna/db';
 import {
 
@@ -31,7 +31,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getEffectiveProfileId } from '@/lib/authz';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { addContact } from '../actions';
 
@@ -48,53 +47,44 @@ export default async function ClientDetailPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/clients/${id}`);
 
-  const pid = await getEffectiveProfileId();
-
-  const { client, contactList, projectList, methodRows } = await withProfileScope(
-    pid,
-    async (tx) => {
-      const [client] = await tx
-        .select()
-        .from(vClientsSafe)
-        .where(eq(vClientsSafe.id, id))
-        .limit(1);
-
-      const [contactList, projectList, methodRows] = await Promise.all([
-        tx
-          .select()
-          .from(vContactsSafe)
-          .where(eq(vContactsSafe.clientId, id))
-          .orderBy(desc(vContactsSafe.isPrimary), vContactsSafe.fullName),
-        tx
-          .select({
-            id: vProjectsSafe.id,
-            code: vProjectsSafe.code,
-            title: vProjectsSafe.title,
-            titleAr: vProjectsSafe.titleAr,
-            stage: vProjectsSafe.stage,
-            contractedValueSar: vProjectsSafe.contractedValueSar,
-            deliveryDueAt: vProjectsSafe.deliveryDueAt,
-          })
-          .from(vProjectsSafe)
-          .where(eq(vProjectsSafe.clientId, id))
-          .orderBy(desc(vProjectsSafe.createdAt))
-          .limit(30),
-        tx
-          .select({
-            contactId: contactMethods.contactId,
-            type: contactMethods.methodType,
-            value: contactMethods.value,
-          })
-          .from(contactMethods)
-          .innerJoin(vContactsSafe, eq(vContactsSafe.id, contactMethods.contactId))
-          .where(eq(vContactsSafe.clientId, id)),
-      ]);
-
-      return { client, contactList, projectList, methodRows };
-    },
-  );
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(eq(clients.id, id))
+    .limit(1);
 
   if (!client) notFound();
+
+  const [contactList, projectList, methodRows] = await Promise.all([
+    db
+      .select()
+      .from(contacts)
+      .where(eq(contacts.clientId, id))
+      .orderBy(desc(contacts.isPrimary), contacts.fullName),
+    db
+      .select({
+        id: projects.id,
+        code: projects.code,
+        title: projects.title,
+        titleAr: projects.titleAr,
+        stage: projects.stage,
+        contractedValueSar: projects.contractedValueSar,
+        deliveryDueAt: projects.deliveryDueAt,
+      })
+      .from(projects)
+      .where(eq(projects.clientId, id))
+      .orderBy(desc(projects.createdAt))
+      .limit(30),
+    db
+      .select({
+        contactId: contactMethods.contactId,
+        type: contactMethods.methodType,
+        value: contactMethods.value,
+      })
+      .from(contactMethods)
+      .innerJoin(contacts, eq(contacts.id, contactMethods.contactId))
+      .where(eq(contacts.clientId, id)),
+  ]);
 
   const methodsByContact = methodRows.reduce<
     Record<string, Array<{ type: string; value: string }>>
@@ -106,7 +96,7 @@ export default async function ClientDetailPage({
   // AI hints based on client + projects
   const now = new Date();
   const activeProjects = projectList.filter(
-    (p) => !['delivered', 'archived', 'lost', 'cancelled'].includes(p.stage ?? ''),
+    (p) => !['delivered', 'archived', 'lost', 'cancelled'].includes(p.stage),
   );
   const daysSinceLastProject = null as number | null;
   const noContacts = contactList.length === 0;
@@ -282,7 +272,7 @@ export default async function ClientDetailPage({
         ) : (
           <ul className="divide-y divide-[var(--line)]">
             {contactList.map((c) => {
-              const methods = (c.id ? methodsByContact[c.id] : undefined) ?? [];
+              const methods = methodsByContact[c.id] ?? [];
               return (
                 <li key={c.id} className="flex items-start gap-3 px-6 py-3">
                   <Avatar name={c.fullName} size="md" />

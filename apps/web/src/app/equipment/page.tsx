@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
 import { sql, eq, asc, isNull, and, lte, gt } from 'drizzle-orm';
 import {
+  db,
+  equipment,
   equipmentGroups,
   equipmentReservations,
-  withProfileScope,
-  vEquipmentSafe,
-  vProjectsSafe,
-  vTeamSafe,
+  projects,
+  profiles,
 } from '@antagna/db';
 import {
   PageHeader,
@@ -32,7 +32,6 @@ import {
   Boxes,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getEffectiveProfileId } from '@/lib/authz';
 import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
@@ -72,70 +71,60 @@ export default async function EquipmentPage({
   const now = new Date();
   const in14d = new Date(Date.now() + 14 * 86_400_000);
 
-  // Masking layer (D-037/D-039): equipment reads go through v_equipment_safe so
-  // purchase_price/insurance/serial are masked per the effective user's
-  // equipment.read.financial grant. The view only masks when the GUC is set, so
-  // every switched read MUST run inside withProfileScope. Joined entities that
-  // also have a safe view (projects → v_projects_safe, profiles → v_team_safe)
-  // join their views too; tables without a view (reservations, groups) stay base.
-  const pid = await getEffectiveProfileId();
-
-  const [items, statusCounts, upcoming] = await withProfileScope(pid, (tx) =>
-    Promise.all([
-      tx
-        .select({
-          id: vEquipmentSafe.id,
-          code: vEquipmentSafe.code,
-          category: vEquipmentSafe.category,
-          manufacturer: vEquipmentSafe.manufacturer,
-          model: vEquipmentSafe.model,
-          serialNumber: vEquipmentSafe.serialNumber,
-          status: vEquipmentSafe.status,
-          currentLocation: vEquipmentSafe.currentLocation,
-          insuranceValueSar: vEquipmentSafe.insuranceValueSar,
-          requiresCharging: vEquipmentSafe.requiresCharging,
-          groupNameAr: equipmentGroups.nameAr,
-        })
-        .from(vEquipmentSafe)
-        .leftJoin(equipmentGroups, eq(equipmentGroups.id, vEquipmentSafe.groupId))
-        .where(isNull(vEquipmentSafe.archivedAt))
-        .orderBy(asc(vEquipmentSafe.category), asc(vEquipmentSafe.code))
-        .limit(200),
-      tx
-        .select({ status: vEquipmentSafe.status, count: sql<number>`count(*)::int` })
-        .from(vEquipmentSafe)
-        .where(isNull(vEquipmentSafe.archivedAt))
-        .groupBy(vEquipmentSafe.status),
-      tx
-        .select({
-          id: equipmentReservations.id,
-          startsAt: equipmentReservations.startsAt,
-          endsAt: equipmentReservations.endsAt,
-          status: equipmentReservations.status,
-          eqCode: vEquipmentSafe.code,
-          eqModel: vEquipmentSafe.model,
-          groupNameAr: equipmentGroups.nameAr,
-          projectCode: vProjectsSafe.code,
-          projectTitle: vProjectsSafe.title,
-          projectTitleAr: vProjectsSafe.titleAr,
-          projectId: vProjectsSafe.id,
-          reservedByName: vTeamSafe.displayName,
-        })
-        .from(equipmentReservations)
-        .leftJoin(vEquipmentSafe, eq(vEquipmentSafe.id, equipmentReservations.equipmentId))
-        .leftJoin(equipmentGroups, eq(equipmentGroups.id, equipmentReservations.groupId))
-        .leftJoin(vProjectsSafe, eq(vProjectsSafe.id, equipmentReservations.projectId))
-        .leftJoin(vTeamSafe, eq(vTeamSafe.id, equipmentReservations.reservedById))
-        .where(
-          and(
-            gt(equipmentReservations.endsAt, now),
-            lte(equipmentReservations.startsAt, in14d),
-          ),
-        )
-        .orderBy(asc(equipmentReservations.startsAt))
-        .limit(30),
-    ]),
-  );
+  const [items, statusCounts, upcoming] = await Promise.all([
+    db
+      .select({
+        id: equipment.id,
+        code: equipment.code,
+        category: equipment.category,
+        manufacturer: equipment.manufacturer,
+        model: equipment.model,
+        serialNumber: equipment.serialNumber,
+        status: equipment.status,
+        currentLocation: equipment.currentLocation,
+        insuranceValueSar: equipment.insuranceValueSar,
+        requiresCharging: equipment.requiresCharging,
+        groupNameAr: equipmentGroups.nameAr,
+      })
+      .from(equipment)
+      .leftJoin(equipmentGroups, eq(equipmentGroups.id, equipment.groupId))
+      .where(isNull(equipment.archivedAt))
+      .orderBy(asc(equipment.category), asc(equipment.code))
+      .limit(200),
+    db
+      .select({ status: equipment.status, count: sql<number>`count(*)::int` })
+      .from(equipment)
+      .where(isNull(equipment.archivedAt))
+      .groupBy(equipment.status),
+    db
+      .select({
+        id: equipmentReservations.id,
+        startsAt: equipmentReservations.startsAt,
+        endsAt: equipmentReservations.endsAt,
+        status: equipmentReservations.status,
+        eqCode: equipment.code,
+        eqModel: equipment.model,
+        groupNameAr: equipmentGroups.nameAr,
+        projectCode: projects.code,
+        projectTitle: projects.title,
+        projectTitleAr: projects.titleAr,
+        projectId: projects.id,
+        reservedByName: profiles.displayName,
+      })
+      .from(equipmentReservations)
+      .leftJoin(equipment, eq(equipment.id, equipmentReservations.equipmentId))
+      .leftJoin(equipmentGroups, eq(equipmentGroups.id, equipmentReservations.groupId))
+      .leftJoin(projects, eq(projects.id, equipmentReservations.projectId))
+      .leftJoin(profiles, eq(profiles.id, equipmentReservations.reservedById))
+      .where(
+        and(
+          gt(equipmentReservations.endsAt, now),
+          lte(equipmentReservations.startsAt, in14d),
+        ),
+      )
+      .orderBy(asc(equipmentReservations.startsAt))
+      .limit(30),
+  ]);
 
   // Apply URL filters (?status=… / ?category=…) — the AI hints' actions link
   // here, and chips below let users clear or switch.
@@ -155,8 +144,7 @@ export default async function EquipmentPage({
   );
 
   const byCategory = filteredItems.reduce<Record<string, typeof items>>((acc, it) => {
-    const cat = it.category ?? 'أخرى';
-    (acc[cat] ??= []).push(it);
+    (acc[it.category] ??= []).push(it);
     return acc;
   }, {});
 
@@ -532,8 +520,8 @@ export default async function EquipmentPage({
                           )}
                         </td>
                         <td className="px-5 py-3.5">
-                          <StatusPill tone={STATUS_TONE[it.status ?? ''] ?? 'neutral'}>
-                            {STATUS_LABEL_AR[it.status ?? ''] ?? it.status ?? '—'}
+                          <StatusPill tone={STATUS_TONE[it.status] ?? 'neutral'}>
+                            {STATUS_LABEL_AR[it.status] ?? it.status}
                           </StatusPill>
                         </td>
                       </tr>

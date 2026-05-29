@@ -3,10 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { desc, eq, sql, and, isNull } from 'drizzle-orm';
 import {
   db,
+  projects,
   projectStagesLog,
   projectAssignments,
   projectTasks,
   projectComments,
+  clients,
   contacts,
   profiles,
   freelancers,
@@ -16,10 +18,6 @@ import {
   equipmentGroups,
   equipmentReservations,
   projectAssignmentRoleEnum,
-  withProfileScope,
-  vProjectsSafe,
-  vClientsSafe,
-  vTeamSafe,
 } from '@antagna/db';
 import {
   PageHeader,
@@ -35,7 +33,6 @@ import {
   FileUpload,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { getEffectiveProfileId } from '@/lib/authz';
 import { RealtimeComments } from '@/components/RealtimeComments';
 import {
   ArrowLeft,
@@ -123,48 +120,42 @@ export default async function ProjectDetailPage({
     .limit(1);
   const currentProfileId = currentProfile?.id ?? null;
 
-  // Per-user masked read: GUC set by withProfileScope makes v_projects_safe
-  // (and the joined safe views) redact financial / internal columns for the
-  // effective profile (view-as aware). WRITES below stay on base tables.
-  const pid = await getEffectiveProfileId();
-  const [project] = await withProfileScope(pid, (tx) =>
-    tx
-      .select({
-        id: vProjectsSafe.id,
-        code: vProjectsSafe.code,
-        title: vProjectsSafe.title,
-        titleAr: vProjectsSafe.titleAr,
-        description: vProjectsSafe.description,
-        stage: vProjectsSafe.stage,
-        projectType: vProjectsSafe.projectType,
-        contractedValueSar: vProjectsSafe.contractedValueSar,
-        briefReceivedAt: vProjectsSafe.briefReceivedAt,
-        quotedAt: vProjectsSafe.quotedAt,
-        approvedAt: vProjectsSafe.approvedAt,
-        shootStartsAt: vProjectsSafe.shootStartsAt,
-        shootEndsAt: vProjectsSafe.shootEndsAt,
-        deliveryDueAt: vProjectsSafe.deliveryDueAt,
-        deliveredAt: vProjectsSafe.deliveredAt,
-        archivedAt: vProjectsSafe.archivedAt,
-        aiStatusParagraph: vProjectsSafe.aiStatusParagraph,
-        aiRiskLevel: vProjectsSafe.aiRiskLevel,
-        aiNextAction: vProjectsSafe.aiNextAction,
-        aiAnalyzedAt: vProjectsSafe.aiAnalyzedAt,
-        driveFolderUrl: vProjectsSafe.driveFolderUrl,
-        notes: vProjectsSafe.notes,
-        isAbuLukaContent: vProjectsSafe.isAbuLukaContent,
-        clientId: vProjectsSafe.clientId,
-        clientCode: vClientsSafe.code,
-        clientNameAr: vClientsSafe.nameAr,
-        clientNameEn: vClientsSafe.nameEn,
-        pmName: vTeamSafe.displayName,
-      })
-      .from(vProjectsSafe)
-      .leftJoin(vClientsSafe, eq(vClientsSafe.id, vProjectsSafe.clientId))
-      .leftJoin(vTeamSafe, eq(vTeamSafe.id, vProjectsSafe.projectManagerId))
-      .where(eq(vProjectsSafe.id, id))
-      .limit(1),
-  );
+  const [project] = await db
+    .select({
+      id: projects.id,
+      code: projects.code,
+      title: projects.title,
+      titleAr: projects.titleAr,
+      description: projects.description,
+      stage: projects.stage,
+      projectType: projects.projectType,
+      contractedValueSar: projects.contractedValueSar,
+      briefReceivedAt: projects.briefReceivedAt,
+      quotedAt: projects.quotedAt,
+      approvedAt: projects.approvedAt,
+      shootStartsAt: projects.shootStartsAt,
+      shootEndsAt: projects.shootEndsAt,
+      deliveryDueAt: projects.deliveryDueAt,
+      deliveredAt: projects.deliveredAt,
+      archivedAt: projects.archivedAt,
+      aiStatusParagraph: projects.aiStatusParagraph,
+      aiRiskLevel: projects.aiRiskLevel,
+      aiNextAction: projects.aiNextAction,
+      aiAnalyzedAt: projects.aiAnalyzedAt,
+      driveFolderUrl: projects.driveFolderUrl,
+      notes: projects.notes,
+      isAbuLukaContent: projects.isAbuLukaContent,
+      clientId: projects.clientId,
+      clientCode: clients.code,
+      clientNameAr: clients.nameAr,
+      clientNameEn: clients.nameEn,
+      pmName: profiles.displayName,
+    })
+    .from(projects)
+    .leftJoin(clients, eq(clients.id, projects.clientId))
+    .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
+    .where(eq(projects.id, id))
+    .limit(1);
 
   if (!project) notFound();
 
@@ -400,7 +391,7 @@ export default async function ProjectDetailPage({
   );
   const blockedTasks = tasks.filter((t) => t.status === 'blocked');
 
-  const nextStages = project.stage ? STAGE_TRANSITIONS[project.stage] ?? [] : [];
+  const nextStages = STAGE_TRANSITIONS[project.stage] ?? [];
 
   // ── Page-level AI hints (derived from data already loaded) ────────────────
   const now = new Date();
@@ -641,7 +632,7 @@ export default async function ProjectDetailPage({
                   const reason = formData.get('reason')?.toString() ?? null;
                   await transitionStage(
                     id,
-                    s as Parameters<typeof transitionStage>[1],
+                    s as (typeof project)['stage'],
                     reason,
                   );
                 }}
