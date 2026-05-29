@@ -34,18 +34,18 @@
 - [x] Phase A — **DONE + deployed 2026-05-29** (migrations 048+049 on live antagna-v2, verified via SQL + Playwright). Dropped empty `skills` stubs → renamed `capabilities → skills` + `user_capabilities → user_skills` (21+19 rows, audit triggers re-armed); extended `permissions` with 20 fine-grained codes + `*` sentinel; renamed `role_default_permissions → position_default_permissions` + seeded 16-position matrix (258 rows); rewrote `has_permission()` to resolve by effective positions (multi-hat) with NO system_admin bypass. Swept 8 source files. **9/10 spec tests pass; Test 10 fails BY DESIGN** (غريب TEMP `*` hat — cleanup item below). Reviewed via multi-agent workflow before apply.
 - [x] Phase B — **DONE within 049**: `positions` table (16) + `profiles.position_key` + `user_position_overrides` (multi-hat: Abu Luka GM+Creative, Mohammed Prod+SysAdmin+TEMP GM). All 17 profiles mapped. Dedicated assignment UI → Phase F.
 - [ ] Phase C — app-layer integration: `current_effective_profile_id()` GUC fn (migration 050) + `withProfileScope()` transaction helper in `@antagna/db` + authz.ts JSDoc fix (system_admin bypass removed). `can()` stays as-is (position-aware via has_permission).
-- [ ] Phase D — Safe views (`v_projects_safe`/`v_clients_safe`/`v_contacts_safe`/`v_email_threads_safe`/`v_equipment_safe`/`v_profiles_safe`) + pages switch to views + write-side guards.
-- [ ] Phase E — Abu Luka content edge case (`is_abu_luka_content` + crew-sees-project-no-client visibility).
-- [ ] Phase F — Disable self-signup + `/admin/invite-user` + seed Ahmed (`ahmedakj.1423@gmail.com`) + Abu Luka (`mo.malki88@gmail.com`).
-- [ ] Phase G — Per-position dashboard layouts (10 personas).
-- [ ] Phase H — 10 audit specs (Playwright) + team sign-off.
+- [x] Phase D — **DONE + deployed 2026-05-29** (migration 051). 6 `v_*_safe` views (projects/clients/contacts/equipment/email_threads/**team**) per spec Part 2 + `user_assigned_to_project()`/`has_same_department()` helpers; Drizzle `safe_views.ts` (`.existing()`); read pages (projects list/detail/board + dashboard cards) switched to views via `withProfileScope`. Verified live: /projects + /dashboard render 0 errors; masking smoke 11/11.
+- [x] Phase E — **DONE** `is_abu_luka_content` column + crew generic-label masking (smoke T8/T9 pass).
+- [~] Phase F — **mostly DONE**: self-signup hard-gated behind `REGISTRATION_OPEN` (reversible) + `/admin/invite-user` UI live (position at invite time). ⚠️ **Email dispatch STUBBED + held** (category-5, D-5). Seeding real Ahmed/Abu Luka (DB + email) = manual when approved.
+- [x] Phase G — **DONE** per-position dashboard layouts (catalog + page wiring).
+- [x] Phase H — **DONE** `scripts/smoke/sprint0-permissions-acceptance.ts` (all 10 Part-6 tests, 11 PASS/0 FAIL; T10 RED by design) + pillar3 smoke rewritten for the position model. Team sign-off pending.
 
 **🟡 Sprint 0 — open decisions (deferred, need Mohammed before Phase C/D proceed):**
-- [ ] **D-1 · Phase D go/no-go** — switching all read pages (projects/crm/equipment/inbox/team) to `v_*_safe` masking views changes what every user sees + is the biggest regression surface in Sprint 0. With غريب on full access + all data dummy, impact on Mohammed's own use is minimal now. **Decision: build Phase C (GUC, zero-risk) + Phase D views now, or hold?** _Recommendation: proceed; keep the page-switchover behind tight verification._
-- [ ] **D-2 · غريب TEMP `*` hat** — keep full access until when? Cleanup = delete the `user_position_overrides` (`general_manager`, `mohammedelghareib@gmail.com`) row to re-enforce production_director "no financial" (Test 10). _Default: keep until Mohammed says remove._
-- [ ] **D-3 · migration-history drift** — `supabase_migrations.schema_migrations` only records up to `041`, but `042`–`049` are applied. A future `supabase db push` would try to re-apply `042`–`047`. **Backfill the history rows (safe) or leave?** _Recommendation: backfill 042–047._
-- [ ] **D-4 · pillar3 smoke obsolete** — `scripts/smoke/pillar3-acceptance.ts` tests #1/#2 assert the retired role-based model + system_admin bypass → fail by design. Rewrite for the position model in Phase H.
-- [ ] **D-5 · Phase F invite emails (category-5)** — seeding real users Ahmed (`ahmedakj.1423@gmail.com`) + Abu Luka (`mo.malki88@gmail.com`) dispatches invite emails to real humans → needs explicit Mohammed OK at that point (DB-only seed can run earlier).
+- [x] **D-1 · Phase D go/no-go** — PROCEEDED. Views + page switchover built, deployed, verified (smoke 11/11 + 0 console errors on prod read pages).
+- [ ] **D-2 · غريب TEMP `*` hat** — STILL ACTIVE (full access, per your request). Cleanup when ready = delete the `user_position_overrides` (`general_manager`, `mohammedelghareib@gmail.com`) row → production_director "no financial" → Test 10 goes GREEN. _Default: keep until you say remove._
+- [x] **D-3 · migration-history drift** — DONE. Backfilled `042`–`047` + `050`/`051` into `schema_migrations`; history now consistent.
+- [x] **D-4 · pillar3 smoke** — DONE. Rewritten for the position model (#1 position default, #2 no-bypass + GM wildcard).
+- [ ] **D-5 · Phase F invite emails (category-5)** — STILL HELD. `/admin/invite-user` creates the `invited` profile but the email dispatch is stubbed. Seeding real Ahmed (`ahmedakj.1423@gmail.com`) + Abu Luka (`mo.malki88@gmail.com`) + sending invites needs your explicit OK.
 
 **Sprint 1 — Approval Primitive + AI Command Bar Phase A (Weeks 5-6)**.
 **Sprint 2 — Event Bus foundation + UI consolidation (kill `/preview/lab`) (Weeks 7-8)**.
