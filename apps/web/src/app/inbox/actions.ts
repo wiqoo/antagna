@@ -1,11 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql } from 'drizzle-orm';
-import { db, withActor } from '@antagna/db';
+import { isNull, sql } from 'drizzle-orm';
+import { db, withActor, googleIntegrations } from '@antagna/db';
 import { requirePermissionAction, canMany } from '@/lib/authz';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage, retrieveMemory } from '@antagna/ai';
+import { ingestGmail, SYSTEM_MAILBOX } from '@/lib/gmail-ingest';
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
 
@@ -548,4 +549,63 @@ export async function reopenThreads(threadIds: string[]): Promise<{ updated: num
   );
   revalidatePath('/inbox');
   return { updated: ids.length };
+}
+
+// ── manual Gmail sync (pull new mail into the inbox) ─────────────────────────
+
+export type InboxSyncResult =
+  | {
+      ok: true;
+      mailbox: string;
+      threadsFetched: number;
+      messagesInserted: number;
+      messagesSkipped: number;
+    }
+  | { ok: false; error: string; notConnected: boolean };
+
+/**
+ * Manually pull new Gmail threads/messages into the inbox — the same ingestion
+ * the worker cron runs, but on-demand from a button on /inbox. Resolves the
+ * connected mailbox (first active google_integrations row, else SYSTEM_MAILBOX)
+ * so it works regardless of which alias is linked. Returns a structured result
+ * (never throws to the client) so the UI can show a friendly "Gmail not
+ * connected" message with a link to the integration settings instead of a 500.
+ */
+export async function syncInboxAction(): Promise<InboxSyncResult> {
+  // Same OR-gate as the rest of the inbox triage actions (read.all | read.assigned).
+  await requireInboxActor();
+
+  // Pick the connected mailbox; fall back to the system alias (which will yield
+  // the clear "No active Google integration" error → notConnected hint).
+  let mailbox = SYSTEM_MAILBOX;
+  try {
+    const [row] = await db
+      .select({ email: googleIntegrations.email })
+      .from(googleIntegrations)
+      .where(isNull(googleIntegrations.disconnectedAt))
+      .orderBy(googleIntegrations.email)
+      .limit(1);
+    if (row?.email) mailbox = row.email;
+  } catch {
+    // best-effort: stick with the default mailbox
+  }
+
+  try {
+    // Last 7 days, capped at 50 threads — same window the admin panel uses, so a
+    // manual click is bounded and cheap. The worker's scheduled run handles the
+    // wider backfill window.
+    const report = await ingestGmail(mailbox, { sinceDays: 7, maxThreads: 50 });
+    revalidatePath('/inbox');
+    return {
+      ok: true,
+      mailbox,
+      threadsFetched: report.threadsFetched,
+      messagesInserted: report.messagesInserted,
+      messagesSkipped: report.messagesSkipped,
+    };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e);
+    const notConnected = /no active google integration|refresh failed|GOOGLE_CLIENT/i.test(error);
+    return { ok: false, error, notConnected };
+  }
 }

@@ -19,9 +19,11 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  DownloadCloud,
 } from 'lucide-react';
 import {
   classifyInboxAction,
+  syncInboxAction,
   markThreadsSpam,
   archiveThreads,
   markThreadsRead,
@@ -122,6 +124,7 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
   const [showNoise, setShowNoise] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+  const [syncing, startSync] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
 
   // Default view excludes noise; a toggle brings it back.
@@ -185,6 +188,28 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
         setToast('تعذّر التصنيف — تحقّق من الصلاحية.');
       }
       setTimeout(() => setToast(null), 3500);
+    });
+  }
+
+  function runSync() {
+    startSync(async () => {
+      try {
+        const res = await syncInboxAction();
+        if (res.ok) {
+          setToast(
+            res.messagesInserted === 0
+              ? `الوارد مُحدَّث — لا رسائل جديدة (${res.mailbox}).`
+              : `جلب ${res.messagesInserted} رسالة جديدة · ${res.threadsFetched} محادثة (${res.mailbox})`,
+          );
+        } else if (res.notConnected) {
+          setToast('Gmail غير مربوط بعد — اربطه من: الإعدادات ← تكاملات Google.');
+        } else {
+          setToast(`تعذّر الجلب: ${res.error}`);
+        }
+      } catch {
+        setToast('تعذّر تحديث الوارد — تحقّق من الصلاحية.');
+      }
+      setTimeout(() => setToast(null), 4500);
     });
   }
 
@@ -424,6 +449,20 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
 
   const toolbarExtra = (
     <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={runSync}
+        disabled={syncing}
+        title="اجلب أحدث الرسائل من Gmail الآن"
+        className={`${btn} border-[var(--line)] text-[var(--text)] hover:border-[var(--accent)] hover:text-[var(--accent)]`}
+      >
+        {syncing ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <DownloadCloud size={12} />
+        )}
+        {syncing ? 'يجلب…' : 'تحديث الوارد'}
+      </button>
       <button
         type="button"
         onClick={runClassify}
