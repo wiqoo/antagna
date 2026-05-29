@@ -3,8 +3,24 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-29 (Sprint 0 **Phases A–H DONE + deployed** to prod — permissions re-architecture COMPLETE)
-**Phase:** Phase 2 / **Sprint 0 (Permissions) — substantially complete + live**
+**Last updated:** 2026-05-29 (**Production-readiness UI/UX overhaul — Phases 0–4 DONE + live**; on top of Sprint 0)
+**Phase:** **UI/UX overhaul COMPLETE + live** on antagna-v2. Delivered this pass:
+(0) data reset — wiped all smoke data, kept 2 real users + equipment (172) +
+reference; seeded the real 11-person team as `invited` (no email yet). (1)
+`ListWorkspace` keystone (search/filter/sort/cards-table-compact/saved-view) +
+mobile table-wraps + empty states; equipment retrofit verified (camera 172→8).
+(2) **System Admin console** `/admin/system` (keys/tokens · AI cost-guard ·
+email · brain/memory · settings · subscriptions/cron) + **`/my-day`** per-position
+home (routine checklist from `config/routines.yaml` + today's items + position
+board). (3) **~26 new pages** to volt-os parity: approvals, notifications,
+reservations, repairs, contacts, employees, departments, custom-fields, groups,
+meetings, assets, skills, social(×5), locations, stage-templates, compatibility,
+tags, equipment metrics, ai-insights, search, changelog + **inbox AI-triage**
+(spam/marketing classifier → clean table excluding noise). (4) verified: **all 26
+new routes return 200 live**, 0 console errors on spot-checks, mobile overflow
+fixed (notifications bell). Migrations 052→058 applied. New perm keys ai.manage/
+memory.manage/integration.manage. — Prior: Sprint 0 (Permissions) substantially
+complete + live
 on antagna-v2 (migrations 048→051). Delivered: `capabilities`→`skills` rename;
 16 **positions** + `position_default_permissions` (258 grants); `has_permission()`
 by effective positions (multi-hat, NO system_admin bypass, `*`=general_manager);
