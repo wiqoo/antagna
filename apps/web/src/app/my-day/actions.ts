@@ -60,8 +60,10 @@ export async function ensureTodayRoutine(
       .values(toInsert)
       .onConflictDoNothing({ target: [dailyTasks.ownerId, dailyTasks.sourceKey] });
   });
-
-  revalidatePath('/my-day');
+  // No revalidatePath here: ensureTodayRoutine runs during the /my-day render
+  // (calling revalidatePath mid-render throws "Route used revalidatePath…"). The
+  // page reads daily_tasks AFTER this call in the same render, so new rows show
+  // immediately. revalidatePath stays in completeTask (a real action).
 }
 
 /**
