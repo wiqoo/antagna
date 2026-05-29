@@ -65,7 +65,7 @@ export async function canMany(keys: string[]): Promise<Record<string, boolean>> 
   // record to text[]". Per-key calls are robust and cheap.
   const results = await Promise.all(keys.map((k) => permits(pid, k)));
   keys.forEach((k, i) => {
-    out[k] = results[i];
+    out[k] = results[i] === true;
   });
   return out;
 }
