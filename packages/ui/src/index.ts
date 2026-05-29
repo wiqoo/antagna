@@ -22,3 +22,10 @@ export { DashCard, MiniStat, CardsGrid } from './components/DashCard';
 export { FileUpload } from './components/FileUpload';
 export { Skeleton, SkeletonRows, SkeletonStats } from './components/Skeleton';
 export { ErrorState } from './components/ErrorState';
+export {
+  ListWorkspace,
+  type ViewMode,
+  type FilterDef,
+  type ColumnDef,
+  type ListWorkspaceProps,
+} from './components/ListWorkspace';
