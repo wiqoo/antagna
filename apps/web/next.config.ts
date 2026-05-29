@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
   // Skip ESLint during Vercel builds — we lint via turbo + CI separately.
   eslint: { ignoreDuringBuilds: true },
 
+  // The app + Sentry source-map generation pushes the 8 GB Vercel build
+  // container to its memory ceiling (intermittent OOM SIGKILL → missing
+  // routes-manifest.json). This Next 15 flag drops retained webpack caches
+  // during compilation, cutting peak RSS for a small build-time cost — no
+  // runtime or Sentry-fidelity impact. Keeps prod deploys from flaking as the
+  // page count grows.
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
+
   // pdfjs-dist@5 (transitive of pdf-parse@2) ships browser-only code that
   // references DOMMatrix / ImageData at module load. Bundling it into the
   // serverless function makes the whole route 500. Mark these as external
@@ -42,6 +52,14 @@ export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
 
   // Hide source maps from the public bundle (they're uploaded to Sentry instead).
   hideSourceMaps: true,
+
+  // Free the generated source maps right after they're uploaded to Sentry —
+  // Sentry still has them for symbolication (no loss of readable prod stack
+  // traces), but they no longer sit in the build output, easing the memory +
+  // disk pressure that was OOM-killing the 8 GB Vercel build container.
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
 
   // Tree-shake debug logger out of production bundles.
   disableLogger: true,
