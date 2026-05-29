@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql, eq } from 'drizzle-orm';
-import { db, profiles, skills, departments } from '@antagna/db';
+import { skills, departments, withProfileScope } from '@antagna/db';
+import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
 import {
   PageHeader,
   Card,
@@ -23,54 +24,64 @@ export default async function TeamPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/team');
 
-  const [people, caps, depts] = await Promise.all([
-    db.execute<{
-      id: string;
-      display_name: string;
-      email: string;
-      role: string;
-      status: string;
-      phone_e164: string | null;
-      department_name: string | null;
-      job_title: string | null;
-      capability_count: number;
-      active_projects: number;
-      capability_keys: string[] | null;
-    }>(sql`
-      SELECT
-        p.id::text AS id,
-        p.display_name,
-        p.email,
-        p.role,
-        p.status::text AS status,
-        p.phone_e164,
-        d.name_ar AS department_name,
-        e.job_title,
-        (
-          SELECT count(*)::int FROM user_skills uc
-          WHERE uc.profile_id = p.id
-        ) AS capability_count,
-        (
-          SELECT count(*)::int FROM project_assignments pa
-          INNER JOIN projects pr ON pr.id = pa.project_id
-          WHERE pa.profile_id = p.id
-            AND pr.archived_at IS NULL
-            AND pr.stage NOT IN ('delivered','archived','lost','cancelled')
-        ) AS active_projects,
-        (
-          SELECT array_agg(uc.skill_key)
-          FROM user_skills uc
-          WHERE uc.profile_id = p.id
-        ) AS capability_keys
-      FROM profiles p
-      LEFT JOIN departments d ON d.id = p.department_id
-      LEFT JOIN employees e ON e.profile_id = p.id
-      WHERE p.archived_at IS NULL
-      ORDER BY p.display_name
-    `),
-    db.select().from(skills).orderBy(skills.position, skills.key),
-    db.select().from(departments).orderBy(departments.position),
-  ]);
+  // Page guard: lacking team.read → /dashboard (signed-out → /login).
+  await requirePermission('team.read');
+  const effectivePid = await getEffectiveProfileId();
+
+  // The directory reads `profiles` through v_team_safe (drop-in), which masks
+  // email/phone for viewers who aren't self / same-dept / team.read. Run the
+  // masked read AND the lookup reads inside ONE withProfileScope txn so the
+  // app.current_profile_id GUC reaches the view's CASE WHEN masks.
+  const [people, caps, depts] = await withProfileScope(effectivePid, (tx) =>
+    Promise.all([
+      tx.execute<{
+        id: string;
+        display_name: string;
+        email: string;
+        role: string;
+        status: string;
+        phone_e164: string | null;
+        department_name: string | null;
+        job_title: string | null;
+        capability_count: number;
+        active_projects: number;
+        capability_keys: string[] | null;
+      }>(sql`
+        SELECT
+          p.id::text AS id,
+          p.display_name,
+          p.email,
+          p.role,
+          p.status::text AS status,
+          p.phone_e164,
+          d.name_ar AS department_name,
+          e.job_title,
+          (
+            SELECT count(*)::int FROM user_skills uc
+            WHERE uc.profile_id = p.id
+          ) AS capability_count,
+          (
+            SELECT count(*)::int FROM project_assignments pa
+            INNER JOIN projects pr ON pr.id = pa.project_id
+            WHERE pa.profile_id = p.id
+              AND pr.archived_at IS NULL
+              AND pr.stage NOT IN ('delivered','archived','lost','cancelled')
+          ) AS active_projects,
+          (
+            SELECT array_agg(uc.skill_key)
+            FROM user_skills uc
+            WHERE uc.profile_id = p.id
+          ) AS capability_keys
+        FROM v_team_safe p
+        LEFT JOIN departments d ON d.id = p.department_id
+        LEFT JOIN employees e ON e.profile_id = p.id
+        WHERE p.archived_at IS NULL
+        ORDER BY p.display_name
+      `),
+      tx.select().from(skills).orderBy(skills.position, skills.key),
+      tx.select().from(departments).orderBy(departments.position),
+    ]),
+  );
 
   const peopleArr = people as unknown as Array<{
     id: string;

@@ -7,7 +7,10 @@ import {
   equipmentReservations,
   projects,
   profiles,
+  vEquipmentSafe,
+  withProfileScope,
 } from '@antagna/db';
+import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
 import {
   PageHeader,
   Card,
@@ -19,7 +22,7 @@ import {
 } from '@antagna/ui';
 import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { EquipmentCatalog } from './EquipmentCatalog';
+import { EquipmentCatalog, type EquipmentRow } from './EquipmentCatalog';
 import Link from 'next/link';
 import {
   Camera,
@@ -53,30 +56,39 @@ export default async function EquipmentPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/equipment');
 
+  // Page guard: lacking equipment.read → /dashboard (signed-out → /login).
+  await requirePermission('equipment.read');
+  const effectivePid = await getEffectiveProfileId();
+
   const now = new Date();
   const in14d = new Date(Date.now() + 14 * 86_400_000);
 
   const [items, statusCounts, upcoming] = await Promise.all([
-    db
-      .select({
-        id: equipment.id,
-        code: equipment.code,
-        category: equipment.category,
-        manufacturer: equipment.manufacturer,
-        model: equipment.model,
-        serialNumber: equipment.serialNumber,
-        status: equipment.status,
-        currentLocation: equipment.currentLocation,
-        insuranceValueSar: equipment.insuranceValueSar,
-        requiresCharging: equipment.requiresCharging,
-        photoUrl: equipment.photoUrl,
-        groupNameAr: equipmentGroups.nameAr,
-      })
-      .from(equipment)
-      .leftJoin(equipmentGroups, eq(equipmentGroups.id, equipment.groupId))
-      .where(isNull(equipment.archivedAt))
-      .orderBy(asc(equipment.category), asc(equipment.code))
-      .limit(200),
+    // Catalog read masks financial columns (serial / insurance / purchase /
+    // book value) behind equipment.read.financial — fetch through the safe
+    // view inside a single withProfileScope txn (sets app.current_profile_id).
+    withProfileScope(effectivePid, (tx) =>
+      tx
+        .select({
+          id: vEquipmentSafe.id,
+          code: vEquipmentSafe.code,
+          category: vEquipmentSafe.category,
+          manufacturer: vEquipmentSafe.manufacturer,
+          model: vEquipmentSafe.model,
+          serialNumber: vEquipmentSafe.serialNumber,
+          status: vEquipmentSafe.status,
+          currentLocation: vEquipmentSafe.currentLocation,
+          insuranceValueSar: vEquipmentSafe.insuranceValueSar,
+          requiresCharging: vEquipmentSafe.requiresCharging,
+          photoUrl: vEquipmentSafe.photoUrl,
+          groupNameAr: equipmentGroups.nameAr,
+        })
+        .from(vEquipmentSafe)
+        .leftJoin(equipmentGroups, eq(equipmentGroups.id, vEquipmentSafe.groupId))
+        .where(isNull(vEquipmentSafe.archivedAt))
+        .orderBy(asc(vEquipmentSafe.category), asc(vEquipmentSafe.code))
+        .limit(200),
+    ),
     db
       .select({ status: equipment.status, count: sql<number>`count(*)::int` })
       .from(equipment)
@@ -112,17 +124,36 @@ export default async function EquipmentPage({
       .limit(30),
   ]);
 
+  // The v_*_safe views declare every column nullable (pgView .existing()), but
+  // code/category/model/status are NEVER masked — only financial cols are. Coerce
+  // the always-present required columns to satisfy EquipmentRow; keep the genuinely
+  // masked fields (serialNumber / insuranceValueSar) nullable so masking shows "—".
+  const catalogItems: EquipmentRow[] = items.map((i) => ({
+    id: i.id ?? '',
+    code: i.code ?? '',
+    category: i.category ?? '',
+    manufacturer: i.manufacturer,
+    model: i.model ?? '',
+    serialNumber: i.serialNumber,
+    status: i.status ?? '',
+    currentLocation: i.currentLocation,
+    insuranceValueSar: i.insuranceValueSar,
+    requiresCharging: i.requiresCharging,
+    photoUrl: i.photoUrl,
+    groupNameAr: i.groupNameAr,
+  }));
+
   // ?status= / ?category= AI-hint deep links become the catalog's initial
   // filters (applied client-side inside ListWorkspace).
   const initialFilters: Record<string, string> = {};
   if (statusFilter) initialFilters.status = statusFilter;
   if (categoryFilter) initialFilters.category = categoryFilter;
 
-  const totalCount = items.length;
+  const totalCount = catalogItems.length;
   const availableCount = statusCounts.find((s) => s.status === 'available')?.count ?? 0;
   const checkedOutCount = statusCounts.find((s) => s.status === 'checked_out')?.count ?? 0;
   const repairCount = statusCounts.find((s) => s.status === 'repair')?.count ?? 0;
-  const totalInsurance = items.reduce(
+  const totalInsurance = catalogItems.reduce(
     (s, i) => s + (i.insuranceValueSar ? Number(i.insuranceValueSar) : 0),
     0,
   );
@@ -134,7 +165,7 @@ export default async function EquipmentPage({
     reservationsByEq.set(r.eqCode, (reservationsByEq.get(r.eqCode) ?? 0) + 1);
   }
   const conflicts = Array.from(reservationsByEq.entries()).filter(([, n]) => n > 1);
-  const lowBattery = items.filter((i) => i.requiresCharging && i.status === 'available').length;
+  const lowBattery = catalogItems.filter((i) => i.requiresCharging && i.status === 'available').length;
 
   const hints: AIHint[] = [];
   if (conflicts.length > 0) {
@@ -280,7 +311,7 @@ export default async function EquipmentPage({
         <p className="hidden text-[11px] text-[var(--text-muted)] md:block">
           محسوبة من{' '}
           <span className="text-[var(--text)]">
-            {items.filter((i) => i.insuranceValueSar).length}
+            {catalogItems.filter((i) => i.insuranceValueSar).length}
           </span>{' '}
           وحدة لها تأمين مسجَّل
         </p>
@@ -416,7 +447,7 @@ export default async function EquipmentPage({
           </Card>
         ) : (
           <EquipmentCatalog
-            items={items}
+            items={catalogItems}
             initialFilters={
               Object.keys(initialFilters).length > 0 ? initialFilters : undefined
             }

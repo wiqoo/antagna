@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { eq, isNull, sql } from 'drizzle-orm';
-import { db, contacts, contactMethods, clients } from '@antagna/db';
+import {
+  withProfileScope,
+  vContactsSafe,
+  vClientsSafe,
+  contactMethods,
+} from '@antagna/db';
 import {
   PageHeader,
   Card,
@@ -13,6 +18,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { UserPlus, Users, Star, Crown, Mail } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { ContactsDirectory, type ContactRow } from './ContactsDirectory';
 
 export const dynamic = 'force-dynamic';
@@ -32,38 +38,53 @@ export default async function ContactsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/contacts');
 
-  // One query: contacts + their client + their methods pivoted to columns.
-  // contact_methods is 1:N; we pick the first value of each type via a grouped
-  // subquery so the page renders a single row per contact.
-  const [contactRows, methodRows] = await Promise.all([
-    db
+  // Page guard + masked reads. requirePermission redirects signed-out → /login
+  // and lacking-permission → /dashboard; it returns the effective profile id we
+  // feed straight into the masking scope so we resolve it only once.
+  const { profileId } = await requirePermission('client.read');
+
+  // ONE transaction wraps every masked read (contacts + their client). The
+  // v_*_safe views read the app.current_profile_id GUC set by withProfileScope,
+  // so they MUST run on the pinned txn connection. contact_methods is NOT a
+  // masked entity (no safe view) but is read on the SAME tx to keep this to a
+  // single transaction — do NOT nest withProfileScope.
+  //
+  // clientId on v_contacts_safe can be masked to NULL, so the client join is a
+  // leftJoin with downstream null-guards (masked FK → "—" in the UI).
+  const { contactRows, methodRows } = await withProfileScope(profileId, async (tx) => {
+    const contactRows = await tx
       .select({
-        id: contacts.id,
-        fullName: contacts.fullName,
-        fullNameAr: contacts.fullNameAr,
-        jobTitle: contacts.jobTitle,
-        department: contacts.department,
-        isPrimary: contacts.isPrimary,
-        isDecisionMaker: contacts.isDecisionMaker,
-        clientId: contacts.clientId,
-        clientNameAr: clients.nameAr,
-        clientNameEn: clients.nameEn,
-        clientCode: clients.code,
+        id: vContactsSafe.id,
+        fullName: vContactsSafe.fullName,
+        fullNameAr: vContactsSafe.fullNameAr,
+        jobTitle: vContactsSafe.jobTitle,
+        department: vContactsSafe.department,
+        isPrimary: vContactsSafe.isPrimary,
+        isDecisionMaker: vContactsSafe.isDecisionMaker,
+        clientId: vContactsSafe.clientId,
+        clientNameAr: vClientsSafe.nameAr,
+        clientNameEn: vClientsSafe.nameEn,
+        clientCode: vClientsSafe.code,
       })
-      .from(contacts)
-      .innerJoin(clients, eq(clients.id, contacts.clientId))
-      .where(isNull(contacts.archivedAt))
-      .orderBy(sql`${contacts.isPrimary} DESC`, contacts.fullName),
-    db
+      .from(vContactsSafe)
+      .leftJoin(vClientsSafe, eq(vClientsSafe.id, vContactsSafe.clientId))
+      .where(isNull(vContactsSafe.archivedAt))
+      .orderBy(sql`${vContactsSafe.isPrimary} DESC`, vContactsSafe.fullName);
+
+    // contact_methods is unmasked: read on the same tx, joined to the safe
+    // contacts view so archived/invisible contacts drop out consistently.
+    const methodRows = await tx
       .select({
         contactId: contactMethods.contactId,
         type: contactMethods.methodType,
         value: contactMethods.value,
       })
       .from(contactMethods)
-      .innerJoin(contacts, eq(contacts.id, contactMethods.contactId))
-      .where(isNull(contacts.archivedAt)),
-  ]);
+      .innerJoin(vContactsSafe, eq(vContactsSafe.id, contactMethods.contactId))
+      .where(isNull(vContactsSafe.archivedAt));
+
+    return { contactRows, methodRows };
+  });
 
   // Pivot methods → first email / phone / whatsapp per contact.
   const methodsByContact = methodRows.reduce<
@@ -76,25 +97,30 @@ export default async function ContactsPage({
     return acc;
   }, {});
 
-  const rows: ContactRow[] = contactRows.map((c) => {
-    const m = methodsByContact[c.id] ?? {};
-    return {
-      id: c.id,
-      fullName: c.fullName,
-      fullNameAr: c.fullNameAr,
-      jobTitle: c.jobTitle,
-      department: c.department,
-      isPrimary: c.isPrimary,
-      isDecisionMaker: c.isDecisionMaker,
-      clientId: c.clientId,
-      clientNameAr: c.clientNameAr,
-      clientNameEn: c.clientNameEn,
-      clientCode: c.clientCode,
-      email: m.email ?? null,
-      phone: m.phone ?? null,
-      whatsapp: m.whatsapp ?? null,
-    };
-  });
+  // The safe view types every column as nullable (masked → NULL). A row whose
+  // id is masked away is unusable (can't link or key it), so drop it; remaining
+  // masked scalars fall back to safe defaults / "—" via the client labels.
+  const rows: ContactRow[] = contactRows
+    .filter((c): c is typeof c & { id: string } => c.id != null)
+    .map((c) => {
+      const m = methodsByContact[c.id] ?? {};
+      return {
+        id: c.id,
+        fullName: c.fullName ?? '—',
+        fullNameAr: c.fullNameAr,
+        jobTitle: c.jobTitle,
+        department: c.department,
+        isPrimary: c.isPrimary ?? false,
+        isDecisionMaker: c.isDecisionMaker ?? false,
+        clientId: c.clientId ?? '',
+        clientNameAr: c.clientNameAr,
+        clientNameEn: c.clientNameEn,
+        clientCode: c.clientCode,
+        email: m.email ?? null,
+        phone: m.phone ?? null,
+        whatsapp: m.whatsapp ?? null,
+      };
+    });
 
   const total = rows.length;
   const primaries = rows.filter((r) => r.isPrimary).length;

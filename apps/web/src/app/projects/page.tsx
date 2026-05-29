@@ -3,10 +3,13 @@ import { redirect } from 'next/navigation';
 import { desc, eq, sql, and, isNull, type SQL } from 'drizzle-orm';
 import {
   db,
-  projects,
   clients,
   profiles,
   projectStageEnum,
+  withProfileScope,
+  vProjectsSafe,
+  vClientsSafe,
+  vTeamSafe,
 } from '@antagna/db';
 import {
 
@@ -26,6 +29,7 @@ import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles, Rows3, Columns3 } f
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getTranslations } from 'next-intl/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import { ProjectsBoard, type BoardRow } from './projects-board';
 
 export const dynamic = 'force-dynamic';
@@ -56,55 +60,97 @@ export default async function ProjectsListPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/projects');
 
+  // Read gate (granular RBAC). Lacking project.read → redirect to /dashboard.
+  await requirePermission('project.read');
+
   const page = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
   const filters: SQL[] = [];
 
   if (sp.stage && (projectStageEnum.enumValues as readonly string[]).includes(sp.stage)) {
-    filters.push(eq(projects.stage, sp.stage as (typeof projectStageEnum.enumValues)[number]));
+    filters.push(eq(vProjectsSafe.stage, sp.stage));
   }
-  if (sp.pm) filters.push(eq(projects.projectManagerId, sp.pm));
-  if (sp.client) filters.push(eq(projects.clientId, sp.client));
+  if (sp.pm) filters.push(eq(vProjectsSafe.projectManagerId, sp.pm));
+  if (sp.client) filters.push(eq(vProjectsSafe.clientId, sp.client));
   if (sp.q) {
     const like = `%${sp.q}%`;
     filters.push(
-      sql`(${projects.title} ILIKE ${like} OR ${projects.titleAr} ILIKE ${like} OR ${projects.code} ILIKE ${like})`,
+      sql`(${vProjectsSafe.title} ILIKE ${like} OR ${vProjectsSafe.titleAr} ILIKE ${like} OR ${vProjectsSafe.code} ILIKE ${like})`,
     );
   }
-  if (sp.archived !== '1') filters.push(isNull(projects.archivedAt));
+  if (sp.archived !== '1') filters.push(isNull(vProjectsSafe.archivedAt));
 
   const where = filters.length ? and(...filters) : undefined;
   const hasFilters = !!(sp.q || sp.stage || sp.pm || sp.client || sp.archived === '1');
   const view = sp.view === 'board' ? 'board' : 'table';
 
-  const [rows, countRows, pmList, clientList, signalsRows] = await Promise.all([
-    db
-      .select({
-        id: projects.id,
-        code: projects.code,
-        title: projects.title,
-        titleAr: projects.titleAr,
-        stage: projects.stage,
-        deliveryDueAt: projects.deliveryDueAt,
-        contractedValueSar: projects.contractedValueSar,
-        aiRiskLevel: projects.aiRiskLevel,
-        isAbuLukaContent: projects.isAbuLukaContent,
-        pmName: profiles.displayName,
-        clientNameAr: clients.nameAr,
-        clientCode: clients.code,
-      })
-      .from(projects)
-      .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
-      .leftJoin(clients, eq(clients.id, projects.clientId))
-      .where(where)
-      .orderBy(desc(projects.updatedAt))
-      .limit(PAGE_SIZE)
-      .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(projects)
-      .where(where),
+  // Masking GUC scope: the safe views read current_effective_profile_id() from
+  // the GUC set inside withProfileScope's tx. The per-row projects read (+ its
+  // count and the board fetch) all go through ONE transaction against the safe
+  // views so field masking (financials / internal) applies. The aux reads
+  // (pmList / clientList filter dropdowns, aggregate signals) are non-masked
+  // and stay on base tables. Keep this a SINGLE withProfileScope — no nesting.
+  const pid = await getEffectiveProfileId();
+
+  const [{ rows, countRows, boardRows }, pmList, clientList, signalsRows] = await Promise.all([
+    withProfileScope(pid, async (tx) => {
+      const rows = await tx
+        .select({
+          id: vProjectsSafe.id,
+          code: vProjectsSafe.code,
+          title: vProjectsSafe.title,
+          titleAr: vProjectsSafe.titleAr,
+          stage: vProjectsSafe.stage,
+          deliveryDueAt: vProjectsSafe.deliveryDueAt,
+          contractedValueSar: vProjectsSafe.contractedValueSar,
+          aiRiskLevel: vProjectsSafe.aiRiskLevel,
+          isAbuLukaContent: vProjectsSafe.isAbuLukaContent,
+          pmName: vTeamSafe.displayName,
+          clientNameAr: vClientsSafe.nameAr,
+          clientCode: vClientsSafe.code,
+        })
+        .from(vProjectsSafe)
+        .leftJoin(vTeamSafe, eq(vTeamSafe.id, vProjectsSafe.projectManagerId))
+        .leftJoin(vClientsSafe, eq(vClientsSafe.id, vProjectsSafe.clientId))
+        .where(where)
+        .orderBy(desc(vProjectsSafe.updatedAt))
+        .limit(PAGE_SIZE)
+        .offset(offset);
+
+      const countRows = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(vProjectsSafe)
+        .where(where);
+
+      // Board view fetches all matching projects (no pagination), grouped by stage.
+      const boardRows: BoardRow[] =
+        view === 'board'
+          ? ((await tx
+              .select({
+                id: vProjectsSafe.id,
+                code: vProjectsSafe.code,
+                title: vProjectsSafe.title,
+                titleAr: vProjectsSafe.titleAr,
+                stage: vProjectsSafe.stage,
+                deliveryDueAt: vProjectsSafe.deliveryDueAt,
+                contractedValueSar: vProjectsSafe.contractedValueSar,
+                aiRiskLevel: vProjectsSafe.aiRiskLevel,
+                isAbuLukaContent: vProjectsSafe.isAbuLukaContent,
+                pmName: vTeamSafe.displayName,
+                clientNameAr: vClientsSafe.nameAr,
+                clientCode: vClientsSafe.code,
+              })
+              .from(vProjectsSafe)
+              .leftJoin(vTeamSafe, eq(vTeamSafe.id, vProjectsSafe.projectManagerId))
+              .leftJoin(vClientsSafe, eq(vClientsSafe.id, vProjectsSafe.clientId))
+              .where(where)
+              .orderBy(desc(vProjectsSafe.updatedAt))
+              .limit(300)) as unknown as BoardRow[])
+          : [];
+
+      return { rows, countRows, boardRows };
+    }),
     db
       .select({ id: profiles.id, displayName: profiles.displayName })
       .from(profiles)
@@ -147,32 +193,6 @@ export default async function ProjectsListPage({
   const signals = (signalsRows as unknown as Array<{
     overdue: number; due_soon: number; stalled: number; high_risk: number; total_active: number;
   }>)[0] ?? { overdue: 0, due_soon: 0, stalled: 0, high_risk: 0, total_active: 0 };
-
-  // Board view fetches all matching projects (no pagination), grouped by stage.
-  const boardRows: BoardRow[] =
-    view === 'board'
-      ? ((await db
-          .select({
-            id: projects.id,
-            code: projects.code,
-            title: projects.title,
-            titleAr: projects.titleAr,
-            stage: projects.stage,
-            deliveryDueAt: projects.deliveryDueAt,
-            contractedValueSar: projects.contractedValueSar,
-            aiRiskLevel: projects.aiRiskLevel,
-            isAbuLukaContent: projects.isAbuLukaContent,
-            pmName: profiles.displayName,
-            clientNameAr: clients.nameAr,
-            clientCode: clients.code,
-          })
-          .from(projects)
-          .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
-          .leftJoin(clients, eq(clients.id, projects.clientId))
-          .where(where)
-          .orderBy(desc(projects.updatedAt))
-          .limit(300)) as unknown as BoardRow[])
-      : [];
 
   const hints: AIHint[] = [];
   if (signals.overdue > 0) {

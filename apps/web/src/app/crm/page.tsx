@@ -2,10 +2,12 @@ import { redirect } from 'next/navigation';
 import { desc, eq, sql, and, ne } from 'drizzle-orm';
 import {
   db,
-  clients,
   leads,
   profiles,
+  vClientsSafe,
+  withProfileScope,
 } from '@antagna/db';
+import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import {
 
   PageHeader,
@@ -53,78 +55,87 @@ export default async function CrmPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/crm');
 
-  const [clientRowsRaw, leadRows] = await Promise.all([
-    // PERF (audit fix): the 3 per-row correlated scalar subqueries (latest
-    // health snapshot, active-project COUNT, MAX(created_at)) plus the
-    // correlated ORDER BY MAX() ran one extra index scan per client per metric.
-    // Replaced with ONE LEFT JOIN LATERAL over a grouped projects aggregate and
-    // a LATERAL latest-snapshot lookup — each evaluated once per client row.
-    // Same output columns the JSX consumes.
-    db.execute<{
-      id: string;
-      code: string;
-      name_ar: string | null;
-      name_en: string | null;
-      client_type: string;
-      average_payment_days: number | null;
-      trust_score: number | null;
-      total_revenue: string | null;
-      active_projects: number;
-      last_project_at: string | null;
-    }>(sql`
-      SELECT
-        c.id,
-        c.code,
-        c.name_ar,
-        c.name_en,
-        c.client_type,
-        c.average_payment_days,
-        c.trust_score,
-        snap.total_revenue_sar      AS total_revenue,
-        COALESCE(pa.active_projects, 0)::int AS active_projects,
-        pa.last_project_at
-      FROM clients c
-      LEFT JOIN LATERAL (
+  // Page guard: must hold client.read (redirects to /dashboard if denied).
+  await requirePermission('client.read');
+
+  // Field-level masking (D-037/D-039): clients + the leads→client join read the
+  // `v_*_safe` views, which mask columns the effective profile can't see. Both
+  // masked reads run inside ONE withProfileScope transaction so the
+  // app.current_profile_id GUC reaches the view CASE WHEN on the same pinned
+  // 6543-pooler backend. Do NOT nest withProfileScope.
+  const effectivePid = await getEffectiveProfileId();
+  const { clientRowsRaw, leadRows } = await withProfileScope(
+    effectivePid,
+    async (tx) => {
+      const clientRowsRaw = (await tx.execute<{
+        id: string;
+        code: string;
+        name_ar: string | null;
+        name_en: string | null;
+        client_type: string;
+        average_payment_days: number | null;
+        trust_score: number | null;
+        total_revenue: string | null;
+        active_projects: number;
+        last_project_at: string | null;
+      }>(sql`
         SELECT
-          COUNT(*) FILTER (
-            WHERE p.stage NOT IN ('delivered','archived','lost','cancelled')
-          )::int AS active_projects,
-          MAX(p.created_at) AS last_project_at
-        FROM projects p
-        WHERE p.client_id = c.id
-      ) pa ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT s.total_revenue_sar
-        FROM client_health_snapshots s
-        WHERE s.client_id = c.id
-        ORDER BY s.snapshot_date DESC
-        LIMIT 1
-      ) snap ON TRUE
-      WHERE c.archived_at IS NULL
-      ORDER BY pa.last_project_at DESC NULLS LAST
-      LIMIT 50
-    `),
-    db
-      .select({
-        id: leads.id,
-        code: leads.code,
-        status: leads.status,
-        source: leads.source,
-        unmatchedFromEmail: leads.unmatchedFromEmail,
-        unmatchedFromName: leads.unmatchedFromName,
-        estimatedValue: leads.estimatedValueSar,
-        receivedAt: leads.receivedAt,
-        temperatureScore: leads.temperatureScore,
-        clientNameAr: clients.nameAr,
-        assignedName: profiles.displayName,
-      })
-      .from(leads)
-      .leftJoin(clients, eq(clients.id, leads.clientId))
-      .leftJoin(profiles, eq(profiles.id, leads.assignedToProfileId))
-      .where(and(ne(leads.status, 'lost'), ne(leads.status, 'ghosted')))
-      .orderBy(desc(leads.receivedAt))
-      .limit(20),
-  ]);
+          c.id,
+          c.code,
+          c.name_ar,
+          c.name_en,
+          c.client_type,
+          c.average_payment_days,
+          c.trust_score,
+          snap.total_revenue_sar      AS total_revenue,
+          COALESCE(pa.active_projects, 0)::int AS active_projects,
+          pa.last_project_at
+        FROM v_clients_safe c
+        LEFT JOIN LATERAL (
+          SELECT
+            COUNT(*) FILTER (
+              WHERE p.stage NOT IN ('delivered','archived','lost','cancelled')
+            )::int AS active_projects,
+            MAX(p.created_at) AS last_project_at
+          FROM projects p
+          WHERE p.client_id = c.id
+        ) pa ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT s.total_revenue_sar
+          FROM client_health_snapshots s
+          WHERE s.client_id = c.id
+          ORDER BY s.snapshot_date DESC
+          LIMIT 1
+        ) snap ON TRUE
+        WHERE c.archived_at IS NULL
+        ORDER BY pa.last_project_at DESC NULLS LAST
+        LIMIT 50
+      `));
+
+      const leadRows = await tx
+        .select({
+          id: leads.id,
+          code: leads.code,
+          status: leads.status,
+          source: leads.source,
+          unmatchedFromEmail: leads.unmatchedFromEmail,
+          unmatchedFromName: leads.unmatchedFromName,
+          estimatedValue: leads.estimatedValueSar,
+          receivedAt: leads.receivedAt,
+          temperatureScore: leads.temperatureScore,
+          clientNameAr: vClientsSafe.nameAr,
+          assignedName: profiles.displayName,
+        })
+        .from(leads)
+        .leftJoin(vClientsSafe, eq(vClientsSafe.id, leads.clientId))
+        .leftJoin(profiles, eq(profiles.id, leads.assignedToProfileId))
+        .where(and(ne(leads.status, 'lost'), ne(leads.status, 'ghosted')))
+        .orderBy(desc(leads.receivedAt))
+        .limit(20);
+
+      return { clientRowsRaw, leadRows };
+    },
+  );
 
   // Map the raw LATERAL rows to the camelCase shape the JSX consumes.
   const clientRows = (clientRowsRaw as unknown as Array<{
@@ -415,15 +426,15 @@ export default async function CrmPage({
                           href={`/clients/${c.id}`}
                           className="flex items-center gap-3 hover:text-[var(--accent)]"
                         >
-                          <Avatar name={c.nameAr} size="sm" />
+                          <Avatar name={c.nameAr ?? '—'} size="sm" />
                           <div>
                             <div className="font-medium text-[var(--text)]">
-                              {c.nameAr}
+                              {c.nameAr ?? '—'}
                             </div>
                             <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-dim)]">
                               {c.nameEn && <span>{c.nameEn}</span>}
                               {c.nameEn && <span>·</span>}
-                              <span className="font-mono text-[10px] opacity-70">{c.code}</span>
+                              <span className="font-mono text-[10px] opacity-70">{c.code ?? '—'}</span>
                             </div>
                           </div>
                         </Link>

@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import {
-  db,
-  clients,
-  contacts,
   contactMethods,
   projects,
+  vClientsSafe,
+  vContactsSafe,
+  withProfileScope,
 } from '@antagna/db';
+import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import {
 
   PageHeader,
@@ -47,11 +48,59 @@ export default async function ClientDetailPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/clients/${id}`);
 
-  const [client] = await db
-    .select()
-    .from(clients)
-    .where(eq(clients.id, id))
-    .limit(1);
+  // Page guard: must hold client.read (redirects to /dashboard if denied).
+  await requirePermission('client.read');
+
+  // Field-level masking (D-037/D-039): client + contacts (+ the contact-methods
+  // join, which is keyed on the masked contacts entity) read the v_*_safe views.
+  // All masked reads run inside ONE withProfileScope transaction so the
+  // app.current_profile_id GUC reaches each view's CASE WHEN masks on the same
+  // pinned 6543-pooler backend. Projects are NOT a masked-here entity; they read
+  // the base table. Do NOT nest withProfileScope.
+  const effectivePid = await getEffectiveProfileId();
+  const { client, contactList, projectList, methodRows } = await withProfileScope(
+    effectivePid,
+    async (tx) => {
+      const [client] = await tx
+        .select()
+        .from(vClientsSafe)
+        .where(eq(vClientsSafe.id, id))
+        .limit(1);
+
+      const [contactList, projectList, methodRows] = await Promise.all([
+        tx
+          .select()
+          .from(vContactsSafe)
+          .where(eq(vContactsSafe.clientId, id))
+          .orderBy(desc(vContactsSafe.isPrimary), vContactsSafe.fullName),
+        tx
+          .select({
+            id: projects.id,
+            code: projects.code,
+            title: projects.title,
+            titleAr: projects.titleAr,
+            stage: projects.stage,
+            contractedValueSar: projects.contractedValueSar,
+            deliveryDueAt: projects.deliveryDueAt,
+          })
+          .from(projects)
+          .where(eq(projects.clientId, id))
+          .orderBy(desc(projects.createdAt))
+          .limit(30),
+        tx
+          .select({
+            contactId: contactMethods.contactId,
+            type: contactMethods.methodType,
+            value: contactMethods.value,
+          })
+          .from(contactMethods)
+          .innerJoin(vContactsSafe, eq(vContactsSafe.id, contactMethods.contactId))
+          .where(eq(vContactsSafe.clientId, id)),
+      ]);
+
+      return { client, contactList, projectList, methodRows };
+    },
+  );
 
   if (!client) notFound();
 
@@ -79,37 +128,6 @@ export default async function ClientDetailPage({
     'use server';
     await addContact(id, formData);
   }
-
-  const [contactList, projectList, methodRows] = await Promise.all([
-    db
-      .select()
-      .from(contacts)
-      .where(eq(contacts.clientId, id))
-      .orderBy(desc(contacts.isPrimary), contacts.fullName),
-    db
-      .select({
-        id: projects.id,
-        code: projects.code,
-        title: projects.title,
-        titleAr: projects.titleAr,
-        stage: projects.stage,
-        contractedValueSar: projects.contractedValueSar,
-        deliveryDueAt: projects.deliveryDueAt,
-      })
-      .from(projects)
-      .where(eq(projects.clientId, id))
-      .orderBy(desc(projects.createdAt))
-      .limit(30),
-    db
-      .select({
-        contactId: contactMethods.contactId,
-        type: contactMethods.methodType,
-        value: contactMethods.value,
-      })
-      .from(contactMethods)
-      .innerJoin(contacts, eq(contacts.id, contactMethods.contactId))
-      .where(eq(contacts.clientId, id)),
-  ]);
 
   const methodsByContact = methodRows.reduce<
     Record<string, Array<{ type: string; value: string }>>
@@ -297,14 +315,14 @@ export default async function ClientDetailPage({
         ) : (
           <ul className="divide-y divide-[var(--line)]">
             {contactList.map((c) => {
-              const methods = methodsByContact[c.id] ?? [];
+              const methods = (c.id ? methodsByContact[c.id] : undefined) ?? [];
               return (
                 <li key={c.id} className="flex items-start gap-3 px-6 py-3">
-                  <Avatar name={c.fullName} size="md" />
+                  <Avatar name={c.fullName ?? '—'} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-[var(--text)]">
-                        {c.fullName}
+                        {c.fullName ?? '—'}
                       </p>
                       {c.isPrimary && (
                         <StatusPill tone="accent" withDot={false}>

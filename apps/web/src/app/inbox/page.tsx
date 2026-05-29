@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { desc, eq, sql } from 'drizzle-orm';
 import {
   db,
+  withProfileScope,
   emailDrafts,
   whatsappMessages,
   contacts,
@@ -22,6 +23,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Mail, MessageCircle, Send } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getEffectiveProfileId, canAny } from '@/lib/authz';
 import { InboxThreads, type InboxThreadRow } from './InboxThreads';
 
 export const dynamic = 'force-dynamic';
@@ -65,52 +67,77 @@ export default async function InboxPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/inbox');
 
+  // Read gate (D-037/D-039). Inbox is core, so we branch on either seeded comms
+  // read perm rather than a single hard requirePermission — this is the same
+  // OR-gate the triage actions use (requireInboxActor), and keeps the 2 admins
+  // (Claude QA / GM + Mohammed / production_director, both hold read.all) in.
+  // No perm at all → /dashboard. The row-level masking still happens in the
+  // v_email_threads_safe WHERE clause regardless (crew/freelancers see 0 rows).
+  const effectivePid = await getEffectiveProfileId();
+  const canRead = await canAny([
+    'email_threads.read.all',
+    'email_threads.read.assigned',
+  ]);
+  if (!canRead) redirect('/dashboard');
+
   const [threadsRaw, drafts, whatsapps, queueDepth] = await Promise.all([
-    // Raw SQL: we need the latest inbound message's sender + the latest
-    // message's ai_suggested_actions[0] as the "next action", which the query
-    // builder can't express cleanly. Pull a generous window (200) so the
-    // client-side noise filter still leaves plenty of actionable threads.
-    db.execute(sql`
-      SELECT
-        et.id::text AS "id",
-        et.subject AS "subject",
-        et.status::text AS "status",
-        et.category AS "category",
-        et.importance AS "importance",
-        et.message_count AS "messageCount",
-        et.last_message_at AS "lastMessageAt",
-        et.ai_summary AS "aiSummary",
-        c.name_ar AS "clientNameAr",
-        ct.full_name AS "primaryContactName",
-        pf.display_name AS "assignedName",
-        p.code AS "projectCode",
-        p.id::text AS "projectId",
-        inb.from_name AS "fromName",
-        inb.from_email AS "fromEmail",
-        na.next_action AS "nextAction"
-      FROM email_threads et
-      LEFT JOIN clients  c  ON c.id  = et.client_id
-      LEFT JOIN contacts ct ON ct.id = et.primary_contact_id
-      LEFT JOIN profiles pf ON pf.id = et.assigned_profile_id
-      LEFT JOIN projects p  ON p.id  = et.project_id
-      LEFT JOIN LATERAL (
-        SELECT from_name, from_email
-        FROM email_messages
-        WHERE thread_id = et.id AND direction = 'inbound'
-        ORDER BY sent_at DESC LIMIT 1
-      ) inb ON true
-      LEFT JOIN LATERAL (
-        SELECT (ai_suggested_actions->>0) AS next_action
-        FROM email_messages
-        WHERE thread_id = et.id
-          AND ai_suggested_actions IS NOT NULL
-          AND jsonb_typeof(ai_suggested_actions) = 'array'
-          AND jsonb_array_length(ai_suggested_actions) > 0
-        ORDER BY sent_at DESC LIMIT 1
-      ) na ON true
-      ORDER BY et.last_message_at DESC NULLS LAST
-      LIMIT 200
-    `),
+    // Masked read: route the thread list through v_email_threads_safe (row gate:
+    // read.all OR read.assigned+assigned-to-thread/project) inside ONE
+    // withProfileScope txn so current_effective_profile_id() resolves on the
+    // pinned 6543 connection. Joined entities use their own safe views so their
+    // column masks apply too (leftJoin + null-guard → "—" in the UI). The two
+    // LATERALs hit email_messages (not a masked entity) for the latest inbound
+    // sender + ai_suggested_actions[0] — the query builder can't express these
+    // cleanly, so we keep raw SQL, now scoped to the masking txn. Window of 200
+    // so the client-side noise filter still leaves plenty of actionable threads.
+    withProfileScope(effectivePid, (tx) =>
+      tx.execute(sql`
+        SELECT
+          et.id::text AS "id",
+          et.subject AS "subject",
+          et.status::text AS "status",
+          tri.category AS "category",
+          tri.importance AS "importance",
+          et.message_count AS "messageCount",
+          et.last_message_at AS "lastMessageAt",
+          et.ai_summary AS "aiSummary",
+          c.name_ar AS "clientNameAr",
+          ct.full_name AS "primaryContactName",
+          pf.display_name AS "assignedName",
+          p.code AS "projectCode",
+          p.id::text AS "projectId",
+          inb.from_name AS "fromName",
+          inb.from_email AS "fromEmail",
+          na.next_action AS "nextAction"
+        FROM v_email_threads_safe et
+        -- category/importance are triage metadata the safe view intentionally
+        -- omits; join the base row (already row-gated by the view above, so no
+        -- leak) just for those two non-masked classification columns the noise
+        -- filter + importance hints rely on.
+        JOIN email_threads tri ON tri.id = et.id
+        LEFT JOIN v_clients_safe  c  ON c.id  = et.client_id
+        LEFT JOIN v_contacts_safe ct ON ct.id = et.primary_contact_id
+        LEFT JOIN v_team_safe     pf ON pf.id = et.assigned_profile_id
+        LEFT JOIN v_projects_safe p  ON p.id  = et.project_id
+        LEFT JOIN LATERAL (
+          SELECT from_name, from_email
+          FROM email_messages
+          WHERE thread_id = et.id AND direction = 'inbound'
+          ORDER BY sent_at DESC LIMIT 1
+        ) inb ON true
+        LEFT JOIN LATERAL (
+          SELECT (ai_suggested_actions->>0) AS next_action
+          FROM email_messages
+          WHERE thread_id = et.id
+            AND ai_suggested_actions IS NOT NULL
+            AND jsonb_typeof(ai_suggested_actions) = 'array'
+            AND jsonb_array_length(ai_suggested_actions) > 0
+          ORDER BY sent_at DESC LIMIT 1
+        ) na ON true
+        ORDER BY et.last_message_at DESC NULLS LAST
+        LIMIT 200
+      `),
+    ),
     db
       .select({
         id: emailDrafts.id,

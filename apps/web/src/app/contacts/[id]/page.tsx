@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { desc, eq } from 'drizzle-orm';
-import { db, contacts, contactMethods, clients, projects } from '@antagna/db';
+import {
+  withProfileScope,
+  vContactsSafe,
+  vClientsSafe,
+  vProjectsSafe,
+  contactMethods,
+} from '@antagna/db';
 import {
   PageHeader,
   Card,
@@ -29,7 +35,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { can } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 
 export const dynamic = 'force-dynamic';
@@ -63,36 +69,50 @@ export default async function ContactDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/contacts/${id}`);
 
-  const [contact] = await db
-    .select({
-      id: contacts.id,
-      fullName: contacts.fullName,
-      fullNameAr: contacts.fullNameAr,
-      jobTitle: contacts.jobTitle,
-      jobTitleAr: contacts.jobTitleAr,
-      department: contacts.department,
-      isPrimary: contacts.isPrimary,
-      isDecisionMaker: contacts.isDecisionMaker,
-      preferredLanguage: contacts.preferredLanguage,
-      notes: contacts.notes,
-      createdAt: contacts.createdAt,
-      clientId: contacts.clientId,
-      clientNameAr: clients.nameAr,
-      clientNameEn: clients.nameEn,
-      clientCode: clients.code,
-      clientType: clients.clientType,
-      clientCity: clients.city,
-      clientWebsite: clients.websiteUrl,
-    })
-    .from(contacts)
-    .innerJoin(clients, eq(clients.id, contacts.clientId))
-    .where(eq(contacts.id, id))
-    .limit(1);
+  // Page guard + masked-scope id. requirePermission redirects signed-out →
+  // /login and lacking-permission → /dashboard, and returns the effective
+  // profile id we hand to the masking transaction (resolved once).
+  const { profileId } = await requirePermission('client.read');
 
-  if (!contact) notFound();
+  // ONE transaction wraps EVERY masked read for this page: the contact + its
+  // client (v_contacts_safe ⨝ v_clients_safe) and the client's projects
+  // (v_projects_safe). These views read app.current_profile_id, set by
+  // withProfileScope on the pinned txn connection. contact_methods is unmasked
+  // and read on the SAME tx so the page stays one transaction — do NOT nest.
+  // The reads are sequential inside the tx because methods/projects key off the
+  // contact's (possibly masked) clientId resolved by the first read.
+  const scoped = await withProfileScope(profileId, async (tx) => {
+    const [contact] = await tx
+      .select({
+        id: vContactsSafe.id,
+        fullName: vContactsSafe.fullName,
+        fullNameAr: vContactsSafe.fullNameAr,
+        jobTitle: vContactsSafe.jobTitle,
+        jobTitleAr: vContactsSafe.jobTitleAr,
+        department: vContactsSafe.department,
+        isPrimary: vContactsSafe.isPrimary,
+        isDecisionMaker: vContactsSafe.isDecisionMaker,
+        preferredLanguage: vContactsSafe.preferredLanguage,
+        notes: vContactsSafe.notes,
+        createdAt: vContactsSafe.createdAt,
+        clientId: vContactsSafe.clientId,
+        clientNameAr: vClientsSafe.nameAr,
+        clientNameEn: vClientsSafe.nameEn,
+        clientCode: vClientsSafe.code,
+        clientType: vClientsSafe.clientType,
+        clientCity: vClientsSafe.city,
+        clientWebsite: vClientsSafe.websiteUrl,
+      })
+      .from(vContactsSafe)
+      // clientId may be masked → leftJoin so the contact still renders; the
+      // client fields null-guard to "—" downstream.
+      .leftJoin(vClientsSafe, eq(vClientsSafe.id, vContactsSafe.clientId))
+      .where(eq(vContactsSafe.id, id))
+      .limit(1);
 
-  const [methods, clientProjects, canEdit] = await Promise.all([
-    db
+    if (!contact) return null;
+
+    const methods = await tx
       .select({
         id: contactMethods.id,
         type: contactMethods.methodType,
@@ -102,25 +122,40 @@ export default async function ContactDetailPage({
       })
       .from(contactMethods)
       .where(eq(contactMethods.contactId, id))
-      .orderBy(desc(contactMethods.isPrimary)),
-    db
-      .select({
-        id: projects.id,
-        code: projects.code,
-        title: projects.title,
-        titleAr: projects.titleAr,
-        stage: projects.stage,
-        contractedValueSar: projects.contractedValueSar,
-      })
-      .from(projects)
-      .where(eq(projects.clientId, contact.clientId))
-      .orderBy(desc(projects.createdAt))
-      .limit(20),
-    can('contact.update'),
-  ]);
+      .orderBy(desc(contactMethods.isPrimary));
+
+    // Only join projects when the client survived masking; a masked clientId
+    // means we have no client context to scope projects to.
+    const clientProjects = contact.clientId
+      ? await tx
+          .select({
+            id: vProjectsSafe.id,
+            code: vProjectsSafe.code,
+            title: vProjectsSafe.title,
+            titleAr: vProjectsSafe.titleAr,
+            stage: vProjectsSafe.stage,
+            contractedValueSar: vProjectsSafe.contractedValueSar,
+          })
+          .from(vProjectsSafe)
+          .where(eq(vProjectsSafe.clientId, contact.clientId))
+          .orderBy(desc(vProjectsSafe.createdAt))
+          .limit(20)
+      : [];
+
+    return { contact, methods, clientProjects };
+  });
+
+  if (!scoped) notFound();
+  const { contact, methods, clientProjects } = scoped;
+
+  // can() runs its own (non-masked) has_permission query OUTSIDE the masking
+  // transaction — never nest it inside withProfileScope.
+  const canEdit = await can('contact.update');
 
   const clientLabel =
     contact.clientNameAr ?? contact.clientNameEn ?? contact.clientCode ?? '—';
+  // fullName is NOT NULL in the base table but the safe view masks it to NULL.
+  const displayName = contact.fullName ?? '—';
 
   const hints: AIHint[] = [];
   if (methods.length === 0) {
@@ -151,7 +186,7 @@ export default async function ContactDetailPage({
 
       {hints.length > 0 && (
         <AIHints
-          context={`Antagna AI · ${contact.fullName}`}
+          context={`Antagna AI · ${displayName}`}
           headline={`${methods.length} وسيلة اتصال · ${clientLabel}`}
           hints={hints}
           compact
@@ -163,7 +198,7 @@ export default async function ContactDetailPage({
         <div className="pointer-events-none absolute -end-32 -top-32 h-72 w-72 rounded-full bg-blue-500 opacity-[0.05] blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-center gap-4">
-            <Avatar name={contact.fullName} size="lg" />
+            <Avatar name={displayName} size="lg" />
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 {contact.isPrimary && (
@@ -180,7 +215,7 @@ export default async function ContactDetailPage({
                 )}
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-[var(--text)]">
-                {contact.fullName}
+                {displayName}
               </h1>
               {contact.fullNameAr && contact.fullNameAr !== contact.fullName && (
                 <p className="text-sm text-[var(--text-muted)]">{contact.fullNameAr}</p>
@@ -190,13 +225,19 @@ export default async function ContactDetailPage({
               </p>
               <p className="flex items-center gap-1.5 text-sm">
                 <Building2 size={13} className="text-[var(--text-dim)]" />
-                <Link
-                  href={`/clients/${contact.clientId}`}
-                  className="text-[var(--accent)] hover:underline"
-                >
-                  {clientLabel}
-                </Link>
-                <StatusPill tone="neutral">{contact.clientType}</StatusPill>
+                {contact.clientId ? (
+                  <Link
+                    href={`/clients/${contact.clientId}`}
+                    className="text-[var(--accent)] hover:underline"
+                  >
+                    {clientLabel}
+                  </Link>
+                ) : (
+                  <span className="text-[var(--text-muted)]">{clientLabel}</span>
+                )}
+                {contact.clientType && (
+                  <StatusPill tone="neutral">{contact.clientType}</StatusPill>
+                )}
               </p>
             </div>
           </div>
@@ -271,13 +312,15 @@ export default async function ContactDetailPage({
             title={`مشاريع ${clientLabel}`}
             subtitle={`${clientProjects.length} مشروع`}
             action={
-              <Link
-                href={`/clients/${contact.clientId}`}
-                className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)] hover:text-[var(--accent)]"
-              >
-                <ExternalLink size={12} />
-                ملف العميل
-              </Link>
+              contact.clientId ? (
+                <Link
+                  href={`/clients/${contact.clientId}`}
+                  className="inline-flex items-center gap-1 text-xs text-[var(--text-dim)] hover:text-[var(--accent)]"
+                >
+                  <ExternalLink size={12} />
+                  ملف العميل
+                </Link>
+              ) : undefined
             }
           />
         </div>
@@ -289,7 +332,9 @@ export default async function ContactDetailPage({
           />
         ) : (
           <ul className="divide-y divide-[var(--line)]">
-            {clientProjects.map((p) => (
+            {clientProjects
+              .filter((p): p is typeof p & { id: string } => p.id != null)
+              .map((p) => (
               <li key={p.id}>
                 <Link
                   href={`/projects/${p.id}`}
@@ -297,7 +342,7 @@ export default async function ContactDetailPage({
                 >
                   <span className="font-mono text-xs text-[var(--text-dim)]">{p.code}</span>
                   <span className="flex-1 truncate text-sm text-[var(--text)]">
-                    {p.titleAr ?? p.title}
+                    {p.titleAr ?? p.title ?? '—'}
                   </span>
                   {p.contractedValueSar && (
                     <span className="font-mono text-xs text-[var(--text-muted)]">

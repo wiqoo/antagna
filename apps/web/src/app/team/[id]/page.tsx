@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
-import { db } from '@antagna/db';
+import { withProfileScope } from '@antagna/db';
 import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Award, Briefcase, History, Mail, Phone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,31 +46,41 @@ export default async function TeamMemberPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/team/${id}`);
 
-  const [pR, capR, asgR, actR] = await Promise.all([
-    db.execute(sql`
-      SELECT id::text AS id, display_name AS "displayName", display_name_en AS "displayNameEn",
-             role, status::text AS status, email, phone_e164 AS "phoneE164",
-             whatsapp_e164 AS "whatsappE164"
-      FROM profiles WHERE id = ${id}::uuid LIMIT 1`),
-    db.execute(sql`
-      SELECT c.name_ar AS name, c.category
-      FROM user_skills uc JOIN skills c ON c.key = uc.skill_key
-      WHERE uc.profile_id = ${id}::uuid ORDER BY c.category, c.position`),
-    db.execute(sql`
-      SELECT pa.role::text AS role, pa.rate_sar AS "rateSar", pa.rate_unit AS "rateUnit",
-             pa.start_date AS "startDate", pa.end_date AS "endDate",
-             p.id::text AS "projectId", COALESCE(p.title_ar, p.title) AS "projectTitle",
-             p.stage::text AS stage
-      FROM project_assignments pa
-      LEFT JOIN projects p ON p.id = pa.project_id
-      WHERE pa.profile_id = ${id}::uuid
-      ORDER BY pa.assigned_at DESC LIMIT 30`),
-    db.execute(sql`
-      SELECT action, summary_ar AS summary, created_at AS at, project_id::text AS "projectId"
-      FROM activity_events
-      WHERE actor_id = ${id}::uuid OR acted_as_id = ${id}::uuid
-      ORDER BY created_at DESC LIMIT 25`),
-  ]);
+  // Page guard: lacking team.read → /dashboard (signed-out → /login).
+  await requirePermission('team.read');
+  const effectivePid = await getEffectiveProfileId();
+
+  // The profile read goes through v_team_safe (drop-in for profiles), which
+  // masks email/phone/whatsapp for viewers who aren't self / same-dept /
+  // team.read. All four reads run in ONE withProfileScope txn so the
+  // app.current_profile_id GUC reaches the view's CASE WHEN masks.
+  const [pR, capR, asgR, actR] = await withProfileScope(effectivePid, (tx) =>
+    Promise.all([
+      tx.execute(sql`
+        SELECT id::text AS id, display_name AS "displayName", display_name_en AS "displayNameEn",
+               role, status::text AS status, email, phone_e164 AS "phoneE164",
+               whatsapp_e164 AS "whatsappE164"
+        FROM v_team_safe WHERE id = ${id}::uuid LIMIT 1`),
+      tx.execute(sql`
+        SELECT c.name_ar AS name, c.category
+        FROM user_skills uc JOIN skills c ON c.key = uc.skill_key
+        WHERE uc.profile_id = ${id}::uuid ORDER BY c.category, c.position`),
+      tx.execute(sql`
+        SELECT pa.role::text AS role, pa.rate_sar AS "rateSar", pa.rate_unit AS "rateUnit",
+               pa.start_date AS "startDate", pa.end_date AS "endDate",
+               p.id::text AS "projectId", COALESCE(p.title_ar, p.title) AS "projectTitle",
+               p.stage::text AS stage
+        FROM project_assignments pa
+        LEFT JOIN projects p ON p.id = pa.project_id
+        WHERE pa.profile_id = ${id}::uuid
+        ORDER BY pa.assigned_at DESC LIMIT 30`),
+      tx.execute(sql`
+        SELECT action, summary_ar AS summary, created_at AS at, project_id::text AS "projectId"
+        FROM activity_events
+        WHERE actor_id = ${id}::uuid OR acted_as_id = ${id}::uuid
+        ORDER BY created_at DESC LIMIT 25`),
+    ]),
+  );
 
   const person = rows<Person>(pR)[0];
   if (!person) notFound();
