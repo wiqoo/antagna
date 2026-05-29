@@ -3,7 +3,7 @@
 > **The one file Claude Code reads first each session.** Updated every time something changes.
 > Static "all ✓" tables live in `README.md`; this is the dynamic state.
 
-**Last updated:** 2026-05-29 (**Production-readiness UI/UX overhaul — Phases 0–4 DONE + live**; on top of Sprint 0)
+**Last updated:** 2026-05-30 (**inbox manual Gmail-sync button + Vercel build hardened (OOM/Sentry)**; on top of the Phases 0–4 UI/UX overhaul + Sprint 0)
 **Phase:** **UI/UX overhaul COMPLETE + live** on antagna-v2. Delivered this pass:
 (0) data reset — wiped all smoke data, kept 2 real users + equipment (172) +
 reference; seeded the real 11-person team as `invited` (no email yet). (1)
@@ -193,6 +193,22 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-30** — **Inbox manual Gmail-sync button** + **Vercel build
+  hardened**. Added a "تحديث الوارد" button on `/inbox` (`syncInboxAction` →
+  resolves connected mailbox → runs `ingestGmail` 7d/50-thread; returns a
+  structured result so an unconnected Gmail shows a friendly "اربطه من
+  الإعدادات" toast instead of a 500). Verified live (button renders, click =
+  0 console errors, graceful not-connected path). Then fixed a **chain of 3
+  prod-deploy failures** the overhaul's page-count growth exposed: (1) 8 GB
+  Vercel build container **OOM** → `experimental.webpackMemoryOptimizations`
+  + Sentry `deleteSourcemapsAfterUpload`; (2) transient Sentry **503** on
+  `releases new` → `unstable_sentryWebpackPluginOptions.errorHandler`
+  downgrades any Sentry build error to a warning (a Sentry outage can no
+  longer fail a deploy); (3) a misplaced option I shipped unvalidated →
+  fixed + now gate every config change on a full local `next build`. Deploy
+  green (`m1te8v592` ● Ready). Full-scope waves recap: **A** writes proven
+  end-to-end, **B** field-masking enforced, **C** orders/procurement +
+  admin-parity + mobile + E2E — all live.
 - **2026-05-26 (eve)** — **Dashboard shipped to production** (D-036). Applied
   the V6 "clean" skin to the real `/dashboard`: Arabic card titles (not `//`
   code), Vazirmatn body, higher contrast, per-card quick actions, Framer
