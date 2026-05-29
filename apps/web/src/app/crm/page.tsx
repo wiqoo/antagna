@@ -20,7 +20,7 @@ import {
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import Link from 'next/link';
-import { Users, Flame, Building2, Plus, Rows3, Columns3 } from 'lucide-react';
+import { Users, Flame, Building2, Plus, Rows3, Columns3, Contact } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { LeadsBoard, type LeadRow } from './leads-board';
 
@@ -212,13 +212,22 @@ export default async function CrmPage({
         title="العملاء و الفرص"
         subtitle={`${clientRows.length} عميل · ${totalActive} مشروع نشط · ${leadRows.length} lead في المسار`}
         action={
-          <Link
-            href="/clients/new"
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] active:scale-[0.98]"
-          >
-            <Plus size={16} />
-            عميل جديد
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/contacts"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text)] hover:border-[var(--accent)]"
+            >
+              <Contact size={16} />
+              جهات الاتصال
+            </Link>
+            <Link
+              href="/clients/new"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] active:scale-[0.98]"
+            >
+              <Plus size={16} />
+              عميل جديد
+            </Link>
+          </div>
         }
       />
 

@@ -21,9 +21,9 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server } from 'lucide-react';
+import { Shield, Users, Users2, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus, Server, FolderArchive, Building2 } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
-import { can } from '@/lib/authz';
+import { can, canMany } from '@/lib/authz';
 import { seedDevData } from './seed-actions';
 import { toggleAlertRule, updateAlertCooldown, toggleKpi } from './alert-actions';
 
@@ -34,7 +34,10 @@ export default async function AdminPage() {
   if (!admin) redirect('/login?next=/admin');
   const user = admin.user;
 
-  const canInvite = await can('user.invite');
+  const [canInvite, gates] = await Promise.all([
+    can('user.invite'),
+    canMany(['settings.update', 'access.manage']),
+  ]);
 
   const [people, rules, kpis, permList, roleGrants] = await Promise.all([
     db
@@ -151,6 +154,34 @@ export default async function AdminPage() {
           subtitle="تحكّم دقيق لكل إجراء + استثناءات وقدرات لكل مستخدم"
         />
         <AdminToolLink
+          href="/admin/departments"
+          icon={<Building2 size={18} />}
+          title="الأقسام"
+          subtitle="هيكل الفريق — أنشئ الأقسام وعيّن رؤساءها واربط الموظفين بها"
+        />
+        <AdminToolLink
+          href="/admin/skills"
+          icon={<Sparkles size={18} />}
+          title="كتالوج المهارات"
+          subtitle="القدرات الإنتاجية (مصوّر، مونتير، طيّار درون…) — أضف، رتّب، وفعّل/عطّل"
+        />
+        {gates['access.manage'] && (
+          <AdminToolLink
+            href="/admin/groups"
+            icon={<Users2 size={18} />}
+            title="المجموعات / Squads"
+            subtitle="فرق متكرّرة (طاقم تصوير، فريق مونتاج…) تُسنَد للمشاريع دفعة واحدة"
+          />
+        )}
+        {gates['settings.update'] && (
+          <AdminToolLink
+            href="/admin/custom-fields"
+            icon={<SlidersHorizontal size={18} />}
+            title="الحقول المخصّصة"
+            subtitle="عرّف حقول بيانات إضافية لكل كيان (مشاريع، عملاء، معدات…)"
+          />
+        )}
+        <AdminToolLink
           href="/admin/system"
           icon={<Server size={18} />}
           title="وحدة تحكّم النظام"
@@ -161,6 +192,12 @@ export default async function AdminPage() {
           icon={<SlidersHorizontal size={18} />}
           title="قواعد التنبيهات والمؤشرات"
           subtitle="حرّر منطق المراقبة — التنبيهات وحدود مؤشرات الأداء"
+        />
+        <AdminToolLink
+          href="/assets"
+          icon={<FolderArchive size={18} />}
+          title="أصول الشركة"
+          subtitle="سجل موحّد للعقود والتراخيص والتأمين والهوية البصرية وكل المرفقات"
         />
         <AdminToolLink
           href="/system-map"

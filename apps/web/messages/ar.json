@@ -9,10 +9,13 @@
     "notifications": "الإشعارات",
     "calendar": "التقويم",
     "clients": "العملاء",
+    "contacts": "جهات الاتصال",
     "equipment": "المعدات",
     "repairs": "الصيانة",
+    "assets": "أصول الشركة",
     "social": "التواصل الاجتماعي",
     "team": "الفريق",
+    "employees": "الموظفون",
     "kpis": "مؤشرات الأداء",
     "reports": "التقارير",
     "admin": "الإدارة",
@@ -23,7 +26,8 @@
     "sidebar": "القائمة الجانبية",
     "bottomNav": "شريط التنقّل",
     "attendance": "الحضور",
-    "whatsapp": "محادثات WhatsApp"
+    "whatsapp": "محادثات WhatsApp",
+    "meetings": "الاجتماعات"
   },
   "topbar": {
     "newProject": "مشروع",

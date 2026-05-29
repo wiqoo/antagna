@@ -35,6 +35,8 @@ const QUICK_ACTIONS: CommandResult[] = [
   { type: 'project', id: '__new-project', label: 'مشروع جديد', sublabel: 'إنشاء', href: '/projects/new' },
   { type: 'client', id: '__nav-clients', label: 'كل العملاء', href: '/crm' },
   { type: 'client', id: '__new-client', label: 'عميل جديد', sublabel: 'إنشاء', href: '/clients/new' },
+  { type: 'client', id: '__nav-contacts', label: 'جهات الاتصال', href: '/contacts' },
+  { type: 'client', id: '__new-contact', label: 'جهة اتصال جديدة', sublabel: 'إنشاء', href: '/contacts/new' },
   { type: 'equipment', id: '__nav-eq', label: 'كل المعدات', href: '/equipment' },
   { type: 'equipment', id: '__nav-eq-res', label: 'حجوزات المعدات', sublabel: 'تسليم/استرجاع', href: '/equipment/reservations' },
   { type: 'equipment', id: '__new-eq', label: 'معدّة جديدة', sublabel: 'إنشاء', href: '/equipment/new' },

@@ -9,10 +9,13 @@
     "notifications": "Notifications",
     "calendar": "Calendar",
     "clients": "Clients",
+    "contacts": "Contacts",
     "equipment": "Equipment",
     "repairs": "Repairs",
+    "assets": "Company Assets",
     "social": "Social",
     "team": "Team",
+    "employees": "Employees",
     "kpis": "KPIs",
     "reports": "Reports",
     "admin": "Admin",
@@ -23,7 +26,8 @@
     "sidebar": "Side menu",
     "bottomNav": "Bottom navigation",
     "attendance": "Attendance",
-    "whatsapp": "WhatsApp threads"
+    "whatsapp": "WhatsApp threads",
+    "meetings": "Meetings"
   },
   "topbar": {
     "newProject": "Project",

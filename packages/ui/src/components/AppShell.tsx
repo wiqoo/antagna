@@ -5,6 +5,7 @@ import {
   ListChecks,
   Inbox,
   Users,
+  Contact,
   Camera,
   UserSquare2,
   Calendar,
@@ -22,6 +23,9 @@ import {
   Bell,
   CheckCircle2,
   Wrench,
+  FolderArchive,
+  CalendarDays,
+  IdCard,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -57,10 +61,14 @@ const NAV_GROUPS: NavGroup[] = [
     headingKey: 'groupWork', heading: 'العمل',
     items: [
       { href: '/crm', key: 'clients', label: 'العملاء', icon: Users },
+      { href: '/contacts', key: 'contacts', label: 'جهات الاتصال', icon: Contact },
       { href: '/equipment', key: 'equipment', label: 'المعدات', icon: Camera },
       { href: '/equipment/repairs', key: 'repairs', label: 'الصيانة', icon: Wrench },
+      { href: '/assets', key: 'assets', label: 'أصول الشركة', icon: FolderArchive },
       { href: '/social', key: 'social', label: 'السوشيال', icon: Megaphone },
       { href: '/team', key: 'team', label: 'الفريق', icon: UserSquare2 },
+      { href: '/employees', key: 'employees', label: 'الموظفون', icon: IdCard },
+      { href: '/meetings', key: 'meetings', label: 'الاجتماعات', icon: CalendarDays },
       { href: '/attendance', key: 'attendance', label: 'الحضور', icon: Clock },
       { href: '/whatsapp', key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
     ],
