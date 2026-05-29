@@ -366,7 +366,16 @@ export default async function CrmPage({
           <EmptyState
             icon={<Users size={20} />}
             title="لا توجد عملاء بعد"
-            description="سيتم استيراد العملاء من legacy DB في Pillar 15."
+            description="ابدأ بإضافة أول عميل، أو سيتم استيراد العملاء من legacy DB في Pillar 15."
+            action={
+              <Link
+                href="/clients/new"
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] active:scale-[0.98]"
+              >
+                <Plus size={15} />
+                عميل جديد
+              </Link>
+            }
           />
         ) : (
           <div className="overflow-x-auto">

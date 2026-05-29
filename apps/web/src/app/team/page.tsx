@@ -13,7 +13,7 @@ import {
 } from '@antagna/ui';
 import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { UserSquare2, Briefcase, Users, Sparkles } from 'lucide-react';
+import { UserSquare2, Briefcase, Users, Sparkles, Award } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -148,7 +148,7 @@ export default async function TeamPage() {
         title="الفريق"
         subtitle="أعضاء Volt Production · المهارات · الأقسام · توزيع المشاريع."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/freelancers"
               className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-[12px] font-medium text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
@@ -268,38 +268,44 @@ export default async function TeamPage() {
         ))
       )}
 
-      {caps.length > 0 && (
-        <section className="space-y-3">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-              — كتالوج المهارات
-            </h2>
-            <span className="text-[10px] text-[var(--text-dim)]">
-              {caps.length} مهارة
-            </span>
-          </div>
-          <Card padded={false}>
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+            — كتالوج المهارات
+          </h2>
+          <span className="text-[10px] text-[var(--text-dim)]">
+            {caps.length} مهارة
+          </span>
+        </div>
+        <Card padded={false}>
+          {caps.length === 0 ? (
+            <EmptyState
+              icon={<Award size={18} />}
+              title="لا توجد مهارات في الكتالوج بعد"
+              description="أضف مهارات الفريق لتحسين توزيع المشاريع والـ matching المستقبلي."
+            />
+          ) : (
             <div className="grid grid-cols-1 divide-y divide-[var(--line)] md:grid-cols-2 md:divide-x md:divide-y-0 md:divide-x-reverse">
               {caps.map((c) => (
                 <div
                   key={c.key}
-                  className="flex items-center justify-between px-5 py-3"
+                  className="flex items-center justify-between gap-3 px-5 py-3"
                 >
-                  <div>
-                    <p className="text-[13px] text-[var(--text)]">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] text-[var(--text)]">
                       {c.nameAr}
                     </p>
-                    <p className="text-[10px] text-[var(--text-dim)]">
+                    <p className="truncate text-[10px] text-[var(--text-dim)]">
                       {c.nameEn} · {c.category ?? '—'}
                     </p>
                   </div>
-                  <Briefcase size={13} className="text-[var(--text-dim)]" />
+                  <Briefcase size={13} className="shrink-0 text-[var(--text-dim)]" />
                 </div>
               ))}
             </div>
-          </Card>
-        </section>
-      )}
+          )}
+        </Card>
+      </section>
 
       <div className="flex items-center justify-between border-t border-[var(--line)] pt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--text-dim)]">
         <span>— Antagna Team</span>

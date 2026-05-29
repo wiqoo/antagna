@@ -273,8 +273,8 @@ export default async function ReportsPage() {
           <Card>
             <EmptyState
               icon={<Briefcase size={18} />}
-              title="لا توجد مشاريع"
-              description=""
+              title="لا توجد مشاريع نشطة"
+              description="سيظهر توزيع المراحل هنا أول ما تُنشأ المشاريع."
             />
           </Card>
         ) : (
@@ -283,9 +283,9 @@ export default async function ReportsPage() {
               {stageArr.map((s) => (
                 <li
                   key={s.stage}
-                  className="grid grid-cols-[140px_1fr_auto] items-center gap-4 px-6 py-3"
+                  className="grid grid-cols-[88px_1fr_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[140px_1fr_auto] sm:gap-4 sm:px-6"
                 >
-                  <span className="text-[12px] text-[var(--text)]">
+                  <span className="truncate text-[12px] text-[var(--text)]">
                     {s.stage}
                   </span>
                   <div className="relative h-2 overflow-hidden rounded-full bg-[var(--surface)]">
@@ -318,7 +318,11 @@ export default async function ReportsPage() {
         </header>
         {clientArr.length === 0 ? (
           <Card>
-            <EmptyState icon={<Briefcase size={18} />} title="لا توجد بيانات" description="" />
+            <EmptyState
+              icon={<Briefcase size={18} />}
+              title="لا توجد بيانات عملاء بعد"
+              description="سيظهر ترتيب أفضل العملاء بعد تسليم أول مشروع."
+            />
           </Card>
         ) : (
           <Card padded={false}>
@@ -383,8 +387,8 @@ export default async function ReportsPage() {
           <Card>
             <EmptyState
               icon={<Briefcase size={18} />}
-              title="لا توجد تعيينات"
-              description=""
+              title="لا توجد تعيينات نشطة"
+              description="سيظهر توزيع أحمال الفريق بعد إسناد المشاريع لأعضاء الفريق."
             />
           </Card>
         ) : (
@@ -393,9 +397,9 @@ export default async function ReportsPage() {
               {teamArr.map((t) => (
                 <li
                   key={t.profile_id}
-                  className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-6 py-3"
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6"
                 >
-                  <span className="text-[13px] text-[var(--text)]">
+                  <span className="truncate text-[13px] text-[var(--text)]">
                     {t.display_name}
                   </span>
                   <StatusPill

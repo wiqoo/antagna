@@ -14,12 +14,12 @@ import {
   StatusPill,
   EmptyState,
   Counter,
-  MoneyDisplay,
   AIHints,
   type AIHint,
 } from '@antagna/ui';
 import { StatBox } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
+import { EquipmentCatalog } from './EquipmentCatalog';
 import Link from 'next/link';
 import {
   Camera,
@@ -35,22 +35,6 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
-
-const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = {
-  available: 'success',
-  checked_out: 'warning',
-  repair: 'danger',
-  lost: 'danger',
-  retired: 'neutral',
-};
-
-const STATUS_LABEL_AR: Record<string, string> = {
-  available: 'متاح',
-  checked_out: 'في الموقع',
-  repair: 'صيانة',
-  lost: 'مفقود',
-  retired: 'متقاعد',
-};
 
 export default async function EquipmentPage({
   searchParams,
@@ -84,6 +68,7 @@ export default async function EquipmentPage({
         currentLocation: equipment.currentLocation,
         insuranceValueSar: equipment.insuranceValueSar,
         requiresCharging: equipment.requiresCharging,
+        photoUrl: equipment.photoUrl,
         groupNameAr: equipmentGroups.nameAr,
       })
       .from(equipment)
@@ -126,13 +111,11 @@ export default async function EquipmentPage({
       .limit(30),
   ]);
 
-  // Apply URL filters (?status=… / ?category=…) — the AI hints' actions link
-  // here, and chips below let users clear or switch.
-  const filteredItems = items.filter((it) => {
-    if (statusFilter && it.status !== statusFilter) return false;
-    if (categoryFilter && it.category !== categoryFilter) return false;
-    return true;
-  });
+  // ?status= / ?category= AI-hint deep links become the catalog's initial
+  // filters (applied client-side inside ListWorkspace).
+  const initialFilters: Record<string, string> = {};
+  if (statusFilter) initialFilters.status = statusFilter;
+  if (categoryFilter) initialFilters.category = categoryFilter;
 
   const totalCount = items.length;
   const availableCount = statusCounts.find((s) => s.status === 'available')?.count ?? 0;
@@ -142,11 +125,6 @@ export default async function EquipmentPage({
     (s, i) => s + (i.insuranceValueSar ? Number(i.insuranceValueSar) : 0),
     0,
   );
-
-  const byCategory = filteredItems.reduce<Record<string, typeof items>>((acc, it) => {
-    (acc[it.category] ??= []).push(it);
-    return acc;
-  }, {});
 
   // ── AI hints from real data ────────────────────────────────────────────
   const reservationsByEq = new Map<string, number>();
@@ -225,43 +203,6 @@ export default async function EquipmentPage({
           </div>
         }
       />
-
-      {(statusFilter || categoryFilter) && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-[var(--text-dim)]">تصفية نشطة:</span>
-          {statusFilter && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1 text-[12px] text-[var(--accent)]">
-              الحالة: {STATUS_LABEL_AR[statusFilter] ?? statusFilter}
-              <Link
-                href={`/equipment${categoryFilter ? `?category=${categoryFilter}` : ''}`}
-                aria-label="إزالة فلتر الحالة"
-              >
-                ✕
-              </Link>
-            </span>
-          )}
-          {categoryFilter && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1 text-[12px] text-[var(--accent)]">
-              الفئة: {categoryFilter}
-              <Link
-                href={`/equipment${statusFilter ? `?status=${statusFilter}` : ''}`}
-                aria-label="إزالة فلتر الفئة"
-              >
-                ✕
-              </Link>
-            </span>
-          )}
-          <Link
-            href="/equipment"
-            className="text-[11px] text-[var(--text-muted)] underline hover:text-[var(--text)]"
-          >
-            مسح كل الفلاتر
-          </Link>
-          <span className="ms-auto text-[11px] text-[var(--text-dim)]">
-            {filteredItems.length} من {totalCount}
-          </span>
-        </div>
-      )}
 
       <section className="grid grid-cols-2 gap-4 stagger-in md:grid-cols-4">
         <StatBox
@@ -411,7 +352,7 @@ export default async function EquipmentPage({
         )}
       </section>
 
-      <section className="space-y-8">
+      <section className="space-y-5">
         <header className="flex items-end justify-between gap-4">
           <div>
             <p className="section-rule" style={{ minWidth: 100 }}>
@@ -422,11 +363,11 @@ export default async function EquipmentPage({
             </h2>
           </div>
           <span className="text-[11px] text-[var(--text-muted)]">
-            {items.length} وحدة · {Object.keys(byCategory).length} فئة
+            {totalCount} وحدة
           </span>
         </header>
 
-        {Object.keys(byCategory).length === 0 ? (
+        {totalCount === 0 ? (
           <Card>
             <EmptyState
               icon={<Camera size={18} />}
@@ -435,7 +376,7 @@ export default async function EquipmentPage({
               action={
                 <Link
                   href="/equipment/new"
-                  className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-black hover:bg-[var(--accent-hover)]"
+                  className="magnet inline-flex h-9 items-center gap-2 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-white hover:bg-[var(--accent-hover)]"
                 >
                   <Plus size={14} />
                   إضافة معدّة
@@ -444,93 +385,12 @@ export default async function EquipmentPage({
             />
           </Card>
         ) : (
-          Object.entries(byCategory).map(([cat, list]) => (
-            <div key={cat} className="space-y-3">
-              <div className="flex items-baseline justify-between">
-                <h3 className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                  {cat}
-                </h3>
-                <span className="text-[10px] text-[var(--text-dim)]">
-                  {list.length} وحدة
-                </span>
-              </div>
-              <div className="overflow-hidden rounded-lg border border-[var(--line)]">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[var(--line)] bg-[var(--bg-elevated)]/60">
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                        Model
-                      </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                        Serial
-                      </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                        Location
-                      </th>
-                      <th className="px-5 py-3 text-end text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                        Insurance
-                      </th>
-                      <th className="px-5 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-dim)]">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--line)]">
-                    {list.map((it) => (
-                      <tr
-                        key={it.id}
-                        className="bg-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/80"
-                      >
-                        <td className="px-5 py-3.5">
-                          <Link href={`/equipment/${it.id}`} className="group block">
-                            <div className="text-[13px] text-[var(--text)] group-hover:text-[var(--accent)]">
-                              {it.manufacturer && (
-                                <span className="text-[var(--text-dim)]">
-                                  {it.manufacturer}{' '}
-                                </span>
-                              )}
-                              {it.model}
-                              {it.requiresCharging && (
-                                <Battery
-                                  size={11}
-                                  className="ms-2 inline text-[var(--text-dim)]"
-                                />
-                              )}
-                            </div>
-                            <div className="mt-0.5 font-mono text-[10px] text-[var(--text-dim)] opacity-70">
-                              {it.code}
-                            </div>
-                          </Link>
-                        </td>
-                        <td className="px-5 py-3.5 font-mono text-[11px] text-[var(--text-dim)]">
-                          {it.serialNumber ?? '—'}
-                        </td>
-                        <td className="px-5 py-3.5 text-[12px] text-[var(--text-muted)]">
-                          {it.currentLocation}
-                        </td>
-                        <td className="px-5 py-3.5 text-end">
-                          {it.insuranceValueSar ? (
-                            <MoneyDisplay
-                              amount={Number(it.insuranceValueSar)}
-                              currency="SAR"
-                              className="text-[12px]"
-                            />
-                          ) : (
-                            <span className="text-[11px] text-[var(--text-dim)]">—</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <StatusPill tone={STATUS_TONE[it.status] ?? 'neutral'}>
-                            {STATUS_LABEL_AR[it.status] ?? it.status}
-                          </StatusPill>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))
+          <EquipmentCatalog
+            items={items}
+            initialFilters={
+              Object.keys(initialFilters).length > 0 ? initialFilters : undefined
+            }
+          />
         )}
       </section>
 

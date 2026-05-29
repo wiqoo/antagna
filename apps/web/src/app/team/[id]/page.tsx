@@ -183,8 +183,8 @@ export default async function TeamMemberPage({
             ) : (
               <ul className="divide-y divide-[var(--line)]">
                 {assignments.map((a, i) => (
-                  <li key={i} className="flex items-center justify-between gap-3 px-6 py-3">
-                    <div className="min-w-0">
+                  <li key={i} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-5 py-3 sm:px-6">
+                    <div className="min-w-0 flex-1">
                       {a.projectId ? (
                         <Link
                           href={`/projects/${a.projectId}`}
@@ -224,12 +224,12 @@ export default async function TeamMemberPage({
                 {activity.map((a, i) => (
                   <li
                     key={i}
-                    className="flex items-start gap-3 border-t border-[var(--line)] px-6 py-3 first:border-t-0"
+                    className="flex items-start gap-3 border-t border-[var(--line)] px-5 py-3 first:border-t-0 sm:px-6"
                   >
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] text-[var(--text)]">{a.summary ?? a.action}</p>
-                      <p className="mt-0.5 flex items-center gap-2 text-[11px] text-[var(--text-dim)]">
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-dim)]">
                         <span className="font-mono">{a.action}</span>
                         <span>·</span>
                         <span className="font-mono">

@@ -136,7 +136,7 @@ export default async function SocialPage() {
         subtitle={t('subtitle')}
       />
 
-      <section className="grid grid-cols-3 gap-4 stagger-in">
+      <section className="grid grid-cols-1 gap-4 stagger-in sm:grid-cols-3">
         <StatBox label="حسابات" value={accounts.length} />
         <StatBox
           label="إجمالي متابعين"
@@ -293,7 +293,7 @@ export default async function SocialPage() {
                 return (
                   <li
                     key={p.id}
-                    className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-6 py-3"
+                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[auto_1fr_auto_auto] sm:gap-4 sm:px-6"
                   >
                     <Icon size={14} className="text-[var(--text-dim)]" />
                     <div className="min-w-0">
@@ -304,7 +304,9 @@ export default async function SocialPage() {
                         @{p.accountHandle} · {p.ownerLabel}
                       </p>
                     </div>
-                    <StatusPill tone="neutral">{p.format}</StatusPill>
+                    <StatusPill tone="neutral" className="hidden sm:inline-flex">
+                      {p.format}
+                    </StatusPill>
                     <StatusPill tone={POST_STATUS_TONE[p.status] ?? 'neutral'}>
                       {p.status}
                     </StatusPill>

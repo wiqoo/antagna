@@ -18,26 +18,15 @@ import {
   CardHeader,
   StatusPill,
   EmptyState,
-  Avatar,
   AIHints,
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { Mail, MessageCircle, Send } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { InboxThreads, type InboxThreadRow } from './InboxThreads';
 
 export const dynamic = 'force-dynamic';
-
-const THREAD_STATUS_TONE: Record<
-  string,
-  'info' | 'warning' | 'danger' | 'success' | 'neutral'
-> = {
-  open: 'info',
-  in_progress: 'warning',
-  waiting_client: 'warning',
-  closed: 'success',
-  spam: 'danger',
-};
 
 const DRAFT_STATUS_TONE: Record<
   string,
@@ -121,6 +110,20 @@ export default async function InboxPage() {
       .groupBy(emailDrafts.status),
   ]);
 
+  const threadRows: InboxThreadRow[] = threads.map((t) => ({
+    id: t.id,
+    subject: t.subject,
+    status: t.status,
+    messageCount: t.messageCount,
+    lastMessageAt: t.lastMessageAt ? new Date(t.lastMessageAt).toISOString() : null,
+    aiSummary: t.aiSummary,
+    clientNameAr: t.clientNameAr,
+    primaryContactName: t.primaryContactName,
+    assignedName: t.assignedName,
+    projectCode: t.projectCode,
+    projectId: t.projectId,
+  }));
+
   const awaitingReview =
     queueDepth.find((q) => q.status === 'awaiting_review')?.count ?? 0;
   const failed = queueDepth.find((q) => q.status === 'failed')?.count ?? 0;
@@ -189,7 +192,7 @@ export default async function InboxPage() {
         }
       />
 
-      {/* Threads */}
+      {/* Threads — retrofitted onto ListWorkspace */}
       <Card padded={false}>
         <div className="p-6 pb-4">
           <CardHeader
@@ -203,64 +206,9 @@ export default async function InboxPage() {
             }
           />
         </div>
-        {threads.length === 0 ? (
-          <EmptyState
-            icon={<Mail size={20} />}
-            title="لا threads بعد"
-            description="Gmail Pub/Sub watch لا يزال manual setup. عند تفعيله ستظهر الـ threads هنا."
-          />
-        ) : (
-          <ul className="divide-y divide-[var(--line)]">
-            {threads.map((t) => (
-              <li key={t.id}>
-                <Link
-                  href={`/inbox/${t.id}`}
-                  className="flex items-start gap-3 px-6 py-3.5 hover:bg-[var(--surface-hover)]"
-                >
-                <Avatar name={t.clientNameAr ?? t.primaryContactName ?? '?'} size="md" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-[var(--text)]">
-                      {t.subject ?? '(بدون عنوان)'}
-                    </p>
-                    <StatusPill tone={THREAD_STATUS_TONE[t.status] ?? 'neutral'}>
-                      {t.status}
-                    </StatusPill>
-                  </div>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                    {t.clientNameAr ?? '—'}
-                    {t.primaryContactName && <> · {t.primaryContactName}</>}
-                    {t.projectCode && t.projectId && (
-                      <>
-                        {' '}·{' '}
-                        <a
-                          href={`/projects/${t.projectId}`}
-                          className="font-mono text-[var(--accent)] hover:underline"
-                        >
-                          {t.projectCode}
-                        </a>
-                      </>
-                    )}
-                    {t.assignedName && <> · {t.assignedName}</>}{' '}
-                    · {t.messageCount} msg
-                  </p>
-                  {t.aiSummary && (
-                    <p className="mt-1 text-xs text-[var(--text)]">{t.aiSummary}</p>
-                  )}
-                </div>
-                <div className="font-mono text-[10px] text-[var(--text-dim)]">
-                  {t.lastMessageAt
-                    ? new Date(t.lastMessageAt)
-                        .toISOString()
-                        .slice(0, 16)
-                        .replace('T', ' ')
-                    : '—'}
-                </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="px-6 pb-6">
+          <InboxThreads rows={threadRows} />
+        </div>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
