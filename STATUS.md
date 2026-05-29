@@ -33,10 +33,11 @@ RED by design — delete the override row when ready) + real invite-email dispat
 > 2. 🔲 **When approved:** seed real users (Ahmed `ahmedakj.1423@gmail.com`
 >    trainee, Abu Luka `mo.malki88@gmail.com` GM+Creative) + enable invite-email
 >    dispatch in `/admin/invite-user` (category-5 — currently stubbed).
-> 3. ⏳ **Remaining page switchover** (lower-priority): `/crm`, `/clients/[id]`,
->    `/equipment`, `/inbox`, `/team` detail still read base tables — switch to
->    their `v_*_safe` views via `withProfileScope` for full field-masking
->    coverage (projects + dashboard already done).
+> 3. ✅ **Page switchover DONE** — 8 read pages (projects list+detail, crm,
+>    clients/[id], equipment list+detail, inbox, team/[id]) now read `v_*_safe`
+>    via `withProfileScope`. Verified live with view-as (خالد PM sees 3 assigned
+>    projects, القيمة masked to "—"). Remaining base-table reads are non-masked
+>    aux queries (option lists, aggregate signals) — fine.
 > 4. ⏭️ **Then Sprint 1** — Approval Primitive + AI Command Bar Phase A.
 > 3. ⏳ Replace the heuristic project_health / at_risk scoring with a
 >    real LLM/AI scorer.
