@@ -55,6 +55,31 @@ export default async function ClientDetailPage({
 
   if (!client) notFound();
 
+  // v_clients_safe can return a NON-NULL row whose masked columns are NULL
+  // (field-level masking). Guard every field the JSX renders so we never paint
+  // a literal "null". Robust whether the page reads the safe view or the base
+  // table.
+  const nameAr = client.nameAr ?? 'العميل';
+  const nameEn = client.nameEn ?? null;
+  const code = client.code ?? '—';
+  const clientType = client.clientType ?? '—';
+  const industry = client.industry ?? null;
+  const city = client.city ?? null;
+  const country = client.country ?? null;
+  const websiteUrl = client.websiteUrl ?? null;
+  const legalName = client.legalName ?? null;
+  const vatNumber = client.vatNumber ?? null;
+  const crNumber = client.crNumber ?? null;
+  const notes = client.notes ?? null;
+
+  // Void-returning wrapper: addContact now returns a structured { ok, error }
+  // result, but a <form action> must resolve to void. We discard the result
+  // here (the page re-renders via revalidatePath inside addContact).
+  async function addContactAction(formData: FormData): Promise<void> {
+    'use server';
+    await addContact(id, formData);
+  }
+
   const [contactList, projectList, methodRows] = await Promise.all([
     db
       .select()
@@ -146,7 +171,7 @@ export default async function ClientDetailPage({
 
       {hints.length > 0 && (
         <AIHints
-          context={`Antagna AI · ${client.nameAr}`}
+          context={`Antagna AI · ${nameAr}`}
           headline={`${projectList.length} مشروع · ${activeProjects.length} نشط`}
           hints={hints}
           compact
@@ -157,32 +182,32 @@ export default async function ClientDetailPage({
         <div className="pointer-events-none absolute -end-32 -top-32 h-72 w-72 rounded-full bg-blue-500 opacity-[0.05] blur-3xl" />
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-center gap-4">
-            <Avatar name={client.nameAr} size="lg" />
+            <Avatar name={nameAr} size="lg" />
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="rounded-md bg-[var(--surface)] px-2 py-0.5 font-mono text-[11px] text-[var(--text-muted)]">
-                  {client.code}
+                  {code}
                 </span>
-                <StatusPill tone="neutral">{client.clientType}</StatusPill>
-                {client.industry && (
+                <StatusPill tone="neutral">{clientType}</StatusPill>
+                {industry && (
                   <StatusPill tone="info" withDot={false}>
-                    {client.industry}
+                    {industry}
                   </StatusPill>
                 )}
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-[var(--text)]">
-                {client.nameAr}
+                {nameAr}
               </h1>
-              {client.nameEn && (
-                <p className="text-sm text-[var(--text-muted)]">{client.nameEn}</p>
+              {nameEn && (
+                <p className="text-sm text-[var(--text-muted)]">{nameEn}</p>
               )}
               <p className="text-sm text-[var(--text-muted)]">
-                {[client.city, client.country].filter(Boolean).join(' · ')}
-                {client.websiteUrl && (
+                {[city, country].filter(Boolean).join(' · ') || '—'}
+                {websiteUrl && (
                   <>
                     {' '}·{' '}
                     <a
-                      href={client.websiteUrl}
+                      href={websiteUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
@@ -203,24 +228,24 @@ export default async function ClientDetailPage({
             تعديل
           </Link>
         </div>
-        {(client.vatNumber || client.crNumber || client.legalName) && (
+        {(vatNumber || crNumber || legalName) && (
           <div className="relative mt-6 grid grid-cols-1 gap-3 border-t border-[var(--line)] pt-4 text-xs md:grid-cols-3">
-            {client.legalName && (
+            {legalName && (
               <div>
                 <p className="text-[var(--text-dim)]">الاسم القانوني</p>
-                <p className="mt-0.5 text-[var(--text)]">{client.legalName}</p>
+                <p className="mt-0.5 text-[var(--text)]">{legalName}</p>
               </div>
             )}
-            {client.vatNumber && (
+            {vatNumber && (
               <div>
                 <p className="text-[var(--text-dim)]">VAT</p>
-                <p className="mt-0.5 font-mono text-[var(--text)]">{client.vatNumber}</p>
+                <p className="mt-0.5 font-mono text-[var(--text)]">{vatNumber}</p>
               </div>
             )}
-            {client.crNumber && (
+            {crNumber && (
               <div>
                 <p className="text-[var(--text-dim)]">CR</p>
-                <p className="mt-0.5 font-mono text-[var(--text)]">{client.crNumber}</p>
+                <p className="mt-0.5 font-mono text-[var(--text)]">{crNumber}</p>
               </div>
             )}
           </div>
@@ -235,7 +260,7 @@ export default async function ClientDetailPage({
             subtitle={`${contactList.length} جهة`}
           />
           <form
-            action={addContact.bind(null, id)}
+            action={addContactAction}
             className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1.5fr_1fr_1fr_auto]"
           >
             <input
@@ -371,13 +396,13 @@ export default async function ClientDetailPage({
         )}
       </Card>
 
-      {client.notes && (
+      {notes && (
         <Card>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-dim)]">
             ملاحظات
           </h3>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]">
-            {client.notes}
+            {notes}
           </p>
         </Card>
       )}

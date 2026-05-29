@@ -1,11 +1,13 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { sql, eq } from 'drizzle-orm';
-import { db, profiles } from '@antagna/db';
+import { sql } from 'drizzle-orm';
+import { db, withActor } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { writeActivity } from '@/lib/activity';
+import { requirePermissionAction } from '@/lib/authz';
+import { parseNum, parseDate } from '@/lib/parse';
 
 // ════════════════════════════════════════════════════════════════════════════
 // AI PARSE — extract rich brief from any pasted text (email / WhatsApp / doc)
@@ -114,19 +116,7 @@ export async function parseBriefRich(
 // ════════════════════════════════════════════════════════════════════════════
 
 export async function createProject(formData: FormData) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/projects/new');
-
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
-
-  if (actor) {
-    await db.execute(sql`SELECT set_config('app.acting_as', ${actor.id}, true)`);
-  }
+  const pid = await requirePermissionAction('project.create');
 
   // ── Basics ─────────────────────────────────────────────────────────────
   const clientId = formData.get('clientId')?.toString();
@@ -141,7 +131,7 @@ export async function createProject(formData: FormData) {
 
   // ── Section 1: Client & Commercial ────────────────────────────────────
   const agencyId = formData.get('agencyId')?.toString() || null;
-  const budgetSar = formData.get('budgetSar')?.toString() || null;
+  const budgetSar = parseNum(formData.get('budgetSar'));
 
   // ── Section 2: Creative ───────────────────────────────────────────────
   const objective = formData.get('objective')?.toString() || null;
@@ -149,9 +139,9 @@ export async function createProject(formData: FormData) {
   const toneStyle = formData.get('toneStyle')?.toString() || null;
 
   // ── Section 3: Logistics ──────────────────────────────────────────────
-  const shootStartsAt = formData.get('shootStartsAt')?.toString() || null;
-  const shootEndsAt = formData.get('shootEndsAt')?.toString() || null;
-  const deliveryDueAt = formData.get('deliveryDueAt')?.toString() || null;
+  const shootStartsAt = parseDate(formData.get('shootStartsAt'));
+  const shootEndsAt = parseDate(formData.get('shootEndsAt'));
+  const deliveryDueAt = parseDate(formData.get('deliveryDueAt'));
 
   const locationsJson = formData.get('locations')?.toString() || '[]';
   const languagesCsv = formData.get('languages')?.toString() || '';
@@ -200,152 +190,161 @@ export async function createProject(formData: FormData) {
   }
 
   // ════════════════════════════════════════════════════════════════════════
-  // INSERT — wrap in a transaction
+  // INSERT — one atomic transaction (audit actor set + all rows). A mid-flight
+  // error rolls back the whole thing, so there's no orphan project.
   // ════════════════════════════════════════════════════════════════════════
-  let newId = '';
+  const newId = await withActor(pid, async (tx) => {
+    let id = '';
 
-  if (templateId) {
-    const res = await db.execute<{ id: string }>(
-      sql`SELECT public.fn_create_project_from_template(
-        ${templateId}::uuid, ${clientId}::uuid, ${title}::text,
-        ${projectType}::project_type
-      ) AS id`,
-    );
-    newId = (res as unknown as Array<{ id: string }>)[0]?.id ?? '';
-  } else {
-    const res = await db.execute<{ id: string }>(sql`
-      INSERT INTO projects (
-        title, title_ar, description, client_id, agency_id,
-        project_type, stage,
-        project_manager_id, account_manager_id, production_manager_id,
-        contracted_value_sar,
-        delivery_due_at, shoot_starts_at, shoot_ends_at,
-        brief_received_at,
-        custom_fields,
-        created_by
-      ) VALUES (
-        ${title}, ${titleAr}, ${description},
-        ${clientId}::uuid,
-        ${agencyId ? sql`${agencyId}::uuid` : sql`NULL`},
-        ${projectType}::project_type, 'brief'::project_stage,
-        ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
-        ${amId ? sql`${amId}::uuid` : sql`NULL`},
-        ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},
-        ${budgetSar ? sql`${budgetSar}::numeric` : sql`NULL`},
-        ${deliveryDueAt ? sql`${deliveryDueAt}::timestamptz` : sql`NULL`},
-        ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
-        ${shootEndsAt ? sql`${shootEndsAt}::timestamptz` : sql`NULL`},
-        ${sourceText ? sql`now()` : sql`NULL`},
-        ${JSON.stringify(customFields)}::jsonb,
-        ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-      )
-      RETURNING id::text AS id
-    `);
-    newId = (res as unknown as Array<{ id: string }>)[0]?.id ?? '';
-  }
-
-  if (!newId) throw new Error('project insert failed');
-
-  // Patch template path with PM/AM (function only sets a subset)
-  if (templateId) {
-    await db.execute(sql`
-      UPDATE projects SET
-        title_ar = ${titleAr},
-        description = ${description},
-        agency_id = ${agencyId ? sql`${agencyId}::uuid` : sql`NULL`},
-        project_manager_id = ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
-        account_manager_id = ${amId ? sql`${amId}::uuid` : sql`NULL`},
-        production_manager_id = ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},
-        contracted_value_sar = ${budgetSar ? sql`${budgetSar}::numeric` : sql`NULL`},
-        delivery_due_at = ${deliveryDueAt ? sql`${deliveryDueAt}::timestamptz` : sql`NULL`},
-        shoot_starts_at = ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
-        shoot_ends_at = ${shootEndsAt ? sql`${shootEndsAt}::timestamptz` : sql`NULL`},
-        custom_fields = COALESCE(custom_fields, '{}'::jsonb) || ${JSON.stringify(customFields)}::jsonb
-      WHERE id = ${newId}::uuid
-    `);
-  }
-
-  // ── Brief row (if there was source text) ─────────────────────────────
-  if (sourceText) {
-    await db.execute(sql`
-      INSERT INTO briefs (
-        project_id, version, source_text, parsed_summary,
-        parsed_languages, parsed_budget_sar, parsed_shoot_date,
-        completeness_score, missing_fields, created_by
-      ) VALUES (
-        ${newId}::uuid, 1, ${sourceText}, ${parsedSummary},
-        string_to_array(NULLIF(${languagesCsv}, ''), ','),
-        ${budgetSar ? sql`${budgetSar}::numeric` : sql`NULL`},
-        ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
-        ${completeness},
-        string_to_array(NULLIF(${missingFields}, ''), ','),
-        ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-      )
-    `);
-  }
-
-  // ── Deliverables (one default group per format kind) ─────────────────
-  if (deliverablesArr.length > 0) {
-    const byFormat = new Map<string, typeof deliverablesArr>();
-    for (const d of deliverablesArr) {
-      const k = d.format || 'other';
-      if (!byFormat.has(k)) byFormat.set(k, []);
-      byFormat.get(k)!.push(d);
-    }
-    for (const [fmt, items] of byFormat.entries()) {
-      const groupName =
-        fmt === 'reel' ? 'ريلز' :
-        fmt === 'short' ? 'فيديوهات قصيرة' :
-        fmt === 'long' ? 'فيديوهات طويلة' :
-        fmt === 'photo' ? 'صور' :
-        fmt === 'print' ? 'طباعة' : 'مخرجات أخرى';
-      const groupRes = await db.execute<{ id: string }>(sql`
-        INSERT INTO deliverable_groups (project_id, name_ar, kind)
-        VALUES (${newId}::uuid, ${groupName}, ${fmt})
+    if (templateId) {
+      const res = await tx.execute<{ id: string }>(
+        sql`SELECT public.fn_create_project_from_template(
+          ${templateId}::uuid, ${clientId}::uuid, ${title}::text,
+          ${projectType}::project_type
+        ) AS id`,
+      );
+      id = (res as unknown as Array<{ id: string }>)[0]?.id ?? '';
+    } else {
+      const res = await tx.execute<{ id: string }>(sql`
+        INSERT INTO projects (
+          title, title_ar, description, client_id, agency_id,
+          project_type, stage,
+          project_manager_id, account_manager_id, production_manager_id,
+          contracted_value_sar,
+          delivery_due_at, shoot_starts_at, shoot_ends_at,
+          brief_received_at,
+          custom_fields,
+          created_by
+        ) VALUES (
+          ${title}, ${titleAr}, ${description},
+          ${clientId}::uuid,
+          ${agencyId ? sql`${agencyId}::uuid` : sql`NULL`},
+          ${projectType}::project_type, 'brief'::project_stage,
+          ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
+          ${amId ? sql`${amId}::uuid` : sql`NULL`},
+          ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},
+          ${budgetSar != null ? sql`${budgetSar}::numeric` : sql`NULL`},
+          ${deliveryDueAt ? sql`${deliveryDueAt}::timestamptz` : sql`NULL`},
+          ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
+          ${shootEndsAt ? sql`${shootEndsAt}::timestamptz` : sql`NULL`},
+          ${sourceText ? sql`now()` : sql`NULL`},
+          ${JSON.stringify(customFields)}::jsonb,
+          ${pid}::uuid
+        )
         RETURNING id::text AS id
       `);
-      const groupId = (groupRes as unknown as Array<{ id: string }>)[0]?.id;
-      if (!groupId) continue;
+      id = (res as unknown as Array<{ id: string }>)[0]?.id ?? '';
+    }
 
-      // Expand by count
-      let n = 1;
-      for (const item of items) {
-        for (let i = 0; i < item.count; i++) {
-          const itemNum = `${fmt.toUpperCase()}-${String(n++).padStart(2, '0')}`;
-          const titleStr = `${item.aspect_ratio}${item.duration_sec ? ` · ${item.duration_sec}s` : ''}${item.platform ? ` · ${item.platform}` : ''}`;
-          await db.execute(sql`
-            INSERT INTO deliverables (
-              group_id, project_id, item_number, title, status, position
-            ) VALUES (
-              ${groupId}::uuid, ${newId}::uuid,
-              ${itemNum}, ${titleStr}, 'draft'::deliverable_status, ${n}
-            )
-          `);
+    if (!id) throw new Error('project insert failed');
+
+    // Patch template path with PM/AM (function only sets a subset)
+    if (templateId) {
+      await tx.execute(sql`
+        UPDATE projects SET
+          title_ar = ${titleAr},
+          description = ${description},
+          agency_id = ${agencyId ? sql`${agencyId}::uuid` : sql`NULL`},
+          project_manager_id = ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
+          account_manager_id = ${amId ? sql`${amId}::uuid` : sql`NULL`},
+          production_manager_id = ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},
+          contracted_value_sar = ${budgetSar != null ? sql`${budgetSar}::numeric` : sql`NULL`},
+          delivery_due_at = ${deliveryDueAt ? sql`${deliveryDueAt}::timestamptz` : sql`NULL`},
+          shoot_starts_at = ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
+          shoot_ends_at = ${shootEndsAt ? sql`${shootEndsAt}::timestamptz` : sql`NULL`},
+          custom_fields = COALESCE(custom_fields, '{}'::jsonb) || ${JSON.stringify(customFields)}::jsonb
+        WHERE id = ${id}::uuid
+      `);
+    }
+
+    // ── Brief row (if there was source text) ─────────────────────────────
+    if (sourceText) {
+      await tx.execute(sql`
+        INSERT INTO briefs (
+          project_id, version, source_text, parsed_summary,
+          parsed_languages, parsed_budget_sar, parsed_shoot_date,
+          completeness_score, missing_fields, created_by
+        ) VALUES (
+          ${id}::uuid, 1, ${sourceText}, ${parsedSummary},
+          string_to_array(NULLIF(${languagesCsv}, ''), ','),
+          ${budgetSar != null ? sql`${budgetSar}::numeric` : sql`NULL`},
+          ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
+          ${completeness},
+          string_to_array(NULLIF(${missingFields}, ''), ','),
+          ${pid}::uuid
+        )
+      `);
+    }
+
+    // ── Deliverables (one default group per format kind) ─────────────────
+    if (deliverablesArr.length > 0) {
+      const byFormat = new Map<string, typeof deliverablesArr>();
+      for (const d of deliverablesArr) {
+        const k = d.format || 'other';
+        if (!byFormat.has(k)) byFormat.set(k, []);
+        byFormat.get(k)!.push(d);
+      }
+      for (const [fmt, items] of byFormat.entries()) {
+        const groupName =
+          fmt === 'reel' ? 'ريلز' :
+          fmt === 'short' ? 'فيديوهات قصيرة' :
+          fmt === 'long' ? 'فيديوهات طويلة' :
+          fmt === 'photo' ? 'صور' :
+          fmt === 'print' ? 'طباعة' : 'مخرجات أخرى';
+        const groupRes = await tx.execute<{ id: string }>(sql`
+          INSERT INTO deliverable_groups (project_id, name_ar, kind)
+          VALUES (${id}::uuid, ${groupName}, ${fmt})
+          RETURNING id::text AS id
+        `);
+        const groupId = (groupRes as unknown as Array<{ id: string }>)[0]?.id;
+        if (!groupId) continue;
+
+        // Expand by count
+        let n = 1;
+        for (const item of items) {
+          for (let i = 0; i < item.count; i++) {
+            const itemNum = `${fmt.toUpperCase()}-${String(n++).padStart(2, '0')}`;
+            const titleStr = `${item.aspect_ratio}${item.duration_sec ? ` · ${item.duration_sec}s` : ''}${item.platform ? ` · ${item.platform}` : ''}`;
+            await tx.execute(sql`
+              INSERT INTO deliverables (
+                group_id, project_id, item_number, title, status, position
+              ) VALUES (
+                ${groupId}::uuid, ${id}::uuid,
+                ${itemNum}, ${titleStr}, 'draft'::deliverable_status, ${n}
+              )
+            `);
+          }
         }
       }
     }
-  }
 
-  // ── Crew assignments (inline) ─────────────────────────────────────────
-  for (const c of crewArr) {
-    if (!c.profile_id || !c.role) continue;
-    try {
-      await db.execute(sql`
-        INSERT INTO project_assignments (
-          project_id, profile_id, role, created_by
-        ) VALUES (
-          ${newId}::uuid, ${c.profile_id}::uuid,
-          ${c.role}::project_assignment_role,
-          ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-        )
-      `);
-    } catch {
-      // Skip invalid role (FK / enum mismatch)
+    // ── Crew assignments (inline) ─────────────────────────────────────────
+    // Each insert runs in its own SAVEPOINT so an invalid role/FK is skipped
+    // without aborting the surrounding transaction.
+    for (const c of crewArr) {
+      if (!c.profile_id || !c.role) continue;
+      try {
+        await tx.transaction(async (sp) => {
+          await sp.execute(sql`
+            INSERT INTO project_assignments (
+              project_id, profile_id, role, created_by
+            ) VALUES (
+              ${id}::uuid, ${c.profile_id}::uuid,
+              ${c.role}::project_assignment_role,
+              ${pid}::uuid
+            )
+          `);
+        });
+      } catch {
+        // Skip invalid role (FK / enum mismatch)
+      }
     }
-  }
+
+    return id;
+  });
 
   await writeActivity({
-    actorId: actor?.id ?? null,
+    actorId: pid,
     entityType: 'project',
     entityId: newId,
     projectId: newId,

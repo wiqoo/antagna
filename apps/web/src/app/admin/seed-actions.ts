@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermissionAction } from '@/lib/authz';
 
 /**
  * Insert demo data so the empty Antagna-V2 DB has something to show in the UI.
@@ -15,6 +16,8 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
  * Skipped tables: profiles (auth-driven), live equipment legacy data (Pillar 15).
  */
 export async function seedDevData() {
+  // Authz (audit fix): demo-data seeding is admin-only.
+  await requirePermissionAction('access.manage');
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');

@@ -1,28 +1,17 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql, eq } from 'drizzle-orm';
-import { db, profiles } from '@antagna/db';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { sql } from 'drizzle-orm';
+import { withActor } from '@antagna/db';
+import { requirePermissionAction } from '@/lib/authz';
 import { writeActivity } from '@/lib/activity';
 
-async function actor(): Promise<string | null> {
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const [a] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
-  if (a) await db.execute(sql`SELECT set_config('app.acting_as', ${a.id}, true)`);
-  return a?.id ?? null;
-}
+/** The transaction handle passed into withActor's callback. */
+type Tx = Parameters<Parameters<typeof withActor>[1]>[0];
 
 /** equipment_activity_log + the company-wide activity feed (A4 brain). */
 async function logEquip(
+  tx: Tx,
   equipmentId: string,
   eventType: string,
   summaryAr: string,
@@ -30,7 +19,7 @@ async function logEquip(
   actorId: string | null,
   metadata?: Record<string, unknown>,
 ) {
-  await db
+  await tx
     .execute(
       sql`INSERT INTO equipment_activity_log (equipment_id, event_type, summary, actor_id, metadata)
           VALUES (${equipmentId}::uuid, ${eventType}, ${summaryAr}, ${actorId}::uuid,
@@ -53,13 +42,22 @@ export async function checkoutReservation(
   equipmentId: string,
   reservationId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const aid = await actor();
+  const aid = await requirePermissionAction('equipment.checkout');
   try {
-    await db.execute(sql`SELECT fn_checkout_equipment(${reservationId}::uuid)`);
+    await withActor(aid, async (tx) => {
+      await tx.execute(sql`SELECT fn_checkout_equipment(${reservationId}::uuid)`);
+      await logEquip(
+        tx,
+        equipmentId,
+        'checkout',
+        'تم تسليم المعدة (checkout)',
+        'Equipment checked out',
+        aid,
+      );
+    });
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'تعذّر التسليم' };
   }
-  await logEquip(equipmentId, 'checkout', 'تم تسليم المعدة (checkout)', 'Equipment checked out', aid);
   revalidatePath(`/equipment/${equipmentId}`);
   revalidatePath('/equipment');
   return { ok: true };
@@ -72,22 +70,27 @@ export async function returnReservation(
   notes: string | null,
   damaged: boolean,
 ): Promise<{ ok: boolean; error?: string }> {
-  const aid = await actor();
+  const aid = await requirePermissionAction('equipment.return');
   try {
-    await db.execute(
-      sql`SELECT fn_return_equipment(${reservationId}::uuid, ${notes}, ${damaged})`,
-    );
+    await withActor(aid, async (tx) => {
+      await tx.execute(
+        sql`SELECT fn_return_equipment(${reservationId}::uuid, ${notes}, ${damaged})`,
+      );
+      await logEquip(
+        tx,
+        equipmentId,
+        'return',
+        damaged
+          ? `استُرجعت مع تلف${notes ? `: ${notes}` : ''}`
+          : `استُرجعت${notes ? `: ${notes}` : ''}`,
+        'Equipment returned',
+        aid,
+        { damaged },
+      );
+    });
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'تعذّر الاسترجاع' };
   }
-  await logEquip(
-    equipmentId,
-    'return',
-    damaged ? `استُرجعت مع تلف${notes ? `: ${notes}` : ''}` : `استُرجعت${notes ? `: ${notes}` : ''}`,
-    'Equipment returned',
-    aid,
-    { damaged },
-  );
   revalidatePath(`/equipment/${equipmentId}`);
   revalidatePath('/equipment');
   return { ok: true };
@@ -101,12 +104,23 @@ export async function setEquipmentStatus(
   if (!['available', 'repair', 'lost', 'retired'].includes(status)) {
     return { ok: false, error: 'حالة غير صالحة' };
   }
-  const aid = await actor();
-  await db.execute(
-    sql`UPDATE equipment SET status = ${status}::equipment_status, updated_at = now() WHERE id = ${equipmentId}::uuid`,
+  // 'lost' has a dedicated permission; everything else is a generic update.
+  const aid = await requirePermissionAction(
+    status === 'lost' ? 'equipment.mark_lost' : 'equipment.update',
   );
-  await logEquip(equipmentId, 'status', `تغيّرت الحالة إلى «${status}»`, `Status → ${status}`, aid, {
-    status,
+  await withActor(aid, async (tx) => {
+    await tx.execute(
+      sql`UPDATE equipment SET status = ${status}::equipment_status, updated_at = now() WHERE id = ${equipmentId}::uuid`,
+    );
+    await logEquip(
+      tx,
+      equipmentId,
+      'status',
+      `تغيّرت الحالة إلى «${status}»`,
+      `Status → ${status}`,
+      aid,
+      { status },
+    );
   });
   revalidatePath(`/equipment/${equipmentId}`);
   revalidatePath('/equipment');
@@ -115,11 +129,13 @@ export async function setEquipmentStatus(
 
 /** Mark a chargeable item as freshly charged. */
 export async function markCharged(equipmentId: string): Promise<{ ok: boolean }> {
-  const aid = await actor();
-  await db.execute(
-    sql`UPDATE equipment SET last_charged_at = now(), updated_at = now() WHERE id = ${equipmentId}::uuid`,
-  );
-  await logEquip(equipmentId, 'charged', 'تم الشحن', 'Charged', aid);
+  const aid = await requirePermissionAction('equipment.update');
+  await withActor(aid, async (tx) => {
+    await tx.execute(
+      sql`UPDATE equipment SET last_charged_at = now(), updated_at = now() WHERE id = ${equipmentId}::uuid`,
+    );
+    await logEquip(tx, equipmentId, 'charged', 'تم الشحن', 'Charged', aid);
+  });
   revalidatePath(`/equipment/${equipmentId}`);
   return { ok: true };
 }

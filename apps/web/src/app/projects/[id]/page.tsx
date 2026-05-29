@@ -169,7 +169,7 @@ export default async function ProjectDetailPage({
     groupsAndItems,
     reservations,
     equipmentList,
-    equipmentGroupList,
+    ,
     attachmentList,
   ] = await Promise.all([
       db
@@ -1224,13 +1224,6 @@ export default async function ProjectDetailPage({
                   {e.code} · {e.model}
                 </option>
               ))}
-              <optgroup label="—— أو مجموعة ——">
-                {equipmentGroupList.map((g) => (
-                  <option key={`g-${g.id}`} value="" disabled>
-                    استخدم الحقل التالي للمجموعات
-                  </option>
-                ))}
-              </optgroup>
             </select>
             <input
               type="datetime-local"

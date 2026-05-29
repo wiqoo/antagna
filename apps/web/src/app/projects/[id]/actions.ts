@@ -3,11 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { db, projects, profiles } from '@antagna/db';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { db, projects, withActor } from '@antagna/db';
 import { writeActivity } from '@/lib/activity';
 import { notify } from '@/lib/notify';
 import { stageLabelAr } from '@/lib/project-stage';
+import { requirePermissionAction } from '@/lib/authz';
 
 type StageVal = (typeof import('@antagna/db').projectStageEnum.enumValues)[number];
 
@@ -35,17 +35,7 @@ export async function transitionStage(
     return { ok: false, error: `Invalid stage: ${nextStage}` };
   }
 
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'unauthorized' };
-
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
+  const actorId = await requirePermissionAction('project.change_stage');
 
   // The DB trigger on `projects` writes to project_stages_log itself (Pillar 5).
   // We just UPDATE and set updatedAt + appropriate timestamp columns.
@@ -61,15 +51,17 @@ export async function transitionStage(
   if (nextStage === 'lost') setCols.lostReason = reason ?? null;
 
   // Pass actor + reason to the trigger via session GUCs (read by fn_log_project_stage).
-  await db.execute(
-    sql`SELECT set_config('app.acting_as', ${actor?.id ?? ''}, true),
-               set_config('app.stage_change_reason', ${reason ?? ''}, true)`,
-  );
-
-  await db.update(projects).set(setCols).where(eq(projects.id, projectId));
+  // Both the acting_as and the stage_change_reason GUC must share the pinned
+  // connection with the UPDATE, so set the reason inside the same transaction.
+  await withActor(actorId, async (tx) => {
+    await tx.execute(
+      sql`SELECT set_config('app.stage_change_reason', ${reason ?? ''}, true)`,
+    );
+    await tx.update(projects).set(setCols).where(eq(projects.id, projectId));
+  });
 
   await writeActivity({
-    actorId: actor?.id ?? null,
+    actorId,
     entityType: 'project',
     entityId: projectId,
     projectId,
@@ -94,27 +86,19 @@ export async function transitionStage(
 export async function postComment(projectId: string, body: string) {
   if (!body.trim()) return { ok: false, error: 'empty' };
 
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'unauthorized' };
+  // Posting a comment is a write on the project; gate on project.update
+  // (no dedicated comment permission key exists).
+  const actorId = await requirePermissionAction('project.update');
 
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
-
-  if (!actor) return { ok: false, error: 'profile-not-found' };
-
-  await db.execute(
-    sql`INSERT INTO project_comments (project_id, author_id, body)
-        VALUES (${projectId}::uuid, ${actor.id}::uuid, ${body.trim()})`,
+  await withActor(actorId, (tx) =>
+    tx.execute(
+      sql`INSERT INTO project_comments (project_id, author_id, body)
+          VALUES (${projectId}::uuid, ${actorId}::uuid, ${body.trim()})`,
+    ),
   );
 
   await writeActivity({
-    actorId: actor.id,
+    actorId,
     entityType: 'project',
     entityId: projectId,
     projectId,
@@ -128,7 +112,7 @@ export async function postComment(projectId: string, body: string) {
     SELECT project_manager_id::text AS pm, COALESCE(title_ar, title) AS t
     FROM projects WHERE id = ${projectId}::uuid
   `)) as unknown as { pm: string | null; t: string }[];
-  if (proj?.pm && proj.pm !== actor.id) {
+  if (proj?.pm && proj.pm !== actorId) {
     const snippet = body.trim().slice(0, 100);
     await notify({
       recipientId: proj.pm,
@@ -161,7 +145,7 @@ export async function postComment(projectId: string, body: string) {
     `)) as unknown as { id: string; email: string }[];
     const snippet = body.trim().slice(0, 100);
     for (const m of mentioned) {
-      if (m.id === actor.id) continue;
+      if (m.id === actorId) continue;
       if (m.id === proj?.pm) continue; // already notified on_comment
       await notify({
         recipientId: m.id,

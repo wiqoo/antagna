@@ -1,25 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql, eq } from 'drizzle-orm';
-import { db, profiles } from '@antagna/db';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { sql } from 'drizzle-orm';
+import { db, withActor } from '@antagna/db';
 import { writeActivity } from '@/lib/activity';
-
-async function actor() {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const [a] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
-  if (a) {
-    await db.execute(sql`SELECT set_config('app.acting_as', ${a.id}, true)`);
-  }
-  return a?.id ?? null;
-}
+import { requirePermissionAction } from '@/lib/authz';
 
 /**
  * Pillar 16 §N approval pipeline.
@@ -30,7 +15,8 @@ async function actor() {
  * requestRevisions: anywhere → revisions_*
  */
 export async function submitForReview(projectId: string, deliverableId: string) {
-  const actorId = await actor();
+  // Advancing a deliverable into the review pipeline is a deliverable edit.
+  const actorId = await requirePermissionAction('deliverable.update');
   // Read current project's approval flow + deliverable
   const res = await db.execute<{
     requires_director: boolean;
@@ -45,7 +31,7 @@ export async function submitForReview(projectId: string, deliverableId: string) 
     requires_director: boolean;
     requires_am: boolean;
   }>)[0];
-  if (!row) return;
+  if (!row) throw new Error('deliverable not found');
 
   const nextStatus = row.requires_director
     ? 'pending_director'
@@ -53,14 +39,16 @@ export async function submitForReview(projectId: string, deliverableId: string) 
       ? 'pending_am'
       : 'client_ready';
 
-  await db.execute(sql`
-    UPDATE deliverables
-    SET status = ${nextStatus}::deliverable_status,
-        submitted_at = COALESCE(submitted_at, now()),
-        current_approval_stage = ${nextStatus},
-        updated_at = now()
-    WHERE id = ${deliverableId}::uuid
-  `);
+  await withActor(actorId, (tx) =>
+    tx.execute(sql`
+      UPDATE deliverables
+      SET status = ${nextStatus}::deliverable_status,
+          submitted_at = COALESCE(submitted_at, now()),
+          current_approval_stage = ${nextStatus},
+          updated_at = now()
+      WHERE id = ${deliverableId}::uuid
+    `),
+  );
 
   await writeActivity({
     actorId,
@@ -80,7 +68,7 @@ export async function approveDeliverable(
   projectId: string,
   deliverableId: string,
 ) {
-  const actorId = await actor();
+  const actorId = await requirePermissionAction('deliverable.approve');
   // Move forward in pipeline.
   const res = await db.execute<{
     status: string;
@@ -94,7 +82,7 @@ export async function approveDeliverable(
     status: string;
     requires_am: boolean;
   }>)[0];
-  if (!row) return;
+  if (!row) throw new Error('deliverable not found');
 
   let nextStatus: string;
   switch (row.status) {
@@ -113,15 +101,17 @@ export async function approveDeliverable(
       nextStatus = 'client_ready';
   }
 
-  await db.execute(sql`
-    UPDATE deliverables
-    SET status = ${nextStatus}::deliverable_status,
-        approved_at = CASE WHEN ${nextStatus} = 'delivered' THEN now() ELSE approved_at END,
-        approved_by_id = CASE WHEN ${nextStatus} = 'delivered' THEN ${actorId}::uuid ELSE approved_by_id END,
-        current_approval_stage = ${nextStatus},
-        updated_at = now()
-    WHERE id = ${deliverableId}::uuid
-  `);
+  await withActor(actorId, (tx) =>
+    tx.execute(sql`
+      UPDATE deliverables
+      SET status = ${nextStatus}::deliverable_status,
+          approved_at = CASE WHEN ${nextStatus} = 'delivered' THEN now() ELSE approved_at END,
+          approved_by_id = CASE WHEN ${nextStatus} = 'delivered' THEN ${actorId}::uuid ELSE approved_by_id END,
+          current_approval_stage = ${nextStatus},
+          updated_at = now()
+      WHERE id = ${deliverableId}::uuid
+    `),
+  );
 
   await writeActivity({
     actorId,
@@ -142,7 +132,7 @@ export async function requestRevisions(
   deliverableId: string,
   formData: FormData,
 ) {
-  const actorId = await actor();
+  const actorId = await requirePermissionAction('revision.start');
   const note = formData.get('note')?.toString().trim() || null;
   const stage = formData.get('stage')?.toString();
 
@@ -161,15 +151,17 @@ export async function requestRevisions(
       newStatus = 'revisions_director';
   }
 
-  await db.execute(sql`
-    UPDATE deliverables
-    SET status = ${newStatus}::deliverable_status,
-        latest_client_note = ${note},
-        latest_client_note_at = now(),
-        current_cycle = current_cycle + 1,
-        updated_at = now()
-    WHERE id = ${deliverableId}::uuid
-  `);
+  await withActor(actorId, (tx) =>
+    tx.execute(sql`
+      UPDATE deliverables
+      SET status = ${newStatus}::deliverable_status,
+          latest_client_note = ${note},
+          latest_client_note_at = now(),
+          current_cycle = current_cycle + 1,
+          updated_at = now()
+      WHERE id = ${deliverableId}::uuid
+    `),
+  );
 
   await writeActivity({
     actorId,

@@ -2,58 +2,52 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { sql, eq } from 'drizzle-orm';
-import { db, profiles } from '@antagna/db';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { sql } from 'drizzle-orm';
+import { withActor } from '@antagna/db';
+import { requirePermissionAction } from '@/lib/authz';
+import { parseNum, parseDate, parseStr } from '@/lib/parse';
 
 export async function createEquipment(formData: FormData) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
-  if (actor) {
-    await db.execute(sql`SELECT set_config('app.acting_as', ${actor.id}, true)`);
-  }
+  // No dedicated equipment.create key exists; equipment.update is the closest
+  // existing key for mutating the equipment catalogue.
+  const aid = await requirePermissionAction('equipment.update');
 
   const code = formData.get('code')?.toString().trim().toUpperCase();
-  const category = formData.get('category')?.toString().trim();
-  const manufacturer = formData.get('manufacturer')?.toString().trim() || null;
-  const model = formData.get('model')?.toString().trim();
-  const groupId = formData.get('groupId')?.toString() || null;
-  const serialNumber = formData.get('serialNumber')?.toString().trim() || null;
-  const currentLocation = formData.get('currentLocation')?.toString().trim() || 'warehouse';
-  const purchasePriceSar = formData.get('purchasePriceSar')?.toString() || null;
-  const insuranceValueSar = formData.get('insuranceValueSar')?.toString() || null;
-  const purchaseDate = formData.get('purchaseDate')?.toString() || null;
+  const category = parseStr(formData.get('category'));
+  const manufacturer = parseStr(formData.get('manufacturer'));
+  const model = parseStr(formData.get('model'));
+  const groupId = parseStr(formData.get('groupId'));
+  const serialNumber = parseStr(formData.get('serialNumber'));
+  const currentLocation = parseStr(formData.get('currentLocation')) || 'warehouse';
+  const purchasePriceSar = parseNum(formData.get('purchasePriceSar'));
+  const insuranceValueSar = parseNum(formData.get('insuranceValueSar'));
+  const purchaseDate = parseDate(formData.get('purchaseDate'));
   const requiresCharging = formData.get('requiresCharging') === 'on';
 
   if (!code || !category || !model) throw new Error('code+category+model required');
 
-  const res = await db.execute<{ id: string }>(sql`
-    INSERT INTO equipment (
-      code, category, manufacturer, model, group_id, serial_number,
-      current_location, purchase_price_sar, insurance_value_sar,
-      purchase_date, requires_charging
-    )
-    VALUES (
-      ${code}, ${category}, ${manufacturer}, ${model},
-      ${groupId ? sql`${groupId}::uuid` : sql`NULL`},
-      ${serialNumber}, ${currentLocation},
-      ${purchasePriceSar ? sql`${purchasePriceSar}::numeric` : sql`NULL`},
-      ${insuranceValueSar ? sql`${insuranceValueSar}::numeric` : sql`NULL`},
-      ${purchaseDate},
-      ${requiresCharging}
-    )
-    RETURNING id
-  `);
+  const arr = await withActor(aid, (tx) =>
+    tx.execute<{ id: string }>(sql`
+      INSERT INTO equipment (
+        code, category, manufacturer, model, group_id, serial_number,
+        current_location, purchase_price_sar, insurance_value_sar,
+        purchase_date, requires_charging
+      )
+      VALUES (
+        ${code}, ${category}, ${manufacturer}, ${model},
+        ${groupId ? sql`${groupId}::uuid` : sql`NULL`},
+        ${serialNumber}, ${currentLocation},
+        ${purchasePriceSar != null ? sql`${purchasePriceSar}::numeric` : sql`NULL`},
+        ${insuranceValueSar != null ? sql`${insuranceValueSar}::numeric` : sql`NULL`},
+        ${purchaseDate},
+        ${requiresCharging}
+      )
+      RETURNING id
+    `),
+  );
 
-  const arr = res as unknown as Array<{ id: string }>;
-  if (!arr[0]?.id) throw new Error('insert failed');
+  const rows = arr as unknown as Array<{ id: string }>;
+  if (!rows[0]?.id) throw new Error('insert failed');
 
   revalidatePath('/equipment');
   redirect('/equipment');
@@ -182,23 +176,24 @@ export async function identifyEquipmentPhoto(
 
 /** Create a kit (a named bundle of equipment templated for a shoot type). */
 export async function createKit(formData: FormData): Promise<void> {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  // No kit-specific permission key; kits are equipment config → equipment.update.
+  const aid = await requirePermissionAction('equipment.update');
 
-  const code = formData.get('code')?.toString().trim();
-  const nameAr = formData.get('nameAr')?.toString().trim();
-  const nameEn = formData.get('nameEn')?.toString().trim() || null;
-  const description = formData.get('description')?.toString().trim() || null;
-  const primaryEquipmentId = formData.get('primaryEquipmentId')?.toString() || null;
+  const code = parseStr(formData.get('code'));
+  const nameAr = parseStr(formData.get('nameAr'));
+  const nameEn = parseStr(formData.get('nameEn'));
+  const description = parseStr(formData.get('description'));
+  const primaryEquipmentId = parseStr(formData.get('primaryEquipmentId'));
   if (!code || !nameAr) return;
 
-  await db.execute(sql`
-    INSERT INTO kits (code, name_ar, name_en, description, primary_equipment_id, active)
-    VALUES (${code}, ${nameAr}, ${nameEn}, ${description},
-            ${primaryEquipmentId ? sql`${primaryEquipmentId}::uuid` : sql`NULL`}, true)
-    ON CONFLICT (code) DO NOTHING
-  `);
+  await withActor(aid, (tx) =>
+    tx.execute(sql`
+      INSERT INTO kits (code, name_ar, name_en, description, primary_equipment_id, active)
+      VALUES (${code}, ${nameAr}, ${nameEn}, ${description},
+              ${primaryEquipmentId ? sql`${primaryEquipmentId}::uuid` : sql`NULL`}, true)
+      ON CONFLICT (code) DO NOTHING
+    `),
+  );
   revalidatePath('/equipment/kits');
 }
 
@@ -207,29 +202,29 @@ export async function addKitItem(
   kitId: string,
   formData: FormData,
 ): Promise<void> {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  const aid = await requirePermissionAction('equipment.update');
 
-  const equipmentId = formData.get('equipmentId')?.toString() || null;
-  const qty = Number(formData.get('quantity')?.toString() ?? '1');
+  const equipmentId = parseStr(formData.get('equipmentId'));
+  const qtyParsed = parseNum(formData.get('quantity'));
+  const qty = qtyParsed != null && qtyParsed > 0 ? qtyParsed : 1;
   const mandatory = formData.get('mandatory') === 'on';
-  const notes = formData.get('notes')?.toString().trim() || null;
+  const notes = parseStr(formData.get('notes'));
   if (!equipmentId) return;
 
-  await db.execute(sql`
-    INSERT INTO kit_items (kit_id, equipment_id, quantity, is_mandatory, notes)
-    VALUES (${kitId}::uuid, ${equipmentId}::uuid,
-            ${Number.isFinite(qty) && qty > 0 ? qty : 1},
-            ${mandatory}, ${notes})
-  `);
+  await withActor(aid, (tx) =>
+    tx.execute(sql`
+      INSERT INTO kit_items (kit_id, equipment_id, quantity, is_mandatory, notes)
+      VALUES (${kitId}::uuid, ${equipmentId}::uuid,
+              ${qty}, ${mandatory}, ${notes})
+    `),
+  );
   revalidatePath('/equipment/kits');
 }
 
 export async function removeKitItem(itemId: string): Promise<void> {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  await db.execute(sql`DELETE FROM kit_items WHERE id = ${itemId}::uuid`);
+  const aid = await requirePermissionAction('equipment.update');
+  await withActor(aid, (tx) =>
+    tx.execute(sql`DELETE FROM kit_items WHERE id = ${itemId}::uuid`),
+  );
   revalidatePath('/equipment/kits');
 }

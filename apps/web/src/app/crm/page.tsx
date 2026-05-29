@@ -1,11 +1,9 @@
 import { redirect } from 'next/navigation';
-import { desc, eq, sql, isNull, and, ne } from 'drizzle-orm';
+import { desc, eq, sql, and, ne } from 'drizzle-orm';
 import {
   db,
   clients,
   leads,
-  clientHealthSnapshots,
-  projects,
   profiles,
 } from '@antagna/db';
 import {
@@ -55,40 +53,57 @@ export default async function CrmPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/crm');
 
-  const [clientRows, leadRows] = await Promise.all([
-    db
-      .select({
-        id: clients.id,
-        code: clients.code,
-        nameAr: clients.nameAr,
-        nameEn: clients.nameEn,
-        clientType: clients.clientType,
-        averagePaymentDays: clients.averagePaymentDays,
-        trustScore: clients.trustScore,
-        totalRevenue: sql<string | null>`(
-          SELECT total_revenue_sar
-          FROM ${clientHealthSnapshots}
-          WHERE client_id = ${clients.id}
-          ORDER BY snapshot_date DESC LIMIT 1
-        )`,
-        activeProjects: sql<number>`(
-          SELECT COUNT(*)::int FROM ${projects}
-          WHERE client_id = ${clients.id}
-            AND stage NOT IN ('delivered','archived','lost','cancelled')
-        )`,
-        lastProjectAt: sql<Date | null>`(
-          SELECT MAX(created_at) FROM ${projects}
-          WHERE client_id = ${clients.id}
-        )`,
-      })
-      .from(clients)
-      .where(isNull(clients.archivedAt))
-      .orderBy(
-        desc(
-          sql`(SELECT MAX(created_at) FROM ${projects} WHERE client_id = ${clients.id})`,
-        ),
-      )
-      .limit(50),
+  const [clientRowsRaw, leadRows] = await Promise.all([
+    // PERF (audit fix): the 3 per-row correlated scalar subqueries (latest
+    // health snapshot, active-project COUNT, MAX(created_at)) plus the
+    // correlated ORDER BY MAX() ran one extra index scan per client per metric.
+    // Replaced with ONE LEFT JOIN LATERAL over a grouped projects aggregate and
+    // a LATERAL latest-snapshot lookup — each evaluated once per client row.
+    // Same output columns the JSX consumes.
+    db.execute<{
+      id: string;
+      code: string;
+      name_ar: string | null;
+      name_en: string | null;
+      client_type: string;
+      average_payment_days: number | null;
+      trust_score: number | null;
+      total_revenue: string | null;
+      active_projects: number;
+      last_project_at: string | null;
+    }>(sql`
+      SELECT
+        c.id,
+        c.code,
+        c.name_ar,
+        c.name_en,
+        c.client_type,
+        c.average_payment_days,
+        c.trust_score,
+        snap.total_revenue_sar      AS total_revenue,
+        COALESCE(pa.active_projects, 0)::int AS active_projects,
+        pa.last_project_at
+      FROM clients c
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) FILTER (
+            WHERE p.stage NOT IN ('delivered','archived','lost','cancelled')
+          )::int AS active_projects,
+          MAX(p.created_at) AS last_project_at
+        FROM projects p
+        WHERE p.client_id = c.id
+      ) pa ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT s.total_revenue_sar
+        FROM client_health_snapshots s
+        WHERE s.client_id = c.id
+        ORDER BY s.snapshot_date DESC
+        LIMIT 1
+      ) snap ON TRUE
+      WHERE c.archived_at IS NULL
+      ORDER BY pa.last_project_at DESC NULLS LAST
+      LIMIT 50
+    `),
     db
       .select({
         id: leads.id,
@@ -110,6 +125,31 @@ export default async function CrmPage({
       .orderBy(desc(leads.receivedAt))
       .limit(20),
   ]);
+
+  // Map the raw LATERAL rows to the camelCase shape the JSX consumes.
+  const clientRows = (clientRowsRaw as unknown as Array<{
+    id: string;
+    code: string;
+    name_ar: string | null;
+    name_en: string | null;
+    client_type: string;
+    average_payment_days: number | null;
+    trust_score: number | null;
+    total_revenue: string | null;
+    active_projects: number;
+    last_project_at: string | null;
+  }>).map((r) => ({
+    id: r.id,
+    code: r.code,
+    nameAr: r.name_ar,
+    nameEn: r.name_en,
+    clientType: r.client_type,
+    averagePaymentDays: r.average_payment_days,
+    trustScore: r.trust_score,
+    totalRevenue: r.total_revenue,
+    activeProjects: r.active_projects,
+    lastProjectAt: r.last_project_at,
+  }));
 
   const totalActive = clientRows.reduce(
     (s, c) => s + Number(c.activeProjects ?? 0),

@@ -2,10 +2,12 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { sql, eq } from 'drizzle-orm';
-import { db, profiles } from '@antagna/db';
+import { sql } from 'drizzle-orm';
+import { withActor } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermissionAction } from '@/lib/authz';
+import { parseNum, parseDate } from '@/lib/parse';
 
 const PARSE_SYSTEM = `You are Antagna's brief parser for a Saudi production agency (Volt Production).
 Read the brief text and output STRICT JSON only. No prose.
@@ -58,6 +60,7 @@ export async function parseBrief(
   if (!rawText.trim()) {
     return { ok: false, error: 'empty' };
   }
+  await requirePermissionAction('brief.parse_ai');
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
@@ -97,18 +100,7 @@ export async function parseBrief(
 }
 
 export async function commitBriefAsProject(formData: FormData) {
-  const supabase = await getSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/briefs/new');
-
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
-  if (actor) {
-    await db.execute(sql`SELECT set_config('app.acting_as', ${actor.id}, true)`);
-  }
+  const pid = await requirePermissionAction('brief.create');
 
   const clientId = formData.get('clientId')?.toString();
   const title = formData.get('title')?.toString() || 'Untitled brief';
@@ -120,59 +112,65 @@ export async function commitBriefAsProject(formData: FormData) {
     | 'content_creation'
     | 'consulting'
     | 'other';
-  const deliveryDue = formData.get('deliveryDueAt')?.toString() || null;
-  const shootStarts = formData.get('shootStartsAt')?.toString() || null;
-  const budget = formData.get('budgetSar')?.toString() || null;
+  const deliveryDue = parseDate(formData.get('deliveryDueAt'));
+  const shootStarts = parseDate(formData.get('shootStartsAt'));
+  const budget = parseNum(formData.get('budgetSar'));
   const sourceText = formData.get('sourceText')?.toString() || '';
   const parsedSummary = formData.get('parsedSummary')?.toString() || null;
-  const completeness = Number(formData.get('completeness') ?? 0) || null;
+  const completeness = parseNum(formData.get('completeness'));
+  const deliverablesCount = parseNum(formData.get('deliverablesCount'));
   const missingFields = formData.get('missingFields')?.toString() ?? '';
   const parsedLanguages = formData.get('parsedLanguages')?.toString() ?? '';
   const parsedLocations = formData.get('parsedLocations')?.toString() ?? '';
 
   if (!clientId) throw new Error('clientId required');
 
-  // 1. Insert the project
-  const projRes = await db.execute<{ id: string }>(sql`
-    INSERT INTO projects (
-      title, title_ar, client_id, project_type, stage,
-      brief_received_at, delivery_due_at, shoot_starts_at,
-      contracted_value_sar, created_by
-    )
-    VALUES (
-      ${title}, ${titleAr}, ${clientId}::uuid,
-      ${projectType}::project_type, 'brief'::project_stage,
-      now(),
-      ${deliveryDue ? sql`${deliveryDue}::timestamptz` : sql`NULL`},
-      ${shootStarts ? sql`${shootStarts}::timestamptz` : sql`NULL`},
-      ${budget ? sql`${budget}::numeric` : sql`NULL`},
-      ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-    )
-    RETURNING id
-  `);
-  const projectId = (projRes as unknown as Array<{ id: string }>)[0]?.id;
-  if (!projectId) throw new Error('project insert failed');
+  // Insert project + brief atomically, with the audit actor on the same conn.
+  const projectId = await withActor(pid, async (tx) => {
+    // 1. Insert the project
+    const projRes = await tx.execute<{ id: string }>(sql`
+      INSERT INTO projects (
+        title, title_ar, client_id, project_type, stage,
+        brief_received_at, delivery_due_at, shoot_starts_at,
+        contracted_value_sar, created_by
+      )
+      VALUES (
+        ${title}, ${titleAr}, ${clientId}::uuid,
+        ${projectType}::project_type, 'brief'::project_stage,
+        now(),
+        ${deliveryDue ? sql`${deliveryDue}::timestamptz` : sql`NULL`},
+        ${shootStarts ? sql`${shootStarts}::timestamptz` : sql`NULL`},
+        ${budget != null ? sql`${budget}::numeric` : sql`NULL`},
+        ${pid}::uuid
+      )
+      RETURNING id
+    `);
+    const newId = (projRes as unknown as Array<{ id: string }>)[0]?.id;
+    if (!newId) throw new Error('project insert failed');
 
-  // 2. Insert the brief
-  await db.execute(sql`
-    INSERT INTO briefs (
-      project_id, version, source_text, parsed_summary,
-      parsed_deliverables_count, parsed_shoot_date, parsed_budget_sar,
-      parsed_languages, parsed_locations,
-      completeness_score, missing_fields, created_by
-    )
-    VALUES (
-      ${projectId}::uuid, 1, ${sourceText}, ${parsedSummary},
-      ${formData.get('deliverablesCount')?.toString() ?? null},
-      ${shootStarts ? sql`${shootStarts}::timestamptz` : sql`NULL`},
-      ${budget ? sql`${budget}::numeric` : sql`NULL`},
-      string_to_array(NULLIF(${parsedLanguages}, ''), ','),
-      string_to_array(NULLIF(${parsedLocations}, ''), ','),
-      ${completeness},
-      string_to_array(NULLIF(${missingFields}, ''), ','),
-      ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-    )
-  `);
+    // 2. Insert the brief
+    await tx.execute(sql`
+      INSERT INTO briefs (
+        project_id, version, source_text, parsed_summary,
+        parsed_deliverables_count, parsed_shoot_date, parsed_budget_sar,
+        parsed_languages, parsed_locations,
+        completeness_score, missing_fields, created_by
+      )
+      VALUES (
+        ${newId}::uuid, 1, ${sourceText}, ${parsedSummary},
+        ${deliverablesCount},
+        ${shootStarts ? sql`${shootStarts}::timestamptz` : sql`NULL`},
+        ${budget != null ? sql`${budget}::numeric` : sql`NULL`},
+        string_to_array(NULLIF(${parsedLanguages}, ''), ','),
+        string_to_array(NULLIF(${parsedLocations}, ''), ','),
+        ${completeness},
+        string_to_array(NULLIF(${missingFields}, ''), ','),
+        ${pid}::uuid
+      )
+    `);
+
+    return newId;
+  });
 
   revalidatePath('/projects');
   redirect(`/projects/${projectId}`);
