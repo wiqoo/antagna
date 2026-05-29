@@ -8,6 +8,7 @@ export * from './equipment_workflow';
 export * from './cross_cutting';
 export * from './permissions';
 export * from './crm';
+export * from './safe_views';
 export * from './lifecycle';
 export * from './social';
 export * from './comms';

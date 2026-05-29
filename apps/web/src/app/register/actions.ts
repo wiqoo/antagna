@@ -5,6 +5,23 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
+/**
+ * D-040 — Antagna is INVITE-ONLY. Public self-signup is OFF.
+ *
+ * The whole self-registration flow below is kept intact but hard-gated behind
+ * REGISTRATION_OPEN so the decision is fully reversible: set the env var to
+ * 'true' to re-enable open signup without restoring any deleted code. New users
+ * arrive via /admin/invite-user (position assigned at invite time); a self-made
+ * account would have no position_key → no access (D-040 rationale).
+ */
+// Internal helper (NOT exported — a 'use server' module may only export async
+// Server Actions). The register page reads process.env.REGISTRATION_OPEN directly.
+function registrationOpen(): boolean {
+  return process.env.REGISTRATION_OPEN === 'true';
+}
+
+const INVITE_ONLY_MESSAGE = 'التسجيل بالدعوة فقط';
+
 function siteOrigin(reqOrigin: string | null): string {
   return (
     reqOrigin ??
@@ -15,6 +32,11 @@ function siteOrigin(reqOrigin: string | null): string {
 }
 
 export async function registerAction(formData: FormData) {
+  // Hard gate: invite-only (D-040). Reversible via REGISTRATION_OPEN=true.
+  if (!registrationOpen()) {
+    redirect(`/login?message=${encodeURIComponent(INVITE_ONLY_MESSAGE)}`);
+  }
+
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
   const fullName = String(formData.get('full_name') ?? '').trim();

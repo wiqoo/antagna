@@ -14,6 +14,7 @@ export type BoardRow = {
   pmName: string | null;
   clientNameAr: string | null;
   clientCode: string | null;
+  isAbuLukaContent?: boolean;
 };
 
 const riskDot: Record<string, string> = {
@@ -67,12 +68,20 @@ export function ProjectsBoard({ rows }: { rows: BoardRow[] }) {
                     )}
                   </div>
                   <p className="mt-1 flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                    {r.clientCode && (
-                      <span className="font-mono text-[10px] text-[var(--text-dim)]">
-                        {r.clientCode}
+                    {r.clientNameAr ? (
+                      <>
+                        {r.clientCode && (
+                          <span className="font-mono text-[10px] text-[var(--text-dim)]">
+                            {r.clientCode}
+                          </span>
+                        )}
+                        <span className="truncate">{r.clientNameAr}</span>
+                      </>
+                    ) : r.isAbuLukaContent ? (
+                      <span className="rounded bg-[var(--accent)]/10 px-1.5 py-0.5 text-[10px] font-medium text-[var(--accent)]">
+                        محتوى أبو لوكا
                       </span>
-                    )}
-                    <span className="truncate">{r.clientNameAr}</span>
+                    ) : null}
                   </p>
                   <div className="mt-2.5 flex items-center justify-between gap-2">
                     {r.pmName ? (

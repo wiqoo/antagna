@@ -51,12 +51,22 @@ async function main() {
   const proxyEmail = `pillar3-proxy-${stamp}@antagna.test`;
 
   // Seed 3 test profiles.
+  //
+  // Sprint 0 (D-037/D-041): the permission graph resolves via `position_key` +
+  // user_position_overrides, NOT the legacy `role`. So we seed positions here:
+  //   - amEmail    → account_manager  (gets contact.create as a position default)
+  //   - userEmail  → trainee          (a real low-privilege position, no contact.create)
+  //   - proxyEmail → system_admin     (a position WITHOUT the '*' wildcard — there
+  //                                     is no admin bypass anymore; only
+  //                                     general_manager carries '*')
+  // `role` is set too only because it is still NOT NULL on profiles; it no longer
+  // drives has_permission.
   await pg(`
-    INSERT INTO profiles (email, display_name, role) VALUES
-      ('${amEmail}',   'AM Probe',    'account_manager'),
-      ('${userEmail}', 'User Probe',  'user'),
-      ('${proxyEmail}','Proxy Probe', 'system_admin')
-    ON CONFLICT (email) DO NOTHING;
+    INSERT INTO profiles (email, display_name, role, position_key) VALUES
+      ('${amEmail}',   'AM Probe',    'user', 'account_manager'),
+      ('${userEmail}', 'User Probe',  'user', 'trainee'),
+      ('${proxyEmail}','Proxy Probe', 'user', 'system_admin')
+    ON CONFLICT (email) DO UPDATE SET position_key = EXCLUDED.position_key, role = EXCLUDED.role;
   `);
 
   const amRow = (await pg<{ id: string }>(
@@ -77,30 +87,50 @@ async function main() {
   const proxyId = proxyRow.id;
 
   // ════════════════════════════════════════════════════════════════════════
-  // #1 — Role default: AM has client.create, user does not
+  // #1 — Position default (Sprint 0 model): account_manager inherits
+  //      `contact.create` from position_default_permissions; the lower-privilege
+  //      `trainee` position does NOT. Resolution is by position_key, not `role`.
   // ════════════════════════════════════════════════════════════════════════
   const [{ am_can }] = await pg<{ am_can: boolean }>(
-    `SELECT has_permission('${amId}', 'client.create') AS am_can`,
+    `SELECT has_permission('${amId}', 'contact.create') AS am_can`,
   );
-  if (am_can === true) ok('#1 AM has client.create (role default)');
-  else fail('#1 AM has client.create', `expected true, got ${am_can}`);
+  if (am_can === true) ok('#1 account_manager has contact.create (position default)');
+  else fail('#1 AM position default', `expected true, got ${am_can}`);
 
   const [{ user_can }] = await pg<{ user_can: boolean }>(
-    `SELECT has_permission('${userId}', 'client.create') AS user_can`,
+    `SELECT has_permission('${userId}', 'contact.create') AS user_can`,
   );
-  if (user_can === false) ok("#1 base user does NOT have client.create");
-  else fail('#1 base user denied client.create', `expected false, got ${user_can}`);
+  if (user_can === false) ok('#1 trainee does NOT have contact.create');
+  else fail('#1 trainee denied contact.create', `expected false, got ${user_can}`);
 
   // ════════════════════════════════════════════════════════════════════════
-  // #2 — system_admin bypass: proxy can do invoice.cancel without explicit grant
-  // (we explicitly do NOT grant it via the seed for system_admin? actually we
-  // DO — but the bypass path runs first, so this also tests the bypass.)
+  // #2 — NO system_admin bypass (Sprint 0 D-041): the retired role model gave
+  //      system_admin a blanket bypass. The position model removed it — only
+  //      `general_manager` carries the '*' wildcard. So:
+  //        a) system_admin must be DENIED a permission it was never granted
+  //           (invoice.cancel is not in its position defaults) — proves no bypass.
+  //        b) general_manager (the '*' holder) must be GRANTED that same
+  //           permission via the wildcard.
   // ════════════════════════════════════════════════════════════════════════
   const [{ admin_can }] = await pg<{ admin_can: boolean }>(
     `SELECT has_permission('${proxyId}', 'invoice.cancel') AS admin_can`,
   );
-  if (admin_can === true) ok('#2 system_admin bypass returns true for invoice.cancel');
-  else fail('#2 admin bypass', `expected true, got ${admin_can}`);
+  if (admin_can === false) ok('#2a system_admin has NO bypass (denied ungranted invoice.cancel)');
+  else fail('#2a no admin bypass', `expected false (bypass retired), got ${admin_can}`);
+
+  // Resolve a general_manager profile to prove the '*' wildcard still grants.
+  const gmRow = (await pg<{ id: string }>(
+    `SELECT id FROM profiles WHERE position_key = 'general_manager' ORDER BY created_at LIMIT 1`,
+  ))[0];
+  if (!gmRow?.id) {
+    fail('#2b general_manager wildcard', 'no general_manager profile found to test the wildcard');
+  } else {
+    const [{ gm_can }] = await pg<{ gm_can: boolean }>(
+      `SELECT has_permission('${gmRow.id}', 'invoice.cancel') AS gm_can`,
+    );
+    if (gm_can === true) ok("#2b general_manager '*' wildcard grants invoice.cancel");
+    else fail('#2b general_manager wildcard', `expected true, got ${gm_can}`);
+  }
 
   // ════════════════════════════════════════════════════════════════════════
   // #3 — Per-user override: grant project.archive to base user → returns true
@@ -131,17 +161,18 @@ async function main() {
   else fail('#4 expired override', `expected false, got ${expired}`);
 
   // ════════════════════════════════════════════════════════════════════════
-  // #5 — Explicit deny override (granted=false) > role default
+  // #5 — Explicit deny override (granted=false) beats the position default.
+  //      account_manager has contact.create by default; a per-user deny wins.
   // ════════════════════════════════════════════════════════════════════════
   await pg(`
     INSERT INTO user_permission_overrides (profile_id, permission_key, granted, reason)
-    VALUES ('${amId}', 'client.create', false, 'pillar3 smoke deny')
+    VALUES ('${amId}', 'contact.create', false, 'pillar3 smoke deny')
     ON CONFLICT (profile_id, permission_key) DO UPDATE SET granted = false, expires_at = NULL
   `);
   const [{ denied }] = await pg<{ denied: boolean }>(
-    `SELECT has_permission('${amId}', 'client.create') AS denied`,
+    `SELECT has_permission('${amId}', 'contact.create') AS denied`,
   );
-  if (denied === false) ok('#5 explicit deny override beats role default');
+  if (denied === false) ok('#5 explicit deny override beats position default');
   else fail('#5 deny override', `expected false, got ${denied}`);
 
   // ════════════════════════════════════════════════════════════════════════

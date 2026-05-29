@@ -391,7 +391,16 @@ export default async function DashboardPage() {
   if (raw) {
     try { storedLayout = JSON.parse(raw) as Partial<DashLayout>; } catch { storedLayout = null; }
   }
-  const layout = resolveLayout(storedLayout, current?.role);
+  // Position drives the default board (permissions spec Part 7). Honors view-as
+  // because `current.id` is the effective (possibly impersonated) profile.
+  let positionKey: string | null = null;
+  if (current?.id) {
+    const posRows = await db.execute<{ position_key: string | null }>(
+      sql`SELECT position_key FROM profiles WHERE id = ${current.id}::uuid`,
+    );
+    positionKey = (posRows as unknown as { position_key: string | null }[])[0]?.position_key ?? null;
+  }
+  const layout = resolveLayout(storedLayout, current?.role, positionKey);
 
   // Pivot team load → per-person 14-day arrays
   type PersonRow = { profileId: string; name: string; days: number[] };

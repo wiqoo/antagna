@@ -117,6 +117,11 @@ export const projects = pgTable('projects', {
 
   contractedValueSar: numeric('contracted_value_sar', { precision: 12, scale: 2 }),
 
+  // Abu Luka personal content (Pillar permissions Part 5) — crew may see the
+  // project EXISTS but client/agency/value are hidden + UI shows a generic
+  // "محتوى أبو لوكا" label instead of the client name.
+  isAbuLukaContent: boolean('is_abu_luka_content').notNull().default(false),
+
   // AI-derived
   aiStatusParagraph: text('ai_status_paragraph'),
   aiRiskLevel: text('ai_risk_level'), // 'green' | 'amber' | 'red'

@@ -21,8 +21,9 @@ import {
   type AIHint,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow } from 'lucide-react';
+import { Shield, Users, Bell, BarChart3, KeyRound, Sparkles, Power, SlidersHorizontal, ChevronLeft, Workflow, UserPlus } from 'lucide-react';
 import { getAdminUser } from '@/lib/auth-admin';
+import { can } from '@/lib/authz';
 import { seedDevData } from './seed-actions';
 import { toggleAlertRule, updateAlertCooldown, toggleKpi } from './alert-actions';
 
@@ -32,6 +33,8 @@ export default async function AdminPage() {
   const admin = await getAdminUser();
   if (!admin) redirect('/login?next=/admin');
   const user = admin.user;
+
+  const canInvite = await can('user.invite');
 
   const [people, rules, kpis, permList, roleGrants] = await Promise.all([
     db
@@ -133,6 +136,14 @@ export default async function AdminPage() {
 
       {/* Advanced management tools */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {canInvite && (
+          <AdminToolLink
+            href="/admin/invite-user"
+            icon={<UserPlus size={18} />}
+            title="دعوة مستخدم"
+            subtitle="إنشاء حساب بالدعوة فقط — المنصب يُسنَد لحظة الدعوة (D-040)"
+          />
+        )}
         <AdminToolLink
           href="/admin/access"
           icon={<KeyRound size={18} />}

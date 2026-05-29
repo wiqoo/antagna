@@ -89,13 +89,14 @@ export default async function ProjectsListPage({
         deliveryDueAt: projects.deliveryDueAt,
         contractedValueSar: projects.contractedValueSar,
         aiRiskLevel: projects.aiRiskLevel,
+        isAbuLukaContent: projects.isAbuLukaContent,
         pmName: profiles.displayName,
         clientNameAr: clients.nameAr,
         clientCode: clients.code,
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
-      .innerJoin(clients, eq(clients.id, projects.clientId))
+      .leftJoin(clients, eq(clients.id, projects.clientId))
       .where(where)
       .orderBy(desc(projects.updatedAt))
       .limit(PAGE_SIZE)
@@ -160,13 +161,14 @@ export default async function ProjectsListPage({
             deliveryDueAt: projects.deliveryDueAt,
             contractedValueSar: projects.contractedValueSar,
             aiRiskLevel: projects.aiRiskLevel,
+            isAbuLukaContent: projects.isAbuLukaContent,
             pmName: profiles.displayName,
             clientNameAr: clients.nameAr,
             clientCode: clients.code,
           })
           .from(projects)
           .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
-          .innerJoin(clients, eq(clients.id, projects.clientId))
+          .leftJoin(clients, eq(clients.id, projects.clientId))
           .where(where)
           .orderBy(desc(projects.updatedAt))
           .limit(300)) as unknown as BoardRow[])
@@ -445,10 +447,20 @@ export default async function ProjectsListPage({
                       </Link>
                     </td>
                     <td className="px-5 py-3.5 text-sm text-[var(--text-muted)]">
-                      <span className="font-mono text-[10px] text-[var(--text-dim)]">
-                        {r.clientCode}
-                      </span>
-                      <span className="ms-2">{r.clientNameAr}</span>
+                      {r.clientNameAr ? (
+                        <>
+                          <span className="font-mono text-[10px] text-[var(--text-dim)]">
+                            {r.clientCode}
+                          </span>
+                          <span className="ms-2">{r.clientNameAr}</span>
+                        </>
+                      ) : r.isAbuLukaContent ? (
+                        <span className="inline-flex items-center rounded-md bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
+                          محتوى أبو لوكا
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--text-dim)]">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusPill tone={stageTone(r.stage)}>

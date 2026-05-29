@@ -19,6 +19,9 @@ export const personStatusEnum = pgEnum('person_status', [
   'inactive',
   'on_leave',
   'terminated',
+  // Invite-only (D-040 / Phase F): profile created at invite time, before the
+  // person authenticates. Added to the PG enum in migration 051.
+  'invited',
 ]);
 
 export const talentContractTypeEnum = pgEnum('talent_contract_type', [

@@ -1,10 +1,17 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AuthCard, authField, authButton } from '@/components/AuthCard';
 import { registerAction } from './actions';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function RegisterPage(props: { searchParams: SearchParams }) {
+  // D-040 — invite-only. With self-signup off (default), bounce to /login with
+  // the Arabic notice. Reversible: set REGISTRATION_OPEN=true to show the form.
+  if (process.env.REGISTRATION_OPEN !== 'true') {
+    redirect(`/login?message=${encodeURIComponent('التسجيل بالدعوة فقط')}`);
+  }
+
   const params = await props.searchParams;
   const error = typeof params.error === 'string' ? params.error : null;
 

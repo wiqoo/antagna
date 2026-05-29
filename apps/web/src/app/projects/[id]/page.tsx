@@ -144,6 +144,7 @@ export default async function ProjectDetailPage({
       aiAnalyzedAt: projects.aiAnalyzedAt,
       driveFolderUrl: projects.driveFolderUrl,
       notes: projects.notes,
+      isAbuLukaContent: projects.isAbuLukaContent,
       clientId: projects.clientId,
       clientCode: clients.code,
       clientNameAr: clients.nameAr,
@@ -151,7 +152,7 @@ export default async function ProjectDetailPage({
       pmName: profiles.displayName,
     })
     .from(projects)
-    .innerJoin(clients, eq(clients.id, projects.clientId))
+    .leftJoin(clients, eq(clients.id, projects.clientId))
     .leftJoin(profiles, eq(profiles.id, projects.projectManagerId))
     .where(eq(projects.id, id))
     .limit(1);
@@ -516,9 +517,17 @@ export default async function ProjectDetailPage({
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--text-muted)]">
                 <span>
                   <span className="text-[var(--text-dim)]">العميل: </span>
-                  <span className="text-[var(--text)]">
-                    {project.clientNameAr}
-                  </span>
+                  {project.clientNameAr ? (
+                    <span className="text-[var(--text)]">
+                      {project.clientNameAr}
+                    </span>
+                  ) : project.isAbuLukaContent ? (
+                    <span className="inline-flex items-center rounded-md bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
+                      محتوى أبو لوكا
+                    </span>
+                  ) : (
+                    <span className="text-[var(--text-dim)]">—</span>
+                  )}
                 </span>
                 {project.pmName && (
                   <span className="flex items-center gap-1.5">

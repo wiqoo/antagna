@@ -106,7 +106,11 @@ export const DEFAULT_LAYOUT: DashLayout = {
 };
 
 /** Per-role lead cards — reorders the same default set so each role sees their
- * most relevant cards first. Applied only when the user has no saved layout. */
+ * most relevant cards first. Applied only when the user has no saved layout.
+ *
+ * `role` here is the legacy `profiles.role` value. Prefer `POSITION_LAYOUT`
+ * (keyed by `profiles.position_key`) — this map is the fallback for profiles
+ * that have no position_key yet. */
 const ROLE_LEAD: Record<string, CardId[]> = {
   project_manager: ['project_health', 'capacity_fc', 'approvals', 'shoots'],
   production_manager: ['shoots', 'equip_conflicts', 'capacity_fc', 'project_health'],
@@ -114,6 +118,81 @@ const ROLE_LEAD: Record<string, CardId[]> = {
   finance: ['mtd_revenue', 'project_health', 'approvals'],
   hr: ['capacity_fc', 'glance'],
 };
+
+/**
+ * Per-position dashboard card sets (permissions spec Part 7).
+ *
+ * Keyed by `profiles.position_key` (the 16 positions seeded in migration 049).
+ * Each list is the spec's card order, mapped to catalog ids that exist TODAY.
+ * Cards the spec names but the catalog doesn't have yet are tracked in the
+ * `// follow-up:` comment on each line so a future card ships into the right
+ * board automatically. The board is the listed cards (visible, in this order),
+ * everything else hidden — so a videographer never sees revenue, a production
+ * director never sees cash, etc., by construction.
+ *
+ * Position keys with no entry fall through to `ROLE_LEAD` then `DEFAULT_LAYOUT`.
+ */
+const POSITION_LAYOUT: Record<string, CardId[]> = {
+  // GM — revenue, approvals, at-risk, cash. (brand_health, team_alerts = follow-up cards)
+  general_manager: ['mtd_revenue', 'approvals', 'at_risk', 'cashflow', 'project_health'],
+  // Production Director — capacity, shoots, equipment readiness, active projects,
+  // AI queue, system health. Financial cards intentionally absent (spec NOT list).
+  production_director: ['capacity_fc', 'shoots', 'battery', 'project_health', 'ai_suggestions', 'oauth_health', 'workers'],
+  // Project Manager — my projects, pipeline, client responses, milestones, AI.
+  project_manager: ['project_health', 'hot_leads', 'stale_convos', 'open_tasks', 'ai_suggestions'],
+  // Account Manager — pipeline, brand responses, approvals waiting, this-month revenue.
+  // (my_abu_luka_deals = follow-up card)
+  account_manager: ['hot_leads', 'email_triage', 'stale_convos', 'approvals', 'mtd_revenue'],
+  // Videographer — shoots, tasks. (my_editing_queue, equipment_assigned_to_me = follow-up)
+  videographer: ['shoots', 'open_tasks', 'glance'],
+  // Editors — same shape as videographer (editing queue is a follow-up card).
+  video_editor: ['open_tasks', 'shoots', 'glance'],
+  photo_editor: ['open_tasks', 'shoots', 'glance'],
+  // Equipment Technician — shoots needing prep, conflicts, battery status.
+  // (returns_due, maintenance_due, new_equipment = follow-up cards)
+  equipment_technician: ['shoots', 'equip_conflicts', 'battery', 'glance'],
+  // Procurement — every spec card (pending_pos, deliveries_today, vendor_payments_due,
+  // low_stock_alerts) is a follow-up; show a neutral working board for now.
+  procurement: ['glance', 'activity', 'open_tasks'],
+  // Financial Manager — cash, margins to review, AI spend, MTD. (ar_aging,
+  // upcoming_payments, month_closing_status, zatca_status = follow-up cards)
+  financial_manager: ['cashflow', 'mtd_revenue', 'project_health', 'ai_cost', 'approvals'],
+  // Accountant — cash + revenue placeholders; the spec's data-entry cards
+  // (transactions_to_enter, bank_reconciliation_status, expense_reports_pending,
+  // ar_calls_today, petty_cash_balance) are all follow-up cards.
+  accountant: ['cashflow', 'mtd_revenue', 'glance'],
+  // HR — capacity stand-in; every spec card (attendance_this_week,
+  // leave_requests_pending, active_recruitments, upcoming_reviews,
+  // compliance_alerts) is a follow-up card.
+  hr_manager: ['capacity_fc', 'glance', 'activity'],
+  // System Admin — operational health board.
+  system_admin: ['oauth_health', 'workers', 'ai_cost', 'activity', 'glance'],
+  // Trainee / Freelancer — minimal personal board.
+  trainee: ['glance', 'open_tasks', 'shoots'],
+  freelancer: ['glance', 'open_tasks', 'shoots'],
+  // Creative Director — production-facing board (no financials).
+  creative_director: ['ai_suggestions', 'project_health', 'shoots', 'capacity_fc', 'stale_convos'],
+};
+
+/**
+ * The default board for a position. Spec Part 7 board if the position_key is
+ * mapped; otherwise falls back to the legacy role lead, then DEFAULT_LAYOUT.
+ * The position board is *exclusive* — only its spec cards are visible.
+ */
+export function positionDefaultLayout(
+  positionKey?: string | null,
+  role?: string | null,
+): DashLayout {
+  const lead = positionKey ? POSITION_LAYOUT[positionKey] : undefined;
+  if (lead) {
+    const leadSet = new Set(lead);
+    const hidden = CARD_CATALOG.map((c) => c.id).filter((id) => !leadSet.has(id));
+    const sizes: Partial<Record<CardId, CardSize>> = {};
+    for (const id of lead) sizes[id] = CARD_BY_ID[id]?.defaultSize ?? 'md';
+    return { order: [...lead], sizes, hidden };
+  }
+  return roleDefaultLayout(role);
+}
 
 export function roleDefaultLayout(role?: string | null): DashLayout {
   const lead = role ? ROLE_LEAD[role] : undefined;
@@ -130,8 +209,9 @@ export function roleDefaultLayout(role?: string | null): DashLayout {
 export function resolveLayout(
   stored?: Partial<DashLayout> | null,
   role?: string | null,
+  positionKey?: string | null,
 ): DashLayout {
-  if (!stored || !stored.order?.length) return roleDefaultLayout(role);
+  if (!stored || !stored.order?.length) return positionDefaultLayout(positionKey, role);
 
   const valid = new Set(CARD_CATALOG.map((c) => c.id) as CardId[]);
   const order = stored.order.filter((id): id is CardId => valid.has(id));
@@ -159,7 +239,7 @@ export function resolveLayout(
   // (Mohammed's audit hit this — "briefing visible, every other card empty".)
   const hiddenSet = new Set(hidden);
   const wouldRenderAny = order.some((id) => !hiddenSet.has(id));
-  if (!wouldRenderAny) return roleDefaultLayout(role);
+  if (!wouldRenderAny) return positionDefaultLayout(positionKey, role);
 
   return { order, sizes, hidden };
 }
