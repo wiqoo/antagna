@@ -40,6 +40,13 @@
 - [ ] Phase G — Per-position dashboard layouts (10 personas).
 - [ ] Phase H — 10 audit specs (Playwright) + team sign-off.
 
+**🟡 Sprint 0 — open decisions (deferred, need Mohammed before Phase C/D proceed):**
+- [ ] **D-1 · Phase D go/no-go** — switching all read pages (projects/crm/equipment/inbox/team) to `v_*_safe` masking views changes what every user sees + is the biggest regression surface in Sprint 0. With غريب on full access + all data dummy, impact on Mohammed's own use is minimal now. **Decision: build Phase C (GUC, zero-risk) + Phase D views now, or hold?** _Recommendation: proceed; keep the page-switchover behind tight verification._
+- [ ] **D-2 · غريب TEMP `*` hat** — keep full access until when? Cleanup = delete the `user_position_overrides` (`general_manager`, `mohammedelghareib@gmail.com`) row to re-enforce production_director "no financial" (Test 10). _Default: keep until Mohammed says remove._
+- [ ] **D-3 · migration-history drift** — `supabase_migrations.schema_migrations` only records up to `041`, but `042`–`049` are applied. A future `supabase db push` would try to re-apply `042`–`047`. **Backfill the history rows (safe) or leave?** _Recommendation: backfill 042–047._
+- [ ] **D-4 · pillar3 smoke obsolete** — `scripts/smoke/pillar3-acceptance.ts` tests #1/#2 assert the retired role-based model + system_admin bypass → fail by design. Rewrite for the position model in Phase H.
+- [ ] **D-5 · Phase F invite emails (category-5)** — seeding real users Ahmed (`ahmedakj.1423@gmail.com`) + Abu Luka (`mo.malki88@gmail.com`) dispatches invite emails to real humans → needs explicit Mohammed OK at that point (DB-only seed can run earlier).
+
 **Sprint 1 — Approval Primitive + AI Command Bar Phase A (Weeks 5-6)**.
 **Sprint 2 — Event Bus foundation + UI consolidation (kill `/preview/lab`) (Weeks 7-8)**.
 **Sprint 3 — Command Bar Phase B + Approval Primitive wiring + Realtime (Weeks 9-10)**.
