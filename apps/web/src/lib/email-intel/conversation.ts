@@ -16,9 +16,7 @@
  */
 import { db, conversationSummaries, emailThreads, emailMessages } from '@antagna/db';
 import { eq, asc } from 'drizzle-orm';
-import { getOpenAI, assertAiBudget, recordUsage } from '@antagna/ai';
-
-const MODEL = process.env.EMAIL_INTEL_MODEL ?? 'gpt-4o-mini';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
 
 const SYSTEM = `You analyze a full email thread (multiple messages) between Volt Production
 (a Saudi creative agency) and a client / partner.
@@ -109,26 +107,28 @@ export async function summarizeConversation(
 
   await assertAiBudget({ userId: null, feature: 'email_intel_conversation' });
 
-  const client = getOpenAI();
+  const client = getAnthropic();
   let raw: string;
   let inputTokens = 0;
   let outputTokens = 0;
   try {
-    const resp = await client.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: transcript },
-      ],
-      response_format: { type: 'json_object' },
+    const resp = await client.messages.create({
+      model: ANTHROPIC_MODELS.haiku,
       max_tokens: 800,
+      system: SYSTEM,
+      messages: [{ role: 'user', content: transcript }],
     });
-    raw = resp.choices[0]?.message?.content ?? '{}';
-    inputTokens = resp.usage?.prompt_tokens ?? 0;
-    outputTokens = resp.usage?.completion_tokens ?? 0;
+    const txt = resp.content.find((b) => b.type === 'text');
+    raw = (txt && txt.type === 'text' ? txt.text : '')
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+    inputTokens = resp.usage.input_tokens ?? 0;
+    outputTokens = resp.usage.output_tokens ?? 0;
     await recordUsage({
       feature: 'email_intel_conversation',
-      model: MODEL,
+      model: ANTHROPIC_MODELS.haiku,
       inputTokens,
       outputTokens,
       userId: null,
@@ -137,7 +137,7 @@ export async function summarizeConversation(
     return {
       ok: false,
       threadId,
-      error: err instanceof Error ? err.message : 'openai_failed',
+      error: err instanceof Error ? err.message : 'anthropic_failed',
     };
   }
 
@@ -172,7 +172,7 @@ export async function summarizeConversation(
         openItems: (parsed.open_items ?? []) as unknown[],
         outcomeStatus: parsed.outcome_status ?? null,
         confidence: confidence.toFixed(2),
-        model: MODEL,
+        model: ANTHROPIC_MODELS.haiku,
         inputTokens,
         outputTokens,
         summarizedAt: new Date(),
@@ -192,7 +192,7 @@ export async function summarizeConversation(
         openItems: (parsed.open_items ?? []) as unknown[],
         outcomeStatus: parsed.outcome_status ?? null,
         confidence: confidence.toFixed(2),
-        model: MODEL,
+        model: ANTHROPIC_MODELS.haiku,
         inputTokens,
         outputTokens,
       })

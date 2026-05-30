@@ -19,6 +19,8 @@ type Thread = {
   lastBody: string | null;
   lastDir: string;
   lastType: string | null;
+  senderName: string | null;
+  matchedName: string | null;
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -54,7 +56,16 @@ export default async function WhatsappInboxPage() {
              (SELECT direction FROM whatsapp_messages x WHERE x.thread_key = w.thread_key
                 ORDER BY received_at DESC LIMIT 1) AS "lastDir",
              (SELECT message_type FROM whatsapp_messages x WHERE x.thread_key = w.thread_key
-                ORDER BY received_at DESC LIMIT 1) AS "lastType"
+                ORDER BY received_at DESC LIMIT 1) AS "lastType",
+             (SELECT sender_name FROM whatsapp_messages x WHERE x.thread_key = w.thread_key
+                AND sender_name IS NOT NULL ORDER BY received_at DESC LIMIT 1) AS "senderName",
+             (SELECT COALESCE(c.full_name, p.display_name)
+                FROM whatsapp_messages x
+                LEFT JOIN contacts c ON c.id = x.matched_contact_id
+                LEFT JOIN profiles p ON p.id = x.matched_profile_id
+                WHERE x.thread_key = w.thread_key
+                  AND (x.matched_contact_id IS NOT NULL OR x.matched_profile_id IS NOT NULL)
+                ORDER BY received_at DESC LIMIT 1) AS "matchedName"
       FROM whatsapp_messages w
       WHERE w.thread_key IS NOT NULL
       GROUP BY w.thread_key
@@ -90,8 +101,17 @@ export default async function WhatsappInboxPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-medium text-[var(--text)]" dir="ltr">
-                        {peerLabel(t.threadKey)}
+                      {/* Real name first (matched contact/profile → WhatsApp
+                          display name), with the raw key as a quiet sub-label. */}
+                      <span className="min-w-0 truncate text-[13px] font-medium text-[var(--text)]">
+                        <span dir={t.matchedName || t.senderName ? 'rtl' : 'ltr'}>
+                          {t.matchedName ?? t.senderName ?? peerLabel(t.threadKey)}
+                        </span>
+                        {(t.matchedName || t.senderName) && (
+                          <span className="ms-2 font-mono text-[10px] text-[var(--text-dim)]" dir="ltr">
+                            {peerLabel(t.threadKey)}
+                          </span>
+                        )}
                       </span>
                       <span className="shrink-0 font-mono text-[10px] text-[var(--text-dim)]">
                         {new Date(t.lastAt).toISOString().slice(5, 16).replace('T', ' ')}

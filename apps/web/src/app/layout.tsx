@@ -11,16 +11,19 @@ import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 import { InstallPrompt } from '@/components/InstallPrompt';
 
-// Geist — Latin product UI sans
+// Geist — Latin product UI sans. NOTE: non-colliding variable names
+// (--font-geist / --font-geist-mono) so they don't clash with the Tailwind
+// @theme --font-sans / --font-mono in globals.css (the old same-name collision
+// made those @theme values cyclic → invalid → wrong fonts rendered).
 const geist = Geist({
-  variable: '--font-sans',
+  variable: '--font-geist',
   subsets: ['latin'],
   display: 'swap',
   weight: ['400', '500', '600', '700'],
 });
 
 const geistMono = Geist_Mono({
-  variable: '--font-mono',
+  variable: '--font-geist-mono',
   subsets: ['latin'],
   display: 'swap',
   weight: ['400', '500'],

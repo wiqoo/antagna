@@ -220,6 +220,12 @@ export async function POST(req: Request) {
 
   const receivedAt = body.t ? new Date(body.t * 1000) : new Date();
 
+  // WhatsApp display name — lets the UI show a name when the number is a hidden @lid.
+  const senderName =
+    (typeof body.pushname === 'string' && body.pushname.trim()) ||
+    (typeof body.notifyName === 'string' && body.notifyName.trim()) ||
+    null;
+
   const [inserted] = await db
     .insert(whatsappMessages)
     .values({
@@ -227,6 +233,7 @@ export async function POST(req: Request) {
       direction,
       fromE164: fromE164Final,
       toE164: toE164Final,
+      senderName,
       messageType,
       bodyText,
       mediaUrl,

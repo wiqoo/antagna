@@ -157,6 +157,7 @@ export default async function InboxPage() {
         id: whatsappMessages.id,
         direction: whatsappMessages.direction,
         fromE164: whatsappMessages.fromE164,
+        senderName: whatsappMessages.senderName,
         bodyText: whatsappMessages.bodyText,
         receivedAt: whatsappMessages.receivedAt,
         matchedContactName: contacts.fullName,
@@ -394,14 +395,28 @@ export default async function InboxPage() {
                       >
                         {w.direction}
                       </StatusPill>
-                      <span className="font-mono text-xs text-[var(--text-dim)]">
-                        {w.fromE164}
-                      </span>
-                      {(w.matchedContactName || w.matchedProfileName) && (
-                        <span className="text-xs text-[var(--text-muted)]">
-                          · {w.matchedContactName ?? w.matchedProfileName}
-                        </span>
-                      )}
+                      {/* Prefer a real name (matched contact/profile, else the
+                          WhatsApp display name); only show the raw id when we
+                          have nothing, and label hidden @lid numbers nicely. */}
+                      {(() => {
+                        const name =
+                          w.matchedContactName ?? w.matchedProfileName ?? w.senderName;
+                        const idLabel = w.fromE164?.startsWith('lid:')
+                          ? 'رقم محجوب (LID)'
+                          : w.fromE164;
+                        return name ? (
+                          <>
+                            <span className="text-xs text-[var(--text-muted)]">{name}</span>
+                            <span className="font-mono text-[10px] text-[var(--text-dim)]">
+                              {idLabel}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-mono text-xs text-[var(--text-dim)]">
+                            {idLabel}
+                          </span>
+                        );
+                      })()}
                       {w.projectCode && (
                         <span className="font-mono text-xs text-[var(--accent)]">
                           {w.projectCode}

@@ -186,6 +186,9 @@ export const whatsappMessages = pgTable('whatsapp_messages', {
   direction: text('direction').notNull(), // 'inbound' | 'outbound'
   fromE164: text('from_e164').notNull(),
   toE164: text('to_e164').notNull(),
+  // WhatsApp display name (pushname/notifyName) — shown when the real number is
+  // hidden behind a @lid so the UI isn't just "lid:NNN".
+  senderName: text('sender_name'),
   matchedContactId: uuid('matched_contact_id').references(() => contacts.id),
   matchedProfileId: uuid('matched_profile_id').references(() => profiles.id),
   messageType: text('message_type'), // 'text' | 'image' | 'video' | 'audio' | 'document'

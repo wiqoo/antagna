@@ -30,16 +30,15 @@
   --color-info:    #60A5FA;
 
   /* One Arabic family everywhere: Vazirmatn (--font-arabic-display) leads BOTH
-     body and headings so titles and text match (was IBM Plex body vs Vazirmatn
-     titles). IMPORTANT: do NOT include var(--font-sans) here — that's Next's
-     Geist variable of the SAME name, so referencing it makes this declaration a
-     cyclic self-reference → invalid → body silently fell back to Geist. */
-  --font-sans:    var(--font-arabic-display), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-arabic-display), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
-  /* Mono: system monospace for Latin codes/digits/timestamps, Vazirmatn for any
-     Arabic (Geist Mono has no Arabic glyphs). No self-ref to --font-mono (same
-     cyclic trap as above). */
-  --font-mono:    ui-monospace, "SF Mono", Menlo, Consolas, var(--font-arabic-display), monospace;
+     body and headings so titles and text match. The Next.js Geist vars are now
+     --font-geist / --font-geist-mono (renamed in layout.tsx) so referencing
+     them here is no longer a cyclic self-reference. */
+  --font-sans:    var(--font-arabic-display), var(--font-arabic), var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-arabic-display), var(--font-arabic), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  /* Mono: Geist Mono for Latin codes/digits/timestamps, then system mono, then
+     Vazirmatn so ARABIC inside font-mono renders in the same family instead of
+     an uncontrolled system fallback (Geist Mono has no Arabic glyphs). */
+  --font-mono:    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, var(--font-arabic-display), monospace;
 
   --radius-xs: 3px;
   --radius-sm: 4px;

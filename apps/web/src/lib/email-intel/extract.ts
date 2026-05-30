@@ -1,20 +1,18 @@
 /**
  * Deep extraction — turns one inbound email message into a structured
- * ExtractedEmail JSON via OpenAI (gpt-4o-mini default).
+ * ExtractedEmail JSON via Claude Haiku (Anthropic).
  *
  * Idempotent on email_messages.id — email_extractions.message_id has a
  * UNIQUE constraint so the upsert just rewrites the row.
  */
 import { db, emailMessages, emailThreads, emailExtractions } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
-import { getOpenAI, assertAiBudget, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
 import type { ExtractedEmail } from './types';
 import {
   processMessageAttachments,
   getAttachmentTextForMessage,
 } from './attachments';
-
-const MODEL = process.env.EMAIL_INTEL_MODEL ?? 'gpt-4o-mini';
 
 const SYSTEM = `You extract structured data from a single business email for Volt Production
 (Saudi creative agency, Jeddah). Output STRICT JSON matching the schema, no prose.
@@ -137,26 +135,29 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
 
   await assertAiBudget({ userId: null, feature: 'email_intel_extract' });
 
-  const client = getOpenAI();
+  const client = getAnthropic();
   let raw: string;
   let inputTokens = 0;
   let outputTokens = 0;
   try {
-    const resp = await client.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: userPrompt },
-      ],
-      response_format: { type: 'json_object' },
+    const resp = await client.messages.create({
+      model: ANTHROPIC_MODELS.haiku,
       max_tokens: 1500,
+      system: SYSTEM,
+      messages: [{ role: 'user', content: userPrompt }],
     });
-    raw = resp.choices[0]?.message?.content ?? '{}';
-    inputTokens = resp.usage?.prompt_tokens ?? 0;
-    outputTokens = resp.usage?.completion_tokens ?? 0;
+    const txt = resp.content.find((b) => b.type === 'text');
+    raw = (txt && txt.type === 'text' ? txt.text : '')
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+    if (!raw) raw = '{}';
+    inputTokens = resp.usage.input_tokens ?? 0;
+    outputTokens = resp.usage.output_tokens ?? 0;
     await recordUsage({
       feature: 'email_intel_extract',
-      model: MODEL,
+      model: ANTHROPIC_MODELS.haiku,
       inputTokens,
       outputTokens,
       userId: null,
@@ -165,7 +166,7 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
     return {
       ok: false,
       messageId: messageDbId,
-      error: err instanceof Error ? err.message : 'openai_failed',
+      error: err instanceof Error ? err.message : 'anthropic_failed',
     };
   }
 
@@ -177,9 +178,9 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
   }
   const confidence = Math.max(0, Math.min(1, Number(data.confidence ?? 0.5)));
 
-  // gpt-4o-mini: $0.15/Mtok input, $0.60/Mtok output
+  // Claude Haiku 4.5: $0.80/Mtok input, $4.00/Mtok output
   const costUsd =
-    (inputTokens * 0.15 + outputTokens * 0.6) / 1_000_000;
+    (inputTokens * 0.8 + outputTokens * 4.0) / 1_000_000;
 
   const [row] = await db
     .insert(emailExtractions)
@@ -188,7 +189,7 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
       messageId: msg.id,
       data: data as unknown as Record<string, unknown>,
       confidence: confidence.toFixed(2),
-      model: MODEL,
+      model: ANTHROPIC_MODELS.haiku,
       inputTokens,
       outputTokens,
       costUsd: costUsd.toFixed(6),
@@ -198,7 +199,7 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
       set: {
         data: data as unknown as Record<string, unknown>,
         confidence: confidence.toFixed(2),
-        model: MODEL,
+        model: ANTHROPIC_MODELS.haiku,
         inputTokens,
         outputTokens,
         costUsd: costUsd.toFixed(6),
