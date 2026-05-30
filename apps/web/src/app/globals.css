@@ -31,14 +31,15 @@
 
   /* One Arabic family everywhere: Vazirmatn (--font-arabic-display) leads BOTH
      body and headings so titles and text match (was IBM Plex body vs Vazirmatn
-     titles). IBM Plex stays as a fallback. */
-  --font-sans:    var(--font-arabic-display), var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-arabic-display), var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  /* Geist Mono has NO Arabic glyphs, so Arabic set in font-mono fell back to a
-     random system face ("metadata in a different font"). Append Vazirmatn so
-     Arabic/Arabic-Indic chars in mono contexts render in the same family;
-     Latin + ASCII digits/codes stay monospace. */
-  --font-mono:    var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, var(--font-arabic-display), monospace;
+     titles). IMPORTANT: do NOT include var(--font-sans) here — that's Next's
+     Geist variable of the SAME name, so referencing it makes this declaration a
+     cyclic self-reference → invalid → body silently fell back to Geist. */
+  --font-sans:    var(--font-arabic-display), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-arabic-display), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  /* Mono: system monospace for Latin codes/digits/timestamps, Vazirmatn for any
+     Arabic (Geist Mono has no Arabic glyphs). No self-ref to --font-mono (same
+     cyclic trap as above). */
+  --font-mono:    ui-monospace, "SF Mono", Menlo, Consolas, var(--font-arabic-display), monospace;
 
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -83,7 +84,10 @@ html, body {
      horizontal scrollbar (the content column already clips, this is belt-and-
      suspenders). overflow-x:clip (not hidden) keeps sticky/fixed working. */
   overflow-x: clip;
-  font-family: var(--font-sans);
+  /* Base font set directly to the Vazirmatn chain (not var(--font-sans), which
+     collides with Next's same-named Geist variable and won the cascade — body
+     was silently Geist). This guarantees Arabic body matches the titles. */
+  font-family: var(--font-arabic-display), var(--font-arabic), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-feature-settings: "calt";
   font-variant-numeric: tabular-nums;
   background: var(--bg);
