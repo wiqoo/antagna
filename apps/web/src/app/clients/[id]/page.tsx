@@ -39,10 +39,29 @@ export const dynamic = 'force-dynamic';
 
 export default async function ClientDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    contactError?: string;
+    fullName?: string;
+    jobTitle?: string;
+    email?: string;
+  }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+
+  // Surfaced from the add-contact action below: when addContact returns
+  // { ok:false, error }, the wrapper redirects back here with the error +
+  // the values the user typed so we can render the message and repopulate.
+  const contactError =
+    typeof sp.contactError === 'string' ? sp.contactError : null;
+  const contactFullName =
+    typeof sp.fullName === 'string' ? sp.fullName : '';
+  const contactJobTitle =
+    typeof sp.jobTitle === 'string' ? sp.jobTitle : '';
+  const contactEmail = typeof sp.email === 'string' ? sp.email : '';
 
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -121,12 +140,26 @@ export default async function ClientDetailPage({
   const crNumber = client.crNumber ?? null;
   const notes = client.notes ?? null;
 
-  // Void-returning wrapper: addContact now returns a structured { ok, error }
-  // result, but a <form action> must resolve to void. We discard the result
-  // here (the page re-renders via revalidatePath inside addContact).
+  // Void-returning wrapper: addContact returns a structured { ok, error }
+  // result, but a <form action> must resolve to void. Instead of discarding
+  // it, on failure we redirect back to this page with the error + the values
+  // the user typed (as query params) so the form can render an inline message
+  // and repopulate — no more silent no-op. On success addContact's own
+  // revalidatePath refreshes the list; we redirect to the clean URL so a
+  // refresh can't resubmit / keep a stale error.
   async function addContactAction(formData: FormData): Promise<void> {
     'use server';
-    await addContact(id, formData);
+    const result = await addContact(id, formData);
+    if (result && !result.ok) {
+      const qs = new URLSearchParams({
+        contactError: result.error ?? 'تعذّر إضافة جهة الاتصال',
+        fullName: formData.get('fullName')?.toString() ?? '',
+        jobTitle: formData.get('jobTitle')?.toString() ?? '',
+        email: formData.get('email')?.toString() ?? '',
+      });
+      redirect(`/clients/${id}?${qs.toString()}`);
+    }
+    redirect(`/clients/${id}`);
   }
 
   const methodsByContact = methodRows.reduce<
@@ -285,18 +318,22 @@ export default async function ClientDetailPage({
               type="text"
               name="fullName"
               required
+              defaultValue={contactFullName}
+              aria-invalid={contactError ? true : undefined}
               placeholder="الاسم الكامل *"
               className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
             />
             <input
               type="text"
               name="jobTitle"
+              defaultValue={contactJobTitle}
               placeholder="المنصب"
               className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm"
             />
             <input
               type="email"
               name="email"
+              defaultValue={contactEmail}
               placeholder="email"
               className="h-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-sm font-mono"
             />
@@ -304,6 +341,14 @@ export default async function ClientDetailPage({
               إضافة
             </Button>
           </form>
+          {contactError && (
+            <p
+              role="alert"
+              className="mt-2 text-xs text-[var(--danger,#ef4444)]"
+            >
+              {contactError}
+            </p>
+          )}
         </div>
 
         {contactList.length === 0 ? (

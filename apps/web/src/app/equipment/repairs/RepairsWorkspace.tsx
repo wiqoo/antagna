@@ -96,14 +96,17 @@ export function RepairsWorkspace({
   equipmentOptions,
   initialFilters,
   presetEquipmentId,
+  canEdit,
 }: {
   rows: RepairRow[];
   equipmentOptions: EquipOption[];
   initialFilters?: Record<string, string>;
   presetEquipmentId?: string | null;
+  canEdit: boolean;
 }) {
   // Deep-linked from an equipment detail page → open the form pre-selected.
-  const [showForm, setShowForm] = useState(!!presetEquipmentId);
+  // Viewers without equipment.update never get the form open by default.
+  const [showForm, setShowForm] = useState(canEdit && !!presetEquipmentId);
 
   const filters: FilterDef<RepairRow>[] = [
     {
@@ -217,7 +220,7 @@ export function RepairsWorkspace({
     {
       key: 'actions',
       header: '',
-      cell: (r) => <RepairActions row={r} />,
+      cell: (r) => <RepairActions row={r} canEdit={canEdit} />,
     },
   ];
 
@@ -246,9 +249,11 @@ export function RepairsWorkspace({
         {r.vendor && <span>{r.vendor}</span>}
         <span className="font-mono">ETA {fmtDate(r.eta)}</span>
       </div>
-      <div className="mt-3 border-t border-[var(--line)] pt-3">
-        <RepairActions row={r} />
-      </div>
+      {canEdit && (
+        <div className="mt-3 border-t border-[var(--line)] pt-3">
+          <RepairActions row={r} canEdit={canEdit} />
+        </div>
+      )}
     </div>
   );
 
@@ -259,17 +264,19 @@ export function RepairsWorkspace({
           {rows.filter((r) => r.status !== 'fixed').length} بلاغ مفتوح ·{' '}
           {rows.length} إجمالاً
         </p>
-        <button
-          className={primaryBtn}
-          onClick={() => setShowForm((v) => !v)}
-          disabled={equipmentOptions.length === 0}
-        >
-          {showForm ? <X size={14} /> : <Plus size={14} />}
-          {showForm ? 'إغلاق' : 'بلاغ عطل جديد'}
-        </button>
+        {canEdit && (
+          <button
+            className={primaryBtn}
+            onClick={() => setShowForm((v) => !v)}
+            disabled={equipmentOptions.length === 0}
+          >
+            {showForm ? <X size={14} /> : <Plus size={14} />}
+            {showForm ? 'إغلاق' : 'بلاغ عطل جديد'}
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {canEdit && showForm && (
         <CreateRepairForm
           equipmentOptions={equipmentOptions}
           presetEquipmentId={presetEquipmentId ?? null}
@@ -297,7 +304,7 @@ export function RepairsWorkspace({
             title="لا بلاغات صيانة"
             description="كل المعدات سليمة. سجّل عطلاً عند ظهوره ليُتابَع حتى الإصلاح."
             action={
-              equipmentOptions.length > 0 ? (
+              canEdit && equipmentOptions.length > 0 ? (
                 <button className={primaryBtn} onClick={() => setShowForm(true)}>
                   <Plus size={14} /> بلاغ عطل جديد
                 </button>
@@ -419,7 +426,7 @@ function CreateRepairForm({
   );
 }
 
-function RepairActions({ row }: { row: RepairRow }) {
+function RepairActions({ row, canEdit }: { row: RepairRow; canEdit: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -435,6 +442,9 @@ function RepairActions({ row }: { row: RepairRow }) {
         router.refresh();
       }
     });
+
+  // Read-only viewers see status pills in their columns; no mutate controls.
+  if (!canEdit) return null;
 
   return (
     <div className="space-y-2">

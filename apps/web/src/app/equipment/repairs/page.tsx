@@ -11,7 +11,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Wrench, AlertTriangle, Send, CheckCircle2 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { RepairsWorkspace, type RepairRow, type EquipOption } from './RepairsWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,9 @@ export default async function EquipmentRepairsPage({
 
   // Page guard: viewing equipment repairs is gated on equipment.read.
   await requirePermission('equipment.read');
+
+  // Mutating repairs (create / update status / ETA) needs equipment.update.
+  const canEdit = await can('equipment.update');
 
   const [repairR, equipR] = await Promise.all([
     db.execute(sql`
@@ -175,6 +178,7 @@ export default async function EquipmentRepairsPage({
         rows={repairs}
         equipmentOptions={equipmentOptions}
         presetEquipmentId={presetEquipmentId}
+        canEdit={canEdit}
         initialFilters={
           Object.keys(initialFilters).length > 0 ? initialFilters : undefined
         }

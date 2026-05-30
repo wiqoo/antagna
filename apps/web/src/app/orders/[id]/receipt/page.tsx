@@ -94,7 +94,8 @@ export default async function OrderReceiptPage({
           </div>
         </section>
 
-        <table className="mt-8 w-full border-collapse text-sm">
+        <div className="overflow-x-auto">
+          <table className="mt-8 w-full border-collapse text-sm">
           <thead>
             <tr className="border-y-2 border-[#111] text-start">
               <th className="py-2 pe-2 text-start font-semibold">#</th>
@@ -137,7 +138,8 @@ export default async function OrderReceiptPage({
               <td className="py-3 ps-2 text-end font-mono text-base font-bold">{fmtMoney(total)}</td>
             </tr>
           </tfoot>
-        </table>
+          </table>
+        </div>
 
         {order.notes && (
           <section className="mt-6 text-sm">

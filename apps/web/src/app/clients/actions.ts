@@ -158,7 +158,13 @@ export async function updateClient(clientId: string, formData: FormData) {
   const nameEn = formData.get('nameEn')?.toString().trim() || null;
   const legalName = formData.get('legalName')?.toString().trim() || null;
   const clientType = formData.get('clientType')?.toString() || 'brand';
-  const industry = formData.get('industry')?.toString().trim() || null;
+  // Industry: dropdown ('other' lets a free-text industryOther override) —
+  // mirrors createClient so the edit page's dropdown + 'other' pattern stores
+  // the typed custom value instead of the literal 'other'.
+  const industryPick = formData.get('industry')?.toString().trim() || null;
+  const industryOther = formData.get('industryOther')?.toString().trim() || null;
+  const industry =
+    industryPick === 'other' ? industryOther || null : industryPick;
   const country = formData.get('country')?.toString().trim() || 'SA';
   const city = formData.get('city')?.toString().trim() || null;
   const websiteUrl = formData.get('websiteUrl')?.toString().trim() || null;

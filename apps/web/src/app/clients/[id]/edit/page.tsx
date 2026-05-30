@@ -35,6 +35,31 @@ export default async function EditClientPage({
   // Legal/financial fields are masked unless the viewer can read financials.
   const canReadFinancial = await can('clients.read.financial');
 
+  // Industry now uses the same dropdown + 'other' free-text pattern as
+  // clients/new (keep these option values in sync with that page + the
+  // createClient/updateClient industryOther handling). A stored value that
+  // isn't one of the known options is treated as a custom industry: we select
+  // 'other' and seed the free-text box with it, so editing a categorized
+  // client no longer downgrades it to free text and a custom value survives.
+  const INDUSTRY_OPTIONS = [
+    'real_estate',
+    'automotive',
+    'f_and_b',
+    'retail',
+    'beauty_fashion',
+    'tech',
+  ] as const;
+  const storedIndustry = client.industry ?? '';
+  const industryIsKnown = (INDUSTRY_OPTIONS as readonly string[]).includes(
+    storedIndustry,
+  );
+  const industrySelectValue = storedIndustry
+    ? industryIsKnown
+      ? storedIndustry
+      : 'other'
+    : '';
+  const industryOtherValue = industryIsKnown ? '' : storedIndustry;
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
       <div className="mx-auto max-w-3xl space-y-8">
@@ -97,11 +122,26 @@ export default async function EditClientPage({
                 </select>
               </Field>
               <Field label="القطاع">
+                <select
+                  name="industry"
+                  defaultValue={industrySelectValue}
+                  className="form-input"
+                >
+                  <option value="">— اختر القطاع —</option>
+                  <option value="real_estate">عقارات</option>
+                  <option value="automotive">سيارات</option>
+                  <option value="f_and_b">مطاعم وأغذية</option>
+                  <option value="retail">تجزئة</option>
+                  <option value="beauty_fashion">موضة وجمال</option>
+                  <option value="tech">تقنية وستارت أب</option>
+                  <option value="other">أخرى…</option>
+                </select>
                 <input
                   type="text"
-                  name="industry"
-                  defaultValue={client.industry ?? ''}
-                  className="form-input"
+                  name="industryOther"
+                  defaultValue={industryOtherValue}
+                  placeholder="اكتب القطاع لو اخترت أخرى"
+                  className="form-input mt-2"
                 />
               </Field>
             </div>
