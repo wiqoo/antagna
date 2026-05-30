@@ -6,6 +6,7 @@ import { PageHeader, Card, Button, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save, Building2 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { createContact } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,9 @@ export default async function NewContactPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/contacts/new');
+
+  // Page guard: creating a contact is gated on contact.create.
+  await requirePermission('contact.create');
 
   // A contact MUST belong to a client (contacts.client_id is NOT NULL).
   const clientList = await db

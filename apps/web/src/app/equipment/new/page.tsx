@@ -6,6 +6,7 @@ import { PageHeader, Card, Button } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { createEquipment } from '../actions';
 import { IdentifyFromPhoto } from './identify-from-photo';
 
@@ -15,6 +16,9 @@ export default async function NewEquipmentPage() {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/equipment/new');
+
+  // Page guard: adding equipment is gated on equipment.update.
+  await requirePermission('equipment.update');
 
   const groups = await db
     .select({ id: equipmentGroups.id, code: equipmentGroups.code, nameAr: equipmentGroups.nameAr })

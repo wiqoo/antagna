@@ -7,6 +7,7 @@ import { RevenueChart } from './revenue-chart';
 import { Shell } from '@/components/Shell';
 import { FileText, TrendingUp, Briefcase } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,9 @@ export default async function ReportsPage() {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/reports');
+
+  const okFin = await canAny(['financials.read', 'projects.read.financial']);
+  if (!okFin) redirect('/dashboard');
 
   const [revenueByMonth, stageBreakdown, topClients, teamLoad, eqUtilization] =
     await Promise.all([

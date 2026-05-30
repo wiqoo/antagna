@@ -11,6 +11,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Sparkles, FileSignature } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { TalentsWorkspace, type TalentRow } from './TalentsWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +24,7 @@ export default async function TalentsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/talents');
+  await requirePermission('team.read');
 
   const list = rows<TalentRow>(
     await db.execute(sql`

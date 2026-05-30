@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
-import { db } from '@antagna/db';
+import { db, withActor } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermissionAction } from '@/lib/authz';
 
 const SYSTEM = `You are Antagna's project risk analyzer for Volt Production (Saudi Arabia).
 Given the project context, output STRICT JSON only:
@@ -24,6 +25,7 @@ Be conservative:
  * Safe to call: throttles to once-per-15-minutes per project unless force=true.
  */
 export async function reanalyzeProject(projectId: string, force = false) {
+  const actorId = await requirePermissionAction('project.update');
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };
@@ -156,15 +158,17 @@ Output JSON only.`;
       authUserId: user.id,
     });
 
-    await db.execute(sql`
-      UPDATE projects SET
-        ai_risk_level = ${parsed.risk},
-        ai_status_paragraph = ${parsed.status_paragraph},
-        ai_next_action = ${parsed.next_action},
-        ai_analyzed_at = now(),
-        updated_at = now()
-      WHERE id = ${projectId}::uuid
-    `);
+    await withActor(actorId, (tx) =>
+      tx.execute(sql`
+        UPDATE projects SET
+          ai_risk_level = ${parsed.risk},
+          ai_status_paragraph = ${parsed.status_paragraph},
+          ai_next_action = ${parsed.next_action},
+          ai_analyzed_at = now(),
+          updated_at = now()
+        WHERE id = ${projectId}::uuid
+      `),
+    );
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath('/projects');

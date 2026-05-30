@@ -14,6 +14,7 @@ import { Shell } from '@/components/Shell';
 import { BarChart3 } from 'lucide-react';
 import { KpiTrend } from './kpi-trend';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,9 @@ export default async function KpisPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/kpis');
+
+  const okFin = await canAny(['financials.read', 'projects.read.financial']);
+  if (!okFin) redirect('/dashboard');
 
   const rows = await db
     .select({

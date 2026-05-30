@@ -4,6 +4,7 @@ import { PageHeader, Card, Button } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { createClient } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,9 @@ export default async function NewClientPage({
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/clients/new');
+
+  // Page guard: creating a client is gated on client.create.
+  await requirePermission('client.create');
 
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">

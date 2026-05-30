@@ -6,6 +6,7 @@ import { PageHeader, StatusPill, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, CheckCircle2, Play, PauseOctagon, RotateCcw, X } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { setTaskStatus } from '@/app/tasks/actions';
 
 export const dynamic = 'force-dynamic';
@@ -59,6 +60,9 @@ export default async function ProjectBoardPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/projects/${id}/board`);
+
+  // Page guard: viewing the project board is gated on project.read.
+  await requirePermission('project.read');
 
   const [pR, tR] = await Promise.all([
     db.execute(sql`

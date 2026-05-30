@@ -6,6 +6,7 @@ import { PageHeader, Card, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { MessageCircle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,8 @@ export default async function WhatsappInboxPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/whatsapp');
+  const ok = await canAny(['email_threads.read.all', 'email_threads.read.assigned']);
+  if (!ok) redirect('/dashboard');
 
   const threads = rows<Thread>(
     await db.execute(sql`

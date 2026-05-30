@@ -85,6 +85,7 @@ export type IdentifySuggestion = {
 export async function identifyEquipmentPhoto(
   formData: FormData,
 ): Promise<{ ok: boolean; suggestion?: IdentifySuggestion; error?: string }> {
+  await requirePermissionAction('equipment.update');
   const file = formData.get('photo');
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: 'لا توجد صورة.' };

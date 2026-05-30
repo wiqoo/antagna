@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
+import { can } from '@/lib/authz';
 import {
   CardGlance, CardEmailTriage, CardSmartSuggestions, CardProjectHealth,
   CardCapacityForecast, CardApprovals, CardStaleConvos, CardTodayShoots,
@@ -331,7 +332,11 @@ export async function buildDashboardBoard({
 
   // ── Map rows → card data ───────────────────────────────────────────────────
   const sum = (a: number[]) => a.reduce((s, d) => s + d, 0);
-  const mtdRevenue = stats?.mtd_revenue ? Number(stats.mtd_revenue) : 0;
+  // Financial figures only for holders of financials.read. Without it the MTD
+  // revenue value is never computed into the payload AND the card is dropped
+  // from items[] below, so it can't be revealed via the add-card picker either.
+  const canFinance = await can('financials.read');
+  const mtdRevenue = canFinance && stats?.mtd_revenue ? Number(stats.mtd_revenue) : 0;
 
   function projectSignal(p: typeof budgetBurn[number]) {
     const overdue = p.days_until_due < 0;
@@ -461,7 +466,10 @@ export async function buildDashboardBoard({
     { id: 'stale_convos', node: <CardStaleConvos data={staleConvosData} /> },
     { id: 'shoots', node: <CardTodayShoots data={shootsData} /> },
     { id: 'equip_conflicts', node: <CardEquipmentConflicts data={conflictsData} /> },
-    { id: 'mtd_revenue', node: <CardMTDRevenue data={revenueData} /> },
+    // Revenue card only for financials.read holders — not in the payload/picker otherwise.
+    ...(canFinance
+      ? [{ id: 'mtd_revenue' as CardId, node: <CardMTDRevenue data={revenueData} /> }]
+      : []),
     { id: 'at_risk', node: <CardAtRisk data={atRiskData} /> },
   ];
 

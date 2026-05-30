@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
-import { db } from '@antagna/db';
+import { db, withProfileScope } from '@antagna/db';
 import {
   PageHeader,
   Card,
@@ -22,6 +22,7 @@ import {
   Paperclip,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getEffectiveProfileId, canAny } from '@/lib/authz';
 import {
   summarizeThreadAction,
   generateNextActionsAction,
@@ -71,11 +72,10 @@ type Msg = {
 };
 
 const STATUS_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'danger'> = {
-  new: 'info',
+  open: 'info',
   in_progress: 'warning',
-  awaiting_reply: 'warning',
-  replied: 'success',
-  archived: 'neutral',
+  waiting_client: 'warning',
+  closed: 'success',
   spam: 'danger',
 };
 
@@ -128,8 +128,29 @@ export default async function InboxThreadPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/inbox/${threadId}`);
 
-  const [tR, mR] = await Promise.all([
-    db.execute(sql`
+  // Read gate (D-037/D-039), mirrors the list page (apps/web/src/app/inbox/page.tsx):
+  // either seeded comms read perm gets you in; no perm at all → /dashboard. The
+  // row-level masking below (v_email_threads_safe WHERE) still applies regardless,
+  // so read.assigned holders only resolve threads they're actually scoped to.
+  const effectivePid = await getEffectiveProfileId();
+  const canRead = await canAny([
+    'email_threads.read.all',
+    'email_threads.read.assigned',
+  ]);
+  if (!canRead) redirect('/dashboard');
+
+  // Masked read: resolve the thread through v_email_threads_safe (row gate:
+  // read.all OR read.assigned+assigned-to-thread/project) inside ONE
+  // withProfileScope txn so current_effective_profile_id() resolves on the
+  // pinned 6543 connection. Joined entities use their own safe views so their
+  // column masks apply too. category/importance are triage metadata the safe
+  // view omits — join the base email_threads row (already row-gated by the view
+  // above, so no leak) just for those two non-masked classification columns.
+  // If the safe view yields no row, the thread is either gone or not visible to
+  // this actor → notFound() (no IDOR: we never touch raw email_threads to decide
+  // visibility, and never load messages for an unconfirmed thread).
+  const tR = await withProfileScope(effectivePid, (tx) =>
+    tx.execute(sql`
       SELECT et.id::text AS id, et.subject, et.status::text AS status,
              et.message_count AS "messageCount",
              et.last_message_at AS "lastMessageAt",
@@ -138,33 +159,41 @@ export default async function InboxThreadPage({
              et.ai_summary AS "aiSummary",
              et.ai_summary_updated_at AS "aiSummaryUpdatedAt",
              et.ai_topic_tags AS "aiTopicTags",
-             et.category AS "category",
-             et.importance AS "importance",
+             tri.category AS "category",
+             tri.importance AS "importance",
              c.id::text AS "clientId", c.code AS "clientCode", c.name_ar AS "clientNameAr",
              ct.full_name AS "primaryContactName",
              p.id::text AS "projectId", p.code AS "projectCode",
              COALESCE(p.title_ar, p.title) AS "projectTitle",
              pf.display_name AS "assignedName"
-      FROM email_threads et
-      LEFT JOIN clients  c  ON c.id  = et.client_id
-      LEFT JOIN contacts ct ON ct.id = et.primary_contact_id
-      LEFT JOIN projects p  ON p.id  = et.project_id
-      LEFT JOIN profiles pf ON pf.id = et.assigned_profile_id
+      FROM v_email_threads_safe et
+      JOIN email_threads tri ON tri.id = et.id
+      LEFT JOIN v_clients_safe  c  ON c.id  = et.client_id
+      LEFT JOIN v_contacts_safe ct ON ct.id = et.primary_contact_id
+      LEFT JOIN v_projects_safe p  ON p.id  = et.project_id
+      LEFT JOIN v_team_safe     pf ON pf.id = et.assigned_profile_id
       WHERE et.id = ${threadId}::uuid
       LIMIT 1`),
-    db.execute(sql`
-      SELECT id::text AS id, direction, from_email AS "fromEmail", from_name AS "fromName",
-             to_emails AS "toEmails", subject, body_text AS "bodyText", snippet,
-             attachment_count AS "attachmentCount",
-             ai_summary AS "aiSummary", ai_suggested_actions AS "aiSuggestedActions",
-             sent_at AS "sentAt"
-      FROM email_messages
-      WHERE thread_id = ${threadId}::uuid
-      ORDER BY sent_at ASC LIMIT 200`),
-  ]);
+  );
 
   const thread = rows<Thread>(tR)[0];
+  // Thread not visible via the safe view → don't leak its existence and, crucially,
+  // never load its messages. Visibility is confirmed BEFORE the message read.
   if (!thread) notFound();
+
+  // Only now that the safe view confirmed the thread is visible to this actor do
+  // we load its raw messages. email_messages is not a masked entity, so we gate it
+  // by reusing the already-confirmed thread.id (not the unvalidated route param).
+  const mR = await db.execute(sql`
+    SELECT id::text AS id, direction, from_email AS "fromEmail", from_name AS "fromName",
+           to_emails AS "toEmails", subject, body_text AS "bodyText", snippet,
+           attachment_count AS "attachmentCount",
+           ai_summary AS "aiSummary", ai_suggested_actions AS "aiSuggestedActions",
+           sent_at AS "sentAt"
+    FROM email_messages
+    WHERE thread_id = ${thread.id}::uuid
+    ORDER BY sent_at ASC LIMIT 200`);
+
   const messages = rows<Msg>(mR);
 
   // "Needs reply" = last message was inbound and hasn't been answered.

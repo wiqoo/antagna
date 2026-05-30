@@ -11,6 +11,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Wrench, AlertTriangle, Send, CheckCircle2 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { RepairsWorkspace, type RepairRow, type EquipOption } from './RepairsWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,9 @@ export default async function EquipmentRepairsPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/equipment/repairs');
+
+  // Page guard: viewing equipment repairs is gated on equipment.read.
+  await requirePermission('equipment.read');
 
   const [repairR, equipR] = await Promise.all([
     db.execute(sql`

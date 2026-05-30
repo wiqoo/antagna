@@ -1,9 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql, eq } from 'drizzle-orm';
-import { db, profiles } from '@antagna/db';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { sql } from 'drizzle-orm';
+import { db, withActor } from '@antagna/db';
+import { requirePermissionAction } from '@/lib/authz';
 import { sendText } from '@/lib/whatsapp';
 import { writeActivity } from '@/lib/activity';
 
@@ -19,34 +19,27 @@ export async function sendWhatsappMessage(
     return { ok: false, error: 'لا يوجد رقم صالح لهذه المحادثة (LID غير محلول).' };
   }
 
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'انتهت الجلسة' };
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
+  const actorId = await requirePermissionAction('whatsapp.send');
 
   const res = await sendText(toE164, trimmed);
   if (!res.ok) return { ok: false, error: 'تعذّر الإرسال عبر WhatsApp' };
 
   const ourE164 = process.env.WHATSAPP_OUR_E164 ?? 'unknown';
-  await db.execute(sql`
-    INSERT INTO whatsapp_messages
-      (baileys_message_id, direction, from_e164, to_e164, message_type, body_text,
-       thread_key, received_at, matched_profile_id)
-    VALUES (
-      ${res.messageId ?? null}, 'outbound', ${ourE164}, ${toE164}, 'text', ${trimmed},
-      ${threadKey}, now(), ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-    )
-    ON CONFLICT (baileys_message_id) DO NOTHING
-  `);
+  await withActor(actorId, (tx) =>
+    tx.execute(sql`
+      INSERT INTO whatsapp_messages
+        (baileys_message_id, direction, from_e164, to_e164, message_type, body_text,
+         thread_key, received_at, matched_profile_id)
+      VALUES (
+        ${res.messageId ?? null}, 'outbound', ${ourE164}, ${toE164}, 'text', ${trimmed},
+        ${threadKey}, now(), ${actorId}::uuid
+      )
+      ON CONFLICT (baileys_message_id) DO NOTHING
+    `),
+  );
 
   await writeActivity({
-    actorId: actor?.id ?? null,
+    actorId,
     entityType: 'whatsapp',
     action: 'whatsapp_sent',
     summaryAr: `رسالة WhatsApp إلى ${toE164}: ${trimmed.slice(0, 80)}`,
@@ -66,16 +59,7 @@ export async function createTaskFromThread(
   threadKey: string,
   formData: FormData,
 ): Promise<void> {
-  const supabase = await getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-  const [actor] = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.authUserId, user.id))
-    .limit(1);
+  const actorId = await requirePermissionAction('project.update');
 
   const projectId = formData.get('projectId')?.toString();
   const title = formData.get('title')?.toString().trim();
@@ -98,19 +82,21 @@ export async function createTaskFromThread(
     `الرابط: /whatsapp/${encodeURIComponent(threadKey)}\n` +
     (snippet ? `\nآخر رسالة:\n${snippet}` : '');
 
-  await db.execute(sql`
-    INSERT INTO project_tasks
-      (project_id, title, description, status, priority, due_at, created_by)
-    VALUES (
-      ${projectId}::uuid, ${title}, ${description},
-      'pending', ${priority}::task_priority,
-      ${dueAt ? sql`${dueAt}::timestamptz` : sql`NULL`},
-      ${actor?.id ? sql`${actor.id}::uuid` : sql`NULL`}
-    )
-  `);
+  await withActor(actorId, (tx) =>
+    tx.execute(sql`
+      INSERT INTO project_tasks
+        (project_id, title, description, status, priority, due_at, created_by)
+      VALUES (
+        ${projectId}::uuid, ${title}, ${description},
+        'pending', ${priority}::task_priority,
+        ${dueAt ? sql`${dueAt}::timestamptz` : sql`NULL`},
+        ${actorId}::uuid
+      )
+    `),
+  );
 
   await writeActivity({
-    actorId: actor?.id ?? null,
+    actorId,
     entityType: 'project_task',
     action: 'task_created_from_whatsapp',
     summaryAr: `مهمة جديدة من WhatsApp: ${title}`,

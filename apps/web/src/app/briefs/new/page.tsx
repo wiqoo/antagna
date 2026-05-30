@@ -6,6 +6,7 @@ import { PageHeader } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { commitBriefAsProject } from './actions';
 import { BriefParseForm } from './parse-form';
 
@@ -15,6 +16,9 @@ export default async function NewBriefPage() {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/briefs/new');
+
+  // Page guard: creating a brief is gated on brief.create.
+  await requirePermission('brief.create');
 
   const clientList = await db
     .select({ id: clients.id, code: clients.code, nameAr: clients.nameAr })

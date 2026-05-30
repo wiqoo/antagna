@@ -6,6 +6,7 @@ import { PageHeader, Card } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, ImageIcon } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 import { WhatsappComposer } from './composer';
 import { createTaskFromThread } from '../actions';
 import { ListChecks } from 'lucide-react';
@@ -43,6 +44,8 @@ export default async function WhatsappThreadPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/whatsapp/${thread}`);
+  const ok = await canAny(['email_threads.read.all', 'email_threads.read.assigned']);
+  if (!ok) redirect('/dashboard');
 
   const [messages, openProjects] = await Promise.all([
     db

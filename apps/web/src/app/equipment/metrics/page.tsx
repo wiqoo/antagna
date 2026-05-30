@@ -24,6 +24,7 @@ import {
   CalendarRange,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,6 +95,9 @@ export default async function EquipmentMetricsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/equipment/metrics');
+
+  // Page guard: viewing equipment metrics is gated on equipment.read.
+  await requirePermission('equipment.read');
 
   const [totalsR, usageR, categoryR, repairR, activityR] = await Promise.all([
     // headline totals

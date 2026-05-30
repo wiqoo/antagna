@@ -18,7 +18,7 @@ import { Shell } from '@/components/Shell';
 import Link from 'next/link';
 import { Calendar, CalendarClock, CalendarCheck, CalendarX, ArrowRight } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { canMany } from '@/lib/authz';
+import { canMany, requirePermission } from '@/lib/authz';
 import { ReservationsManager, type ReservationRow } from './ReservationsManager';
 
 export const dynamic = 'force-dynamic';
@@ -35,6 +35,9 @@ export default async function EquipmentReservationsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/equipment/reservations');
+
+  // Page guard: viewing equipment reservations is gated on equipment.read.
+  await requirePermission('equipment.read');
 
   const now = new Date();
 

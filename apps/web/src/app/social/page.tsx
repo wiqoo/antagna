@@ -14,6 +14,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { AtSign, CalendarDays, Megaphone, BarChart3, ArrowLeft } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 import { getTranslations } from 'next-intl/server';
 import { SocialTabs } from './SocialTabs';
 import { CalendarGrid } from './calendar-grid';
@@ -35,6 +36,10 @@ export default async function SocialPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/social');
+
+  // Field-level gate: only users with financial read may see contract values.
+  // Unauthorized users still get the page — the value column is masked to null.
+  const okFin = await canAny(['projects.read.financial', 'financials.read']);
 
   const [accounts, recentPosts, deals, monthR, statsR] = await Promise.all([
     db
@@ -62,7 +67,11 @@ export default async function SocialPage() {
       .orderBy(desc(contentPosts.createdAt))
       .limit(8),
     db
-      .select({ status: sponsoredDeals.status, value: sponsoredDeals.contractValueSar })
+      .select({
+        status: sponsoredDeals.status,
+        // Mask the contract value unless the user holds financial read.
+        value: okFin ? sponsoredDeals.contractValueSar : sql<string | null>`NULL`,
+      })
       .from(sponsoredDeals)
       .limit(500),
     db.execute(sql`

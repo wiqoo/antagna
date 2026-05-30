@@ -6,6 +6,7 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@a
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Star, MapPin, Briefcase, Mail, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { addFreelancerAvailability, removeFreelancerAvailability } from '../actions';
 
@@ -48,6 +49,7 @@ export default async function FreelancerDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/freelancers/${id}`);
+  await requirePermission('team.read');
 
   const [fR, asgR, avR] = await Promise.all([
     db.execute(sql`

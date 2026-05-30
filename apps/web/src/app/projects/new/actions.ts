@@ -77,6 +77,7 @@ export type ParsedBrief = {
 export async function parseBriefRich(
   rawText: string,
 ): Promise<{ ok: true; parsed: ParsedBrief } | { ok: false; error: string }> {
+  await requirePermissionAction('brief.parse_ai');
   if (!rawText.trim()) return { ok: false, error: 'empty' };
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();

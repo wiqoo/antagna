@@ -29,9 +29,16 @@
   --color-danger:  #F87171;
   --color-info:    #60A5FA;
 
-  --font-sans:    var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* One Arabic family everywhere: Vazirmatn (--font-arabic-display) leads BOTH
+     body and headings so titles and text match (was IBM Plex body vs Vazirmatn
+     titles). IBM Plex stays as a fallback. */
+  --font-sans:    var(--font-arabic-display), var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-arabic-display), var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono:    var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Geist Mono has NO Arabic glyphs, so Arabic set in font-mono fell back to a
+     random system face ("metadata in a different font"). Append Vazirmatn so
+     Arabic/Arabic-Indic chars in mono contexts render in the same family;
+     Latin + ASCII digits/codes stay monospace. */
+  --font-mono:    var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, var(--font-arabic-display), monospace;
 
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -72,6 +79,10 @@
 }
 
 html, body {
+  /* Document-level backstop: a stray wide element can never produce a page-wide
+     horizontal scrollbar (the content column already clips, this is belt-and-
+     suspenders). overflow-x:clip (not hidden) keeps sticky/fixed working. */
+  overflow-x: clip;
   font-family: var(--font-sans);
   font-feature-settings: "calt";
   font-variant-numeric: tabular-nums;

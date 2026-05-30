@@ -6,6 +6,7 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@a
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Instagram, FileSignature, Users } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,7 @@ export default async function TalentDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/talents/${id}`);
+  await requirePermission('team.read');
 
   const [tR, accR] = await Promise.all([
     db.execute(sql`

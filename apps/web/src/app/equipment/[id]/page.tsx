@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { sql } from 'drizzle-orm';
-import { db } from '@antagna/db';
+import { sql, eq as drizzleEq } from 'drizzle-orm';
+import { db, equipmentGroups, vEquipmentSafe, withProfileScope } from '@antagna/db';
+import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
 import { PageHeader, Card, CardHeader, StatusPill, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import {
@@ -69,20 +70,42 @@ export default async function EquipmentDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/equipment/${id}`);
 
-  const [eqR, resR, actR] = await Promise.all([
-    db.execute(sql`
-      SELECT e.id::text AS id, e.code, e.category, e.manufacturer, e.model,
-             e.model_name_ar AS "modelNameAr", e.serial_number AS "serialNumber",
-             e.status::text AS status, e.current_location AS "currentLocation",
-             e.photo_url AS "photoUrl", e.requires_charging AS "requiresCharging",
-             e.last_charged_at AS "lastChargedAt",
-             e.purchase_price_sar AS "purchasePriceSar",
-             e.insurance_value_sar AS "insuranceValueSar",
-             e.warranty_until AS "warrantyUntil", e.notes, e.specs,
-             g.name_ar AS "groupName"
-      FROM equipment e
-      LEFT JOIN equipment_groups g ON g.id = e.group_id
-      WHERE e.id = ${id}::uuid LIMIT 1`),
+  // Page guard: lacking equipment.read → /dashboard (signed-out → /login).
+  await requirePermission('equipment.read');
+  const effectivePid = await getEffectiveProfileId();
+
+  const [eqRows, resR, actR] = await Promise.all([
+    // Detail read masks financial columns (serial / insurance / purchase /
+    // book value) behind equipment.read.financial — fetch through the safe
+    // view inside a single withProfileScope txn (sets app.current_profile_id).
+    // Masked cols come back NULL; the render below already guards each one.
+    withProfileScope(effectivePid, (tx) =>
+      tx
+        .select({
+          id: vEquipmentSafe.id,
+          code: vEquipmentSafe.code,
+          category: vEquipmentSafe.category,
+          manufacturer: vEquipmentSafe.manufacturer,
+          model: vEquipmentSafe.model,
+          modelNameAr: vEquipmentSafe.modelNameAr,
+          serialNumber: vEquipmentSafe.serialNumber,
+          status: vEquipmentSafe.status,
+          currentLocation: vEquipmentSafe.currentLocation,
+          photoUrl: vEquipmentSafe.photoUrl,
+          requiresCharging: vEquipmentSafe.requiresCharging,
+          lastChargedAt: vEquipmentSafe.lastChargedAt,
+          purchasePriceSar: vEquipmentSafe.purchasePriceSar,
+          insuranceValueSar: vEquipmentSafe.insuranceValueSar,
+          warrantyUntil: vEquipmentSafe.warrantyUntil,
+          notes: vEquipmentSafe.notes,
+          specs: vEquipmentSafe.specs,
+          groupName: equipmentGroups.nameAr,
+        })
+        .from(vEquipmentSafe)
+        .leftJoin(equipmentGroups, drizzleEq(equipmentGroups.id, vEquipmentSafe.groupId))
+        .where(drizzleEq(vEquipmentSafe.id, id))
+        .limit(1),
+    ),
     db.execute(sql`
       SELECT r.id::text AS id, r.status,
              r.project_id::text AS "projectId",
@@ -103,8 +126,33 @@ export default async function EquipmentDetailPage({
       ORDER BY a.created_at DESC LIMIT 30`),
   ]);
 
-  const eq = rows<Equip>(eqR)[0];
-  if (!eq) notFound();
+  const row = eqRows[0];
+  if (!row || !row.id) notFound();
+  // The v_*_safe view declares every column nullable (pgView .existing()), but
+  // code/category/model/status/location are NEVER masked — only financial cols
+  // are. Coerce the always-present required columns to satisfy Equip; keep the
+  // genuinely masked fields (serialNumber / purchasePriceSar / insuranceValueSar)
+  // nullable so masking renders "—" / hides those rows.
+  const eq: Equip = {
+    id: row.id,
+    code: row.code ?? '',
+    category: row.category ?? '',
+    manufacturer: row.manufacturer,
+    model: row.model ?? '',
+    modelNameAr: row.modelNameAr,
+    serialNumber: row.serialNumber,
+    status: row.status ?? '',
+    currentLocation: row.currentLocation ?? '',
+    photoUrl: row.photoUrl,
+    requiresCharging: row.requiresCharging ?? false,
+    lastChargedAt: row.lastChargedAt ? new Date(row.lastChargedAt).toISOString() : null,
+    purchasePriceSar: row.purchasePriceSar,
+    insuranceValueSar: row.insuranceValueSar,
+    warrantyUntil: row.warrantyUntil,
+    notes: row.notes,
+    specs: row.specs as Record<string, unknown> | null,
+    groupName: row.groupName,
+  };
   const reservations = rows<Reservation>(resR);
   const activity = rows<{
     eventType: string;

@@ -5,7 +5,7 @@ import { PageHeader, Card, EmptyState, MiniStat, CardsGrid } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { UserSquare2 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { can } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { EmployeesList, type EmployeeRow } from './EmployeesList';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,11 @@ export default async function EmployeesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/employees');
 
-  const canManage = await can('access.manage');
+  // Page guard: lacking team.read → /dashboard (signed-out → /login).
+  await requirePermission('team.read');
+
+  // Salary visibility is a separate, narrower grant than directory access.
+  const canViewSalaries = await can('team.read.salaries');
 
   const list = rows<DbRow>(
     await db.execute(sql`
@@ -51,7 +55,11 @@ export default async function EmployeesPage() {
         e.nationality,
         e.hire_date                                  AS "hireDate",
         (e.profile_id IS NOT NULL)                   AS "hasRecord",
-        e.monthly_salary                             AS "monthlySalary",
+        ${
+          canViewSalaries
+            ? sql`e.monthly_salary`
+            : sql`NULL::numeric`
+        }                                            AS "monthlySalary",
         e.monthly_salary_currency                    AS "monthlySalaryCurrency"
       FROM profiles p
       LEFT JOIN employees e   ON e.profile_id = p.id
@@ -61,10 +69,11 @@ export default async function EmployeesPage() {
     `),
   );
 
-  // Mask salary server-side so it never crosses the wire to a non-HR client.
+  // Defense in depth: the SELECT already omits salary, but null it again
+  // client-side so it never crosses the wire to a viewer without the grant.
   const data: EmployeeRow[] = list.map((r) => ({
     ...r,
-    monthlySalary: canManage ? r.monthlySalary : null,
+    monthlySalary: canViewSalaries ? r.monthlySalary : null,
   }));
 
   const withRecord = data.filter((r) => r.hasRecord).length;
@@ -72,7 +81,7 @@ export default async function EmployeesPage() {
   const freelancers = data.filter(
     (r) => r.employmentType === 'freelancer' || r.hasRecord === false,
   ).length;
-  const totalPayroll = canManage
+  const totalPayroll = canViewSalaries
     ? data.reduce((sum, r) => sum + (r.monthlySalary ?? 0), 0)
     : null;
 
@@ -88,7 +97,7 @@ export default async function EmployeesPage() {
         <MiniStat span={3} label="إجمالي" value={data.length} tone="accent" />
         <MiniStat span={3} label="دوام كامل" value={fullTime} />
         <MiniStat span={3} label="بلا ملف HR" value={data.length - withRecord} sub="بحاجة لإكمال" />
-        {canManage && totalPayroll != null ? (
+        {canViewSalaries && totalPayroll != null ? (
           <MiniStat
             span={3}
             label="إجمالي الرواتب الشهرية"
@@ -109,7 +118,7 @@ export default async function EmployeesPage() {
           />
         ) : (
           <div className="p-4">
-            <EmployeesList rows={data} canSeeSalary={canManage} />
+            <EmployeesList rows={data} canViewSalaries={canViewSalaries} />
           </div>
         )}
       </Card>

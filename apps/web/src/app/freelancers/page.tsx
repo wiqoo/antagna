@@ -11,6 +11,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Users } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { FreelancersWorkspace, type FreelancerRow } from './FreelancersWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,7 @@ export default async function FreelancersPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/freelancers');
+  await requirePermission('team.read');
 
   const list = rows<FreelancerRow>(
     await db.execute(sql`

@@ -3,15 +3,17 @@ import { notFound, redirect } from 'next/navigation';
 import { eq, isNull } from 'drizzle-orm';
 import {
   db,
-  projects,
   clients,
   profiles,
   projectTypeEnum,
+  withProfileScope,
+  vProjectsSafe,
 } from '@antagna/db';
 import { PageHeader, Card, Button } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import { updateProject } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -27,11 +29,38 @@ export default async function EditProjectPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/projects/${id}/edit`);
 
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
+  // Write gate (granular RBAC). Lacking project.update → redirect to /dashboard.
+  await requirePermission('project.update');
+
+  // Per-user masked read: the GUC set by withProfileScope makes v_projects_safe
+  // redact financial / internal columns (e.g. contracted_value_sar) for the
+  // effective profile (view-as aware), so the edit form never pre-fills values
+  // the actor isn't allowed to see. WRITES (updateProject) untouched.
+  const effectivePid = await getEffectiveProfileId();
+  const [project] = await withProfileScope(effectivePid, (tx) =>
+    tx
+      .select({
+        id: vProjectsSafe.id,
+        code: vProjectsSafe.code,
+        title: vProjectsSafe.title,
+        titleAr: vProjectsSafe.titleAr,
+        description: vProjectsSafe.description,
+        projectType: vProjectsSafe.projectType,
+        clientId: vProjectsSafe.clientId,
+        accountManagerId: vProjectsSafe.accountManagerId,
+        projectManagerId: vProjectsSafe.projectManagerId,
+        productionManagerId: vProjectsSafe.productionManagerId,
+        contractedValueSar: vProjectsSafe.contractedValueSar,
+        deliveryDueAt: vProjectsSafe.deliveryDueAt,
+        shootStartsAt: vProjectsSafe.shootStartsAt,
+        shootEndsAt: vProjectsSafe.shootEndsAt,
+        driveFolderUrl: vProjectsSafe.driveFolderUrl,
+        notes: vProjectsSafe.notes,
+      })
+      .from(vProjectsSafe)
+      .where(eq(vProjectsSafe.id, id))
+      .limit(1),
+  );
 
   if (!project) notFound();
 
@@ -78,7 +107,7 @@ export default async function EditProjectPage({
                 <select
                   name="clientId"
                   required
-                  defaultValue={project.clientId}
+                  defaultValue={project.clientId ?? ''}
                   className="form-input"
                 >
                   {clientList.map((c) => (
@@ -103,7 +132,7 @@ export default async function EditProjectPage({
                     type="text"
                     name="title"
                     required
-                    defaultValue={project.title}
+                    defaultValue={project.title ?? ''}
                     className="form-input"
                   />
                 </Field>
@@ -121,7 +150,7 @@ export default async function EditProjectPage({
               <Field label="النوع">
                 <select
                   name="projectType"
-                  defaultValue={project.projectType}
+                  defaultValue={project.projectType ?? ''}
                   className="form-input"
                 >
                   {projectTypeEnum.enumValues.map((v) => (

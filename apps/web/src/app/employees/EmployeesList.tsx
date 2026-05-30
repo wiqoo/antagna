@@ -52,10 +52,10 @@ const EMP_TYPE_AR: Record<string, string> = {
 
 export function EmployeesList({
   rows,
-  canSeeSalary,
+  canViewSalaries,
 }: {
   rows: EmployeeRow[];
-  canSeeSalary: boolean;
+  canViewSalaries: boolean;
 }) {
   const departments = Array.from(
     new Set(rows.map((r) => r.departmentName).filter((d): d is string => !!d)),
@@ -97,9 +97,28 @@ export function EmployeesList({
   const filters = allFilters.filter((f) => f.options.length > 0);
 
   const fmtSalary = (r: EmployeeRow): string => {
-    if (!canSeeSalary) return '••••';
     if (r.monthlySalary == null) return '—';
     return new Intl.NumberFormat('en-US').format(r.monthlySalary);
+  };
+
+  const salaryColumn: ColumnDef<EmployeeRow> = {
+    key: 'salary',
+    header: 'الراتب',
+    sortable: true,
+    sortValue: (r) => r.monthlySalary ?? 0,
+    cell: (r) => {
+      const s = fmtSalary(r);
+      return s === '—' ? (
+        <span className="text-[11px] text-[var(--text-dim)]">—</span>
+      ) : (
+        <span className="font-mono text-[12px] text-[var(--text-muted)]">
+          {s}{' '}
+          <span className="text-[9px] uppercase tracking-[0.16em] text-[var(--text-dim)]">
+            {r.monthlySalaryCurrency ?? 'SAR'}
+          </span>
+        </span>
+      );
+    },
   };
 
   const columns: ColumnDef<EmployeeRow>[] = [
@@ -154,25 +173,7 @@ export function EmployeesList({
           <span className="text-[11px] text-[var(--text-dim)]">—</span>
         ),
     },
-    {
-      key: 'salary',
-      header: 'الراتب',
-      sortable: true,
-      sortValue: (r) => r.monthlySalary ?? 0,
-      cell: (r) => {
-        const s = fmtSalary(r);
-        return s === '—' ? (
-          <span className="text-[11px] text-[var(--text-dim)]">—</span>
-        ) : (
-          <span className="font-mono text-[12px] text-[var(--text-muted)]">
-            {s}{' '}
-            <span className="text-[9px] uppercase tracking-[0.16em] text-[var(--text-dim)]">
-              {r.monthlySalaryCurrency ?? 'SAR'}
-            </span>
-          </span>
-        );
-      },
-    },
+    ...(canViewSalaries ? [salaryColumn] : []),
     {
       key: 'status',
       header: 'الحالة',

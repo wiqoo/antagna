@@ -6,6 +6,7 @@ import { PageHeader, Card, Button } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Save } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission, can } from '@/lib/authz';
 import { updateClient } from '../../actions';
 
 export const dynamic = 'force-dynamic';
@@ -21,12 +22,18 @@ export default async function EditClientPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/clients/${id}/edit`);
 
+  // Page guard: editing is gated on client.update.
+  await requirePermission('client.update');
+
   const [client] = await db
     .select()
     .from(clients)
     .where(eq(clients.id, id))
     .limit(1);
   if (!client) notFound();
+
+  // Legal/financial fields are masked unless the viewer can read financials.
+  const canReadFinancial = await can('clients.read.financial');
 
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
@@ -71,7 +78,7 @@ export default async function EditClientPage({
               <input
                 type="text"
                 name="legalName"
-                defaultValue={client.legalName ?? ''}
+                defaultValue={canReadFinancial ? (client.legalName ?? '') : ''}
                 className="form-input"
               />
             </Field>
@@ -131,7 +138,7 @@ export default async function EditClientPage({
                 <input
                   type="text"
                   name="vatNumber"
-                  defaultValue={client.vatNumber ?? ''}
+                  defaultValue={canReadFinancial ? (client.vatNumber ?? '') : ''}
                   className="form-input font-mono"
                 />
               </Field>
@@ -139,7 +146,7 @@ export default async function EditClientPage({
                 <input
                   type="text"
                   name="crNumber"
-                  defaultValue={client.crNumber ?? ''}
+                  defaultValue={canReadFinancial ? (client.crNumber ?? '') : ''}
                   className="form-input font-mono"
                 />
               </Field>

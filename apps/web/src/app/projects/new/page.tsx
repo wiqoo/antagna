@@ -11,6 +11,7 @@ import { PageHeader } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/authz';
 import { createProject } from './actions';
 import { IntakeForm } from './intake-form';
 
@@ -20,6 +21,9 @@ export default async function NewProjectPage() {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/projects/new');
+
+  // Page guard: creating a project is gated on project.create.
+  await requirePermission('project.create');
 
   const [clientList, profileList, templateList] = await Promise.all([
     db

@@ -5,6 +5,7 @@ import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermissionAction } from '@/lib/authz';
 
 const BRIEFING_SYSTEM = `You write Mohammed's morning briefing at Volt Production, a Saudi
 production agency in Jeddah. Mohammed is the Director of Production —
@@ -68,6 +69,7 @@ export type Briefing = {
 export async function generateBriefing(): Promise<
   { ok: true; briefing: Briefing } | { ok: false; error: string }
 > {
+  await requirePermissionAction('ai_suggestion.review');
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };

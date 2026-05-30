@@ -6,7 +6,7 @@ import { PageHeader, StatBox, AIHints, type AIHint } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Boxes, Package, CheckSquare, Layers } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { can } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { KitBuilder } from './KitBuilder';
 import type {
   SetupRow,
@@ -27,6 +27,9 @@ export default async function KitsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/equipment/kits');
+
+  // Page guard: viewing the kit builder is gated on equipment.read.
+  await requirePermission('equipment.read');
 
   const canEdit = await can('equipment.update');
 

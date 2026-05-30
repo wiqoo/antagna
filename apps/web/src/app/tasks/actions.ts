@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { withActor, projectTasks, dailyTasks } from '@antagna/db';
 import { requirePermissionAction } from '@/lib/authz';
 import { writeActivity } from '@/lib/activity';
@@ -22,7 +22,10 @@ export async function setTaskStatus(
       const [row] = await tx
         .update(projectTasks)
         .set({ status, completedAt, updatedAt: new Date() })
-        .where(eq(projectTasks.id, taskId))
+        // IDOR fix: daily_task.manage_self only authorizes the actor's OWN tasks.
+        // Scope the WHERE to the assignee so a user can't mutate any task by id
+        // (mirrors the owner-scoped daily branch below).
+        .where(and(eq(projectTasks.id, taskId), eq(projectTasks.assigneeId, actorId)))
         .returning({ projectId: projectTasks.projectId });
       return row?.projectId ?? null;
     }

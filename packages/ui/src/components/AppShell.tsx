@@ -324,8 +324,12 @@ export function AppShell({
         )}
       </aside>
 
-      {/* CONTENT COLUMN */}
-      <div className="md:ps-[248px]">
+      {/* CONTENT COLUMN — margin (not padding) reserves the fixed-sidebar gutter,
+          min-w-0 lets the column shrink below its content, and overflow-x-clip
+          stops any wide child (tables, matrices) from sliding UNDER the sidebar
+          and forcing a page-wide horizontal scroll. clip (not hidden) keeps the
+          sticky topbar working. */}
+      <div className="min-w-0 overflow-x-clip md:ms-[248px]">
         {/* TOP BAR */}
         <header
           className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--bg)]/95 px-4 backdrop-blur-md md:px-8"
@@ -358,8 +362,8 @@ export function AppShell({
         </header>
 
         {/* CONTENT */}
-        <main className="px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-8">
-          <div className="mx-auto max-w-[1680px] space-y-8">{children}</div>
+        <main className="min-w-0 px-4 py-6 pb-28 md:px-8 md:py-8 md:pb-8">
+          <div className="mx-auto min-w-0 max-w-[1680px] space-y-8">{children}</div>
         </main>
       </div>
 
