@@ -34,11 +34,13 @@ export function BoardSkeleton({ count = 6 }: { count?: number }) {
 async function BoardInner({
   profileId,
   role,
+  canFinance,
 }: {
   profileId: string | null;
   role: string | null | undefined;
+  canFinance: boolean;
 }) {
-  const board = await buildDashboardBoard({ profileId, role });
+  const board = await buildDashboardBoard({ profileId, role, canFinance });
   return (
     <DashboardGrid
       items={board.items}
@@ -52,15 +54,17 @@ async function BoardInner({
 export function StreamedBoard({
   profileId,
   role,
+  canFinance = false,
   skeletonCount = 6,
 }: {
   profileId: string | null;
   role: string | null | undefined;
+  canFinance?: boolean;
   skeletonCount?: number;
 }) {
   return (
     <Suspense fallback={<BoardSkeleton count={skeletonCount} />}>
-      <BoardInner profileId={profileId} role={role} />
+      <BoardInner profileId={profileId} role={role} canFinance={canFinance} />
     </Suspense>
   );
 }
@@ -68,12 +72,14 @@ export function StreamedBoard({
 async function DashboardInner({
   profileId,
   role,
+  canFinance,
   greeting,
   dateStr,
   firstName,
 }: {
   profileId: string | null;
   role: string | null | undefined;
+  canFinance: boolean;
   greeting: string;
   dateStr: string;
   firstName: string;
@@ -82,7 +88,7 @@ async function DashboardInner({
   // both behind the same Suspense boundary so the shell never waits on them.
   const [initialBriefing, board] = await Promise.all([
     loadCachedBriefing().catch(() => null),
-    buildDashboardBoard({ profileId, role }),
+    buildDashboardBoard({ profileId, role, canFinance }),
   ]);
   return (
     <>
@@ -105,6 +111,7 @@ async function DashboardInner({
 export function StreamedDashboard(props: {
   profileId: string | null;
   role: string | null | undefined;
+  canFinance: boolean;
   greeting: string;
   dateStr: string;
   firstName: string;

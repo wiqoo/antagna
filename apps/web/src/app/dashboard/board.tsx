@@ -17,7 +17,6 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { can } from '@/lib/authz';
 import {
   CardGlance, CardEmailTriage, CardSmartSuggestions, CardProjectHealth,
   CardCapacityForecast, CardApprovals, CardStaleConvos, CardTodayShoots,
@@ -36,9 +35,14 @@ export type DashboardBoard = {
 export async function buildDashboardBoard({
   profileId,
   role,
+  canFinance = false,
 }: {
   profileId: string | null;
   role: string | null | undefined;
+  /** financials.read — resolved at the PAGE level (before the streamed board's
+   *  query storm) and passed in, so the board never runs an unprotected can()
+   *  query that could hang on a starved pool. */
+  canFinance?: boolean;
 }): Promise<DashboardBoard> {
   const QUERY_TIMEOUT_MS = 6000;
   const safe = async <T,>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> => {
@@ -310,8 +314,15 @@ export async function buildDashboardBoard({
   }
   let positionKey: string | null = null;
   if (profileId) {
-    const posRows = await db.execute<{ position_key: string | null }>(
-      sql`SELECT position_key FROM profiles WHERE id = ${profileId}::uuid`,
+    // Wrapped in safe() so a starved-pool stall can't hang the streamed render
+    // (this was the last unprotected query in the board path).
+    const posRows = await safe(
+      'positionKey',
+      () =>
+        db.execute<{ position_key: string | null }>(
+          sql`SELECT position_key FROM profiles WHERE id = ${profileId}::uuid`,
+        ),
+      [] as unknown as Awaited<ReturnType<typeof db.execute>>,
     );
     positionKey = (posRows as unknown as { position_key: string | null }[])[0]?.position_key ?? null;
   }
@@ -332,10 +343,10 @@ export async function buildDashboardBoard({
 
   // ── Map rows → card data ───────────────────────────────────────────────────
   const sum = (a: number[]) => a.reduce((s, d) => s + d, 0);
-  // Financial figures only for holders of financials.read. Without it the MTD
-  // revenue value is never computed into the payload AND the card is dropped
-  // from items[] below, so it can't be revealed via the add-card picker either.
-  const canFinance = await can('financials.read');
+  // Financial figures only for holders of financials.read (canFinance is passed
+  // in from the page). Without it the MTD revenue value is never computed into
+  // the payload AND the card is dropped from items[] below, so it can't be
+  // revealed via the add-card picker either.
   const mtdRevenue = canFinance && stats?.mtd_revenue ? Number(stats.mtd_revenue) : 0;
 
   function projectSignal(p: typeof budgetBurn[number]) {

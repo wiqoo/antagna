@@ -4,6 +4,7 @@ import { db } from '@antagna/db';
 import { Shell } from '@/components/Shell';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
+import { can } from '@/lib/authz';
 import { StreamedDashboard } from './board-section';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,10 @@ export default async function DashboardPage() {
     user.email?.split('@')[0] ??
     'صديقي';
 
+  // Resolved here (page phase, before the streamed board's query storm) and
+  // passed down so the board never runs an unprotected can() that could hang.
+  const canFinance = await can('financials.read');
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'صباح الخير' : hour < 18 ? 'مرحباً' : 'مساء الخير';
   const dateStr = new Date().toLocaleDateString('ar-SA', {
@@ -57,6 +62,7 @@ export default async function DashboardPage() {
       <StreamedDashboard
         profileId={current?.id ?? null}
         role={current?.role}
+        canFinance={canFinance}
         greeting={greeting}
         dateStr={dateStr}
         firstName={greetingName}

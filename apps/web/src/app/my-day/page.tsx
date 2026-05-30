@@ -18,6 +18,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
 import { loadRoutines } from '@/lib/routines';
 import { StreamedBoard } from '../dashboard/board-section';
+import { can } from '@/lib/authz';
 import { ensureTodayRoutine } from './actions';
 import { routineSourceKey, riyadhToday } from '@/lib/routines';
 import { RoutineChecklist, type RoutineRow } from './routine';
@@ -399,7 +400,7 @@ export default async function MyDayPage() {
       </div>
       {/* Position board — streamed behind Suspense (shared with /dashboard) so
           its ~10 queries never block the page from opening. */}
-      <StreamedBoard profileId={me} role={current.role} />
+      <StreamedBoard profileId={me} role={current.role} canFinance={await can('financials.read')} />
     </Shell>
   );
 }
