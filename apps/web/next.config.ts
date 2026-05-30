@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
   // Skip ESLint during Vercel builds — we lint via turbo + CI separately.
   eslint: { ignoreDuringBuilds: true },
 
+  // Skip the in-build `tsc` type-check on Vercel. It runs as a separate,
+  // memory-heavy process AFTER webpack compile and was OOM-killing the 8 GB
+  // build container (empty-message BUILD_ERROR right after "Compiled
+  // successfully"). Type safety is NOT lost: we run the authoritative
+  // `pnpm --filter @antagna/web exec tsc --noEmit` (same tsconfig) locally
+  // before every deploy. Mirrors the ESLint handling above.
+  typescript: { ignoreBuildErrors: true },
+
   // The app + Sentry source-map generation pushes the 8 GB Vercel build
   // container to its memory ceiling (intermittent OOM SIGKILL → missing
   // routes-manifest.json). This Next 15 flag drops retained webpack caches
