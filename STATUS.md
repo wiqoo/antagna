@@ -193,6 +193,28 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-30 (deep audit + fixes)** — Two multi-agent audits (page-by-page +
+  UX/IA/fonts/AI/permissions) → `docs/AUDIT-2026-05-30.md`. **Permissions were
+  NOT uniformly enforced**: DB model (`has_permission`, `v_*_safe`) correct, but
+  ~18 pages/actions only checked `if(!user)` + read base tables. **Fixed + live-
+  verified** (view-as videographer: /employees·/reports·/inbox·/whatsapp all
+  redirect; /equipment loads with financials masked; dashboard revenue card
+  absent from payload): C1 employees salary, C2 inbox-thread IDOR, C3 WhatsApp
+  (was ungated — `whatsapp.send` seeded but never wired), H1 equipment fin, H2
+  project-edit, H3 client legal/VAT, H4 reports+kpis, H5 freelancers/talents +
+  ungated availability writes, M1 task IDOR, M2 11 render guards, M3 dashboard
+  revenue, + 4 ungated AI actions (parseBriefRich, identifyEquipmentPhoto vision,
+  generateBriefing, reanalyzeProject). **UX:** desktop sidebar-overflow (content
+  column margin+min-w-0+overflow-x-clip), mobile dashboard cards (grid-cols-1→
+  sm:2→md:12 + responsive spans), **fonts unified on Vazirmatn** (body was
+  cyclic-var→Geist; now direct), inbox added to mobile dock. **Dashboard cold-
+  start reliability**: streamed board behind Suspense + every query bounded by
+  6s timeout (was hitting Vercel runtime timeout → error boundary on cold).
+  **Build:** webpackMemoryOptimizations + skip in-build tsc (OOM) + Sentry
+  errorHandler. **Drive auto-folder confirmed working** (Trigger.dev cron).
+  **Known follow-ups:** AI cost-cap is display-only (no enforcement), off-policy
+  gpt-4o-mini ×3, nav not permission-filtered, freelancers/talents need masking
+  views. Gmail still needs connecting on antagna-v2 (creds + stable SITE_URL set).
 - **2026-05-30** — **Inbox manual Gmail-sync button** + **Vercel build
   hardened**. Added a "تحديث الوارد" button on `/inbox` (`syncInboxAction` →
   resolves connected mailbox → runs `ingestGmail` 7d/50-thread; returns a

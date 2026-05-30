@@ -40,3 +40,8 @@ coverage/
 # local visual-audit artifacts
 .playwright-mcp/
 shell-*.png
+
+# stray test screenshots / playwright artifacts (root)
+/*.png
+/*-snap.txt
+.playwright-mcp/
