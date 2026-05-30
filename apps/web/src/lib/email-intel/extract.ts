@@ -7,7 +7,7 @@
  */
 import { db, emailMessages, emailThreads, emailExtractions } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
-import { getOpenAI } from '@antagna/ai';
+import { getOpenAI, assertAiBudget, recordUsage } from '@antagna/ai';
 import type { ExtractedEmail } from './types';
 import {
   processMessageAttachments,
@@ -135,6 +135,8 @@ Sent: ${new Date(msg.sentAt).toISOString()}
 
 ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachmentText}` : ''}`;
 
+  await assertAiBudget({ userId: null, feature: 'email_intel_extract' });
+
   const client = getOpenAI();
   let raw: string;
   let inputTokens = 0;
@@ -152,6 +154,13 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
     raw = resp.choices[0]?.message?.content ?? '{}';
     inputTokens = resp.usage?.prompt_tokens ?? 0;
     outputTokens = resp.usage?.completion_tokens ?? 0;
+    await recordUsage({
+      feature: 'email_intel_extract',
+      model: MODEL,
+      inputTokens,
+      outputTokens,
+      userId: null,
+    });
   } catch (err) {
     return {
       ok: false,

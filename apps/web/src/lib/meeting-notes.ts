@@ -10,7 +10,7 @@
  */
 import { db, meetingNotes, emailMessages, emailThreads } from '@antagna/db';
 import { eq, and, asc } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
 
 const MEETING_NOTES_SENDERS: { match: RegExp; source: string }[] = [
   { match: /@e\.read\.ai$/i,                          source: 'read.ai' },
@@ -92,12 +92,21 @@ export async function extractMeetingNotes(
   const userPrompt = `Subject: ${msg.subject ?? '(no subject)'}\nFrom: ${msg.fromName ?? ''} <${msg.fromEmail}>\nSent: ${new Date(msg.sentAt).toISOString()}\n\n${body}`;
 
   try {
+    await assertAiBudget({ userId: null, feature: 'meeting_notes' });
     const anthropic = getAnthropic();
     const resp = await anthropic.messages.create({
       model: ANTHROPIC_MODELS.haiku,
       max_tokens: 1200,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
+    });
+    await recordUsage({
+      feature: 'meeting_notes',
+      model: ANTHROPIC_MODELS.haiku,
+      inputTokens: resp.usage.input_tokens,
+      outputTokens: resp.usage.output_tokens,
+      cacheReadTokens: (resp.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0,
+      cacheWriteTokens: (resp.usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens ?? 0,
     });
     const block = resp.content.find((b) => b.type === 'text');
     const raw = block && block.type === 'text' ? block.text : '{}';

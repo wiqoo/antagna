@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { db, withActor } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, assertAiBudget } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermissionAction } from '@/lib/authz';
 
@@ -128,6 +128,8 @@ Recent activity:
 ${proj.recent_activity ?? '(no recent events)'}
 
 Output JSON only.`;
+
+  await assertAiBudget({ userId: actorId, feature: 'inline_reanalyze' });
 
   try {
     const anthropic = getAnthropic();

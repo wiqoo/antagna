@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
-import { AppShell, CommandPalette } from '@antagna/ui';
+import { AppShell, CommandPalette, NAV_PERM_KEYS } from '@antagna/ui';
+import { canMany } from '@/lib/authz';
 import { LocaleSwitch } from './LocaleSwitch';
 import { fetchNotifications } from '@/lib/notifications';
 import {
@@ -25,10 +26,13 @@ export async function Shell({
   user?: { email: string; displayName?: string };
   activePath?: string;
 }) {
-  const [notifications, real, current] = await Promise.all([
+  const [notifications, real, current, permits] = await Promise.all([
     fetchNotifications(),
     getRealProfile(),
     getCurrentProfile(),
+    // Which privileged nav items the (effective) user may see — the page itself
+    // still gates access; this just hides links the user can't use.
+    canMany([...NAV_PERM_KEYS]),
   ]);
 
   // Show the View-As bar only for real admins.

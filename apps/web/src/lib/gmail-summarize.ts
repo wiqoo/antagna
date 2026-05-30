@@ -16,7 +16,7 @@
  */
 import { db, emailThreads, emailMessages } from '@antagna/db';
 import { eq, isNull, or, sql, desc, and } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
 import { applyRoutingAndLinking } from './gmail-routing';
 import { extractMeetingNotes } from './meeting-notes';
 import { extractEmail } from './email-intel/extract';
@@ -124,6 +124,21 @@ export async function summarizeThreads(
 
   report.eligibleThreads = eligible.length;
 
+  // Cost guard (worker context → no session, so userId: null; the company-wide
+  // monthly budget still applies). One check before the per-thread loop, which
+  // can fire up to ~maxThreads Anthropic calls. If a hard cap is hit we stop
+  // the run gracefully and return a report that records why nothing ran.
+  try {
+    await assertAiBudget({ userId: null, feature: 'gmail_summarize' });
+  } catch (err) {
+    report.errors.push({
+      threadId: '',
+      error: `budget_stop: ${err instanceof Error ? err.message : String(err)}`,
+    });
+    report.finishedAt = new Date().toISOString();
+    return report;
+  }
+
   const anthropic = getAnthropic();
 
   for (const thread of eligible) {
@@ -166,12 +181,35 @@ export async function summarizeThreads(
       const resp = await anthropic.messages.create({
         model: ANTHROPIC_MODELS.haiku,
         max_tokens: 500,
-        system: SYSTEM_PROMPT,
+        // Long stable system prompt goes behind a prompt-cache breakpoint so
+        // every call after the first in this loop reads it at 10% the cost.
+        // `cache_control` is accepted by the API but the SDK type defs don't
+        // expose it yet — `as any` keeps us on the prompt-caching path (mirrors
+        // inbox/actions.ts).
+        system: [
+          {
+            type: 'text',
+            text: SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' },
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ] as any,
         messages: [{ role: 'user', content: transcript }],
       });
 
       report.totalInputTokens += resp.usage.input_tokens;
       report.totalOutputTokens += resp.usage.output_tokens;
+
+      await recordUsage({
+        feature: 'gmail_summarize',
+        model: ANTHROPIC_MODELS.haiku,
+        inputTokens: resp.usage.input_tokens,
+        outputTokens: resp.usage.output_tokens,
+        cacheReadTokens:
+          (resp.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0,
+        cacheWriteTokens:
+          (resp.usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens ?? 0,
+      });
 
       const textBlock = resp.content.find((b) => b.type === 'text');
       const raw =

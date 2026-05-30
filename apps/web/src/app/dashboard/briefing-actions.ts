@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { sql, eq } from 'drizzle-orm';
 import { db, profiles } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, assertAiBudget } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermissionAction } from '@/lib/authz';
 
@@ -69,7 +69,8 @@ export type Briefing = {
 export async function generateBriefing(): Promise<
   { ok: true; briefing: Briefing } | { ok: false; error: string }
 > {
-  await requirePermissionAction('ai_suggestion.review');
+  const actorId = await requirePermissionAction('ai_suggestion.review');
+  await assertAiBudget({ userId: actorId, feature: 'daily_briefing' });
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };

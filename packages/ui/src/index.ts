@@ -2,7 +2,7 @@ export { tokens, type AntagnaTokens } from './tokens';
 export { StatusPill } from './components/StatusPill';
 export { MoneyDisplay } from './components/MoneyDisplay';
 export { Kbd } from './components/Kbd';
-export { AppShell } from './components/AppShell';
+export { AppShell, NAV_PERM_KEYS } from './components/AppShell';
 export { Card, CardHeader } from './components/Card';
 export { PageHeader } from './components/PageHeader';
 export { StatTile } from './components/StatTile';

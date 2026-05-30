@@ -28,6 +28,10 @@ export const MODEL_PRICING: Record<string, { input: number; output: number }> = 
   [ANTHROPIC_MODELS.sonnet]: { input: 3, output: 15 },
   [ANTHROPIC_MODELS.haiku]: { input: 0.8, output: 4 },
   [OPENAI_MODELS.embedding]: { input: 0.02, output: 0 },
+  // Off-policy but still in use by the WhatsApp bot + email-intel (flagged for a
+  // D-020 model-policy decision). Priced so the cost ledger + budget guard see
+  // real spend instead of $0.
+  'gpt-4o-mini': { input: 0.15, output: 0.6 },
 };
 
 export function estimateCostUsd(

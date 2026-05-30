@@ -104,6 +104,40 @@ const PRIMARY_OVERFLOW: NavItem[] = PRIMARY_NAV.filter(
   (i) => !DOCK_HREFS.includes(i.href),
 );
 
+// Permission-filter the nav: a clearly-privileged item is shown only when the
+// user holds ANY of its keys. Core daily items (my-day/dashboard/search/tasks/
+// approvals/notifications/calendar/meetings/attendance/social/changelog/
+// settings) are intentionally NOT listed → always visible (the page itself
+// still gates writes/financials). Conservative on purpose: better to show one
+// extra link than to hide a tool from someone who needs it.
+const NAV_PERM: Record<string, string[]> = {
+  inbox: ['email_threads.read.all', 'email_threads.read.assigned'],
+  whatsapp: ['whatsapp.send', 'email_threads.read.all', 'email_threads.read.assigned'],
+  clients: ['client.read', 'clients.read.all', 'clients.read.own'],
+  contacts: ['client.read', 'clients.read.contacts'],
+  equipment: ['equipment.read'],
+  repairs: ['equipment.read'],
+  assets: ['equipment.read'],
+  orders: ['procurement.manage'],
+  team: ['team.read'],
+  employees: ['team.read'],
+  kpis: ['financials.read', 'projects.read.all'],
+  reports: ['financials.read'],
+  admin: ['access.manage'],
+};
+
+/** All permission keys referenced by the nav — Shell evaluates these once. */
+export const NAV_PERM_KEYS: string[] = [...new Set(Object.values(NAV_PERM).flat())];
+
+/** An item is visible when it has no perm requirement, when permits weren't
+ *  provided (fail-open during load), or when the user holds ANY required key. */
+function navItemVisible(key: string, permits?: Record<string, boolean>): boolean {
+  const req = NAV_PERM[key];
+  if (!req) return true;
+  if (!permits) return true;
+  return req.some((k) => permits[k]);
+}
+
 /** Resolve an item/heading label from the optional labels map, else fallback. */
 function lbl(labels: NavLabels | undefined, key: string | undefined, fallback: string): string {
   return (key && labels?.[key]) || fallback;
@@ -179,7 +213,7 @@ function DockButton({ item, label, active, badge }: { item: NavItem; label: stri
   );
 }
 
-function MobileMore({ activePath, labels }: { activePath?: string; labels?: NavLabels }) {
+function MobileMore({ activePath, labels, permits }: { activePath?: string; labels?: NavLabels; permits?: Record<string, boolean> }) {
   return (
     <details className="group relative">
       <summary
@@ -203,7 +237,10 @@ function MobileMore({ activePath, labels }: { activePath?: string; labels?: NavL
         {[
           { headingKey: undefined, heading: undefined, items: PRIMARY_OVERFLOW },
           ...NAV_GROUPS.slice(1),
-        ].map((g, gi) => (
+        ]
+          .map((g) => ({ ...g, items: g.items.filter((it) => navItemVisible(it.key, permits)) }))
+          .filter((g) => g.items.length > 0)
+          .map((g, gi) => (
           <div key={g.headingKey ?? gi}>
             {g.heading && (
               <p className="px-2 pb-1 pt-2 font-mono text-[9px] uppercase tracking-wider text-[var(--text-dim)]">{lbl(labels, g.headingKey, g.heading)}</p>
@@ -248,6 +285,7 @@ export function AppShell({
   commandPalette,
   labels,
   localeSwitch,
+  permits,
 }: {
   children: ReactNode;
   user?: { email: string; displayName?: string };
@@ -259,6 +297,9 @@ export function AppShell({
   /** Translated labels (nav keys + newProject/more/logout/sidebar). From the app. */
   labels?: NavLabels;
   localeSwitch?: ReactNode;
+  /** Map of nav-permission key → granted, from Shell (canMany(NAV_PERM_KEYS)).
+   *  Undefined → fail-open (show everything). */
+  permits?: Record<string, boolean>;
 }) {
   const unread = notifications?.filter((n) => !n.read).length ?? 0;
 
@@ -281,7 +322,10 @@ export function AppShell({
         </a>
 
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          {NAV_GROUPS.map((group, gi) => (
+          {NAV_GROUPS
+            .map((group) => ({ ...group, items: group.items.filter((it) => navItemVisible(it.key, permits)) }))
+            .filter((group) => group.items.length > 0)
+            .map((group, gi) => (
             <div key={group.headingKey ?? gi} className="space-y-0.5">
               {group.heading && (
                 <p className="px-3 pb-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--text-dim)]">
@@ -378,7 +422,7 @@ export function AppShell({
         }}
         aria-label={lbl(labels, 'bottomNav', 'شريط التنقّل')}
       >
-        {DOCK_NAV.map((item) => (
+        {DOCK_NAV.filter((item) => navItemVisible(item.key, permits)).map((item) => (
           <DockButton
             key={item.href}
             item={item}
@@ -387,7 +431,7 @@ export function AppShell({
             badge={item.href === '/inbox' && unread > 0 ? unread : undefined}
           />
         ))}
-        <MobileMore activePath={activePath} labels={labels} />
+        <MobileMore activePath={activePath} labels={labels} permits={permits} />
       </nav>
     </div>
   );

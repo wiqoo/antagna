@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { sql } from 'drizzle-orm';
-import { db } from '@antagna/db';
+import { withProfileScope } from '@antagna/db';
 import { PageHeader, Card, EmptyState } from '@antagna/ui';
 import {
   Search,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Shell } from '@/components/Shell';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
 import { SearchBox } from './SearchBox';
 
 export const dynamic = 'force-dynamic';
@@ -83,15 +84,29 @@ export default async function SearchPage({
     redirect(`/login?next=/search${q ? `?q=${encodeURIComponent(q)}` : ''}`);
   }
 
+  // Page gate (D-037/D-041). Global search reaches across team/contacts/
+  // equipment/clients/projects, so require the same read key the team pages use
+  // (`team.read`); there is no `user.read` in the seeded graph. No perm → the
+  // requirePermission helper redirects to /dashboard.
+  await requirePermission('team.read');
+  const effectivePid = await getEffectiveProfileId();
+
   let rows: Row[] = [];
   if (q.length >= 1) {
     const like = `%${q}%`;
-    rows = (await db.execute<Row>(sql`
+    // Field-level masking (D-037): route every entity through its v_*_safe view
+    // inside ONE withProfileScope txn so current_effective_profile_id() resolves
+    // on the pinned 6543 connection and the views mask columns (notably the team
+    // `email`, which previously leaked here). Freelancers/talents have no safe
+    // view yet and expose no masked columns in these projections, so they stay
+    // on their base tables — same rows, same behavior.
+    rows = (await withProfileScope(effectivePid, (tx) =>
+      tx.execute(sql`
       (
         SELECT 'project'::text AS type, id::text AS id, title AS label,
           code || (CASE WHEN title_ar IS NOT NULL THEN ' · ' || title_ar ELSE '' END) AS sublabel,
           '/projects/' || id::text AS href
-        FROM projects
+        FROM v_projects_safe
         WHERE archived_at IS NULL
           AND (title ILIKE ${like} OR title_ar ILIKE ${like} OR code ILIKE ${like})
         ORDER BY updated_at DESC LIMIT 12
@@ -101,7 +116,7 @@ export default async function SearchPage({
         SELECT 'client'::text AS type, id::text AS id, name_ar AS label,
           code || (CASE WHEN name_en IS NOT NULL THEN ' · ' || name_en ELSE '' END) AS sublabel,
           '/clients/' || id::text AS href
-        FROM clients
+        FROM v_clients_safe
         WHERE archived_at IS NULL
           AND (name_ar ILIKE ${like} OR name_en ILIKE ${like} OR code ILIKE ${like})
         ORDER BY updated_at DESC NULLS LAST LIMIT 12
@@ -112,8 +127,8 @@ export default async function SearchPage({
           COALESCE(c.full_name_ar, c.full_name) AS label,
           COALESCE(c.job_title_ar, c.job_title, cl.name_ar) AS sublabel,
           '/contacts/' || c.id::text AS href
-        FROM contacts c
-        LEFT JOIN clients cl ON cl.id = c.client_id
+        FROM v_contacts_safe c
+        LEFT JOIN v_clients_safe cl ON cl.id = c.client_id
         WHERE c.archived_at IS NULL
           AND (c.full_name ILIKE ${like} OR c.full_name_ar ILIKE ${like}
                OR c.job_title ILIKE ${like})
@@ -125,7 +140,7 @@ export default async function SearchPage({
           (COALESCE(manufacturer || ' ', '') || model) AS label,
           code || ' · ' || category AS sublabel,
           '/equipment/' || id::text AS href
-        FROM equipment
+        FROM v_equipment_safe
         WHERE archived_at IS NULL
           AND (model ILIKE ${like} OR code ILIKE ${like}
                OR manufacturer ILIKE ${like} OR category ILIKE ${like})
@@ -135,7 +150,7 @@ export default async function SearchPage({
       (
         SELECT 'profile'::text AS type, id::text AS id, display_name AS label,
           email AS sublabel, '/team/' || id::text AS href
-        FROM profiles
+        FROM v_team_safe
         WHERE status = 'active'
           AND (display_name ILIKE ${like} OR email ILIKE ${like})
         LIMIT 12
@@ -159,7 +174,8 @@ export default async function SearchPage({
           AND (display_name ILIKE ${like} OR code ILIKE ${like})
         LIMIT 10
       )
-    `)) as unknown as Row[];
+    `),
+    )) as unknown as Row[];
   }
 
   const grouped = new Map<ResultType, Row[]>();

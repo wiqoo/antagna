@@ -185,7 +185,7 @@ export const kpiEngine = schedules.task({
 
     // team_size_count — active profiles right now.
     {
-      const r = (await db.execute(sql`SELECT count(*)::int AS n FROM profiles WHERE active = true`)) as unknown as { n: number }[];
+      const r = (await db.execute(sql`SELECT count(*)::int AS n FROM profiles WHERE status = 'active'`)) as unknown as { n: number }[];
       snapshots.push({
         kpi_key: 'team_size_count', scope_entity_type: null, scope_entity_id: null,
         period_start: start, period_end: end, value: Number(r[0]?.n ?? 0),
@@ -276,7 +276,7 @@ export const kpiEngine = schedules.task({
     // (any of the "check_in_*" / remote_start types).
     const att = await db.execute(sql`
       WITH active_people AS (
-        SELECT id FROM profiles WHERE active = true
+        SELECT id FROM profiles WHERE status = 'active'
       ),
       present_today AS (
         SELECT DISTINCT profile_id

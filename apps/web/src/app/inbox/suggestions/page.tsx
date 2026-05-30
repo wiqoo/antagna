@@ -9,7 +9,8 @@ import {
 } from '@antagna/db';
 import { PageHeader, Card, StatusPill, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { getAdminUser } from '@/lib/auth-admin';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 import { Brain, Mail } from 'lucide-react';
 import { SuggestionsList } from './suggestions-list';
 import { RefreshButton } from './refresh-button';
@@ -29,8 +30,18 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default async function SuggestionsPage() {
-  const admin = await getAdminUser();
-  if (!admin) redirect('/login?next=/inbox/suggestions');
+  // Gate on the comms read perm (mirrors /inbox) instead of admin-only role.
+  // Anyone who can read the inbox can review AI suggestions sourced from it.
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login?next=/inbox/suggestions');
+  const canRead = await canAny([
+    'email_threads.read.all',
+    'email_threads.read.assigned',
+  ]);
+  if (!canRead) redirect('/dashboard');
 
   const rows = await db
     .select({
@@ -65,7 +76,7 @@ export default async function SuggestionsPage() {
   );
 
   return (
-    <Shell user={{ email: admin.user.email ?? '' }} activePath="/inbox">
+    <Shell user={{ email: user.email ?? '' }} activePath="/inbox">
       <Link
         href="/inbox"
         className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-muted)] hover:text-[var(--accent)]"

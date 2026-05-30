@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { isNull, sql } from 'drizzle-orm';
 import { db, withActor, googleIntegrations } from '@antagna/db';
-import { requirePermissionAction, canMany } from '@/lib/authz';
+import { requirePermissionAction, canMany, getEffectiveProfileId } from '@/lib/authz';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage, retrieveMemory } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, retrieveMemory, assertAiBudget } from '@antagna/ai';
 import { ingestGmail, SYSTEM_MAILBOX } from '@/lib/gmail-ingest';
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
@@ -104,6 +104,9 @@ export async function summarizeThreadAction(threadId: string): Promise<void> {
   if (!thread || messages.length === 0) return;
   const convo = conversationText(thread.subject, messages);
 
+  const actorId = await getEffectiveProfileId();
+  await assertAiBudget({ userId: actorId, feature: 'email_thread_summary' });
+
   let parsed: { summary_ar?: string; topic_tags?: string[]; urgency?: string } = {};
   try {
     const client = getAnthropic();
@@ -191,6 +194,9 @@ export async function generateNextActionsAction(threadId: string): Promise<void>
   }
 
   const convo = conversationText(thread.subject, messages);
+
+  const actorId = await getEffectiveProfileId();
+  await assertAiBudget({ userId: actorId, feature: 'email_thread_next_actions' });
 
   let actions: string[] = [];
   try {
@@ -399,6 +405,7 @@ export async function classifyThread(
   threadId: string,
 ): Promise<{ category: Category; importance: Importance } | null> {
   const actorId = await requireInboxActor();
+  await assertAiBudget({ userId: actorId, feature: 'email_thread_classify' });
   const header = await loadThreadHeaderForClassify(threadId);
   if (!header) return null;
 
@@ -432,6 +439,7 @@ export async function classifyInboxAction(
   limit = 25,
 ): Promise<{ classified: number; hidden: number }> {
   const actorId = await requireInboxActor();
+  await assertAiBudget({ userId: actorId, feature: 'email_thread_classify' });
   const safeLimit = Math.min(Math.max(1, limit), 40);
 
   const pending = rows<{ id: string; status: string }>(

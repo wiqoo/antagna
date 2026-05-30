@@ -11,10 +11,17 @@
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseServerClient } from './supabase/server';
 import { getCurrentProfile } from './view-as';
+import { can } from './authz';
 
 // Coarse admin gate for /admin. Fine-grained checks use lib/authz.ts `can()`.
 // (general_manager is the senior business admin; the old 'system_manager' role never existed.)
+//
+// Migrating off legacy profiles.role to the position-permission model (L9):
+// the real gate for admin surfaces is the `access.manage` permission. We OR it
+// with the legacy role set so the migration can't lock out existing admins —
+// either signal (the new permission OR the old role) admits the user.
 const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
+const ADMIN_PERMISSION = 'access.manage';
 
 export interface AdminUser {
   user: User;
@@ -36,7 +43,13 @@ export async function getAdminUser(): Promise<AdminUser | null> {
   if (!user) return null;
 
   const current = await getCurrentProfile();
-  if (!current || !ADMIN_ROLES.has(current.role)) return null;
+  if (!current) return null;
+  // Pass on EITHER the new `access.manage` permission OR the legacy admin role.
+  // `can()` is view-as aware (resolves the effective profile), matching the old
+  // getCurrentProfile()-based role check so impersonation still locks out.
+  const allowed =
+    ADMIN_ROLES.has(current.role) || (await can(ADMIN_PERMISSION));
+  if (!allowed) return null;
   return {
     user,
     profile: {

@@ -15,7 +15,15 @@
  */
 import { db, whatsappMessages, profiles, projects, projectTasks, dailyTasks } from '@antagna/db';
 import { eq, and, or, desc, sql, isNull, gte } from 'drizzle-orm';
-import { getAnthropic, getOpenAI, ANTHROPIC_MODELS, retrieveMemory } from '@antagna/ai';
+import {
+  getAnthropic,
+  getOpenAI,
+  ANTHROPIC_MODELS,
+  retrieveMemory,
+  assertAiBudget,
+  recordUsage,
+  AiBudgetError,
+} from '@antagna/ai';
 import { sendText, setTyping } from './whatsapp';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -353,6 +361,27 @@ export async function handleInboundForBot(
     `\n\n## Current user\n${senderProfile.displayName} — role: ${senderProfile.role} — profile_id: ${senderProfile.id}` +
     memoryContext;
 
+  // Hard cost cap — the bot runs with no session actor, so only the
+  // company-wide monthly budget applies (userId: null). When it's hit we
+  // degrade gracefully instead of crashing the webhook: stop typing and
+  // return a short "busy" line at low confidence (no paid call, not sent).
+  try {
+    await assertAiBudget({ userId: null, feature: 'whatsapp_bot' });
+  } catch (err) {
+    if (err instanceof AiBudgetError) {
+      if (senderProfile.whatsappE164) {
+        void setTyping(senderProfile.whatsappE164, false);
+      }
+      return {
+        ok: true,
+        profileId: senderProfile.id,
+        reply: 'النظام مشغول مؤقتًا، جرّب بعد قليل.',
+        confidence: 'low',
+      };
+    }
+    throw err;
+  }
+
   let reply = '';
   let confidence: 'high' | 'low' = 'high';
 
@@ -535,6 +564,20 @@ async function runOpenAiTurn(
       tools: oaiTools,
       tool_choice: 'auto',
     });
+    // Track cost of this paid call. Bot has no session actor → user_id NULL
+    // (company-wide budget still accounts for it). Best-effort: a ledger
+    // write must never break the reply.
+    try {
+      await recordUsage({
+        feature: 'whatsapp_bot',
+        model: OPENAI_MODEL,
+        inputTokens: resp.usage?.prompt_tokens ?? 0,
+        outputTokens: resp.usage?.completion_tokens ?? 0,
+        userId: null,
+      });
+    } catch (e) {
+      console.error('[whatsapp-bot] recordUsage failed', e);
+    }
     const choice = resp.choices[0];
     if (!choice) break;
     const msg = choice.message;
@@ -590,6 +633,21 @@ async function runAnthropicTurn(
       tools: TOOLS,
       messages,
     });
+    // Track cost of this paid call. Bot has no session actor → user_id NULL.
+    // Best-effort: never let a ledger write break the reply.
+    try {
+      await recordUsage({
+        feature: 'whatsapp_bot',
+        model: ANTHROPIC_MODELS.haiku,
+        inputTokens: resp.usage?.input_tokens ?? 0,
+        outputTokens: resp.usage?.output_tokens ?? 0,
+        cacheReadTokens: (resp.usage as { cache_read_input_tokens?: number })?.cache_read_input_tokens ?? 0,
+        cacheWriteTokens: (resp.usage as { cache_creation_input_tokens?: number })?.cache_creation_input_tokens ?? 0,
+        userId: null,
+      });
+    } catch (e) {
+      console.error('[whatsapp-bot] recordUsage failed', e);
+    }
     const toolUseBlocks = resp.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
     );

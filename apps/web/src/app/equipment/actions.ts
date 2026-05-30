@@ -85,7 +85,7 @@ export type IdentifySuggestion = {
 export async function identifyEquipmentPhoto(
   formData: FormData,
 ): Promise<{ ok: boolean; suggestion?: IdentifySuggestion; error?: string }> {
-  await requirePermissionAction('equipment.update');
+  const actorId = await requirePermissionAction('equipment.update');
   const file = formData.get('photo');
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: 'لا توجد صورة.' };
@@ -97,7 +97,8 @@ export async function identifyEquipmentPhoto(
     return { ok: false, error: 'الصورة أكبر من 5 ميجابايت.' };
   }
 
-  const { getAnthropic, ANTHROPIC_MODELS } = await import('@antagna/ai');
+  const { getAnthropic, ANTHROPIC_MODELS, assertAiBudget } = await import('@antagna/ai');
+  await assertAiBudget({ userId: actorId, feature: 'equipment_identify_photo' });
   const buf = Buffer.from(await file.arrayBuffer());
   const b64 = buf.toString('base64');
 

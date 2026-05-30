@@ -5,6 +5,7 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState } from '@antagna/u
 import { Shell } from '@/components/Shell';
 import { Clock, MapPin, Plus } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canAny } from '@/lib/authz';
 import { getTranslations } from 'next-intl/server';
 import { CheckInPanel } from './checkin-panel';
 import { addGeoFence } from './actions';
@@ -12,7 +13,11 @@ import { addGeoFence } from './actions';
 export const dynamic = 'force-dynamic';
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
+// Migrating off legacy profiles.role (L9): the team-attendance + geofence admin
+// sections are gated on `access.manage`, OR-ed with the legacy admin roles so
+// existing admins/HR aren't locked out during the migration.
 const ADMIN_ROLES = ['system_admin', 'general_manager', 'hr'];
+const ADMIN_PERMISSIONS = ['access.manage'];
 
 const TYPE_AR: Record<string, string> = {
   check_in_office: 'حضور · مكتب',
@@ -54,7 +59,9 @@ export default async function AttendancePage() {
     .from(profiles)
     .where(eq(profiles.authUserId, user.id))
     .limit(1);
-  const isAdmin = ADMIN_ROLES.includes(me?.role ?? '');
+  // Pass on EITHER the new `access.manage` permission OR the legacy admin role.
+  const isAdmin =
+    ADMIN_ROLES.includes(me?.role ?? '') || (await canAny(ADMIN_PERMISSIONS));
 
   const [mineR, fencesR, teamR] = await Promise.all([
     db.execute(sql`

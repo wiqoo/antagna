@@ -16,7 +16,7 @@
  */
 import { db, conversationSummaries, emailThreads, emailMessages } from '@antagna/db';
 import { eq, asc } from 'drizzle-orm';
-import { getOpenAI } from '@antagna/ai';
+import { getOpenAI, assertAiBudget, recordUsage } from '@antagna/ai';
 
 const MODEL = process.env.EMAIL_INTEL_MODEL ?? 'gpt-4o-mini';
 
@@ -107,6 +107,8 @@ export async function summarizeConversation(
   }
   const transcript = lines.join('\n');
 
+  await assertAiBudget({ userId: null, feature: 'email_intel_conversation' });
+
   const client = getOpenAI();
   let raw: string;
   let inputTokens = 0;
@@ -124,6 +126,13 @@ export async function summarizeConversation(
     raw = resp.choices[0]?.message?.content ?? '{}';
     inputTokens = resp.usage?.prompt_tokens ?? 0;
     outputTokens = resp.usage?.completion_tokens ?? 0;
+    await recordUsage({
+      feature: 'email_intel_conversation',
+      model: MODEL,
+      inputTokens,
+      outputTokens,
+      userId: null,
+    });
   } catch (err) {
     return {
       ok: false,

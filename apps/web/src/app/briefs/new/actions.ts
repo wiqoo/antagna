@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { withActor } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, assertAiBudget } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermissionAction } from '@/lib/authz';
 import { parseNum, parseDate } from '@/lib/parse';
@@ -60,7 +60,8 @@ export async function parseBrief(
   if (!rawText.trim()) {
     return { ok: false, error: 'empty' };
   }
-  await requirePermissionAction('brief.parse_ai');
+  const actorId = await requirePermissionAction('brief.parse_ai');
+  await assertAiBudget({ userId: actorId, feature: 'brief_parse' });
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'unauthorized' };

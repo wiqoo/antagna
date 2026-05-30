@@ -9,7 +9,7 @@
  * UI click can't accidentally burn unbounded tokens.
  */
 import { NextResponse } from 'next/server';
-import { getAdminUser } from '@/lib/auth-admin';
+import { canAny } from '@/lib/authz';
 import { ingestGmail, SYSTEM_MAILBOX } from '@/lib/gmail-ingest';
 import { summarizeThreads } from '@/lib/gmail-summarize';
 
@@ -17,8 +17,14 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 export async function POST() {
-  const admin = await getAdminUser();
-  if (!admin) {
+  // Gate on the comms read perm (mirrors /inbox) instead of admin-only role.
+  // Triggering an on-demand refresh of the inbox pipeline is available to
+  // anyone who can read the inbox; per-call caps below bound token spend.
+  const canRead = await canAny([
+    'email_threads.read.all',
+    'email_threads.read.assigned',
+  ]);
+  if (!canRead) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 });
   }
 
