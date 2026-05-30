@@ -78,6 +78,7 @@ export async function Shell({
           commandPalette={<CommandPalette />}
           labels={labels}
           localeSwitch={<LocaleSwitch />}
+          permits={permits}
         >
           {children}
         </AppShell>
