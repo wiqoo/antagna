@@ -17,13 +17,14 @@ import { Shell } from '@/components/Shell';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
 import { loadRoutines } from '@/lib/routines';
-import { DashboardGrid } from '../dashboard/dashboard-grid';
-import { buildDashboardBoard } from '../dashboard/board';
+import { StreamedBoard } from '../dashboard/board-section';
 import { ensureTodayRoutine } from './actions';
 import { routineSourceKey, riyadhToday } from '@/lib/routines';
 import { RoutineChecklist, type RoutineRow } from './routine';
 
 export const dynamic = 'force-dynamic';
+// Headroom for the streamed position board's cold-start query fan-out.
+export const maxDuration = 30;
 
 const PRIORITY_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'danger'> = {
   low: 'neutral',
@@ -205,9 +206,6 @@ export default async function MyDayPage() {
 
   const totalItems =
     shoots.length + tasksDue.length + dailyDue.length + approvals.length + threads.length;
-
-  // Embedded position board (shared with /dashboard — import, don't rebuild).
-  const board = await buildDashboardBoard({ profileId: me, role: current.role });
 
   const hour = Number(
     new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', hour: '2-digit', hour12: false }).format(new Date()),
@@ -399,7 +397,9 @@ export default async function MyDayPage() {
         <ListChecks size={13} />
         <span>لوحة منصبك</span>
       </div>
-      <DashboardGrid items={board.items} initialLayout={board.layout} catalogCount={board.catalogCount} />
+      {/* Position board — streamed behind Suspense (shared with /dashboard) so
+          its ~10 queries never block the page from opening. */}
+      <StreamedBoard profileId={me} role={current.role} />
     </Shell>
   );
 }

@@ -92,6 +92,18 @@ const NAV_GROUPS: NavGroup[] = [
 
 const PRIMARY_NAV = NAV_GROUPS[0]!.items;
 
+// Which primary items get a slot in the mobile bottom dock. Inbox earns a slot
+// (core daily surface + carries the unread badge); search drops to ⌘K + the
+// "more" drawer. Everything not docked goes to the drawer's overflow block so
+// nothing in the primary group is unreachable on mobile.
+const DOCK_HREFS = ['/my-day', '/dashboard', '/inbox', '/projects'];
+const DOCK_NAV: NavItem[] = DOCK_HREFS.map(
+  (h) => PRIMARY_NAV.find((i) => i.href === h)!,
+).filter(Boolean);
+const PRIMARY_OVERFLOW: NavItem[] = PRIMARY_NAV.filter(
+  (i) => !DOCK_HREFS.includes(i.href),
+);
+
 /** Resolve an item/heading label from the optional labels map, else fallback. */
 function lbl(labels: NavLabels | undefined, key: string | undefined, fallback: string): string {
   return (key && labels?.[key]) || fallback;
@@ -182,10 +194,16 @@ function MobileMore({ activePath, labels }: { activePath?: string; labels?: NavL
           Mohammed's audit hit this on iPhone — the popover was spilling off the
           left side of the screen when "More" was the leftmost RTL item. */}
       <div
-        className="fixed bottom-[82px] left-1/2 z-[120] hidden min-w-[260px] max-w-[min(92vw,360px)] -translate-x-1/2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block"
+        className="fixed bottom-[82px] left-1/2 z-[120] hidden max-h-[70vh] min-w-[260px] max-w-[min(92vw,360px)] -translate-x-1/2 overflow-y-auto rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-2 shadow-2xl group-open:block"
         style={{ boxShadow: '0 20px 50px -10px rgba(0,0,0,0.6)' }}
       >
-        {NAV_GROUPS.slice(1).map((g, gi) => (
+        {/* The bottom dock only fits 4 primary items; the rest (search, tasks,
+            approvals, notifications, calendar) would be UNREACHABLE on mobile
+            without this overflow block. Render it first, then the named groups. */}
+        {[
+          { headingKey: undefined, heading: undefined, items: PRIMARY_OVERFLOW },
+          ...NAV_GROUPS.slice(1),
+        ].map((g, gi) => (
           <div key={g.headingKey ?? gi}>
             {g.heading && (
               <p className="px-2 pb-1 pt-2 font-mono text-[9px] uppercase tracking-wider text-[var(--text-dim)]">{lbl(labels, g.headingKey, g.heading)}</p>
@@ -356,7 +374,7 @@ export function AppShell({
         }}
         aria-label={lbl(labels, 'bottomNav', 'شريط التنقّل')}
       >
-        {PRIMARY_NAV.slice(0, 4).map((item) => (
+        {DOCK_NAV.map((item) => (
           <DockButton
             key={item.href}
             item={item}

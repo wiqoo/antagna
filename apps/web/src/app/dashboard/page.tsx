@@ -4,12 +4,12 @@ import { db } from '@antagna/db';
 import { Shell } from '@/components/Shell';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
-import { BriefingCard } from './briefing-card';
-import { loadCachedBriefing } from './briefing-actions';
-import { DashboardGrid } from './dashboard-grid';
-import { buildDashboardBoard } from './board';
+import { StreamedDashboard } from './board-section';
 
 export const dynamic = 'force-dynamic';
+// The streamed board has ~10 DB queries; give the function headroom so a cold
+// start can't get SIGKILL'd at the default before the stream finishes.
+export const maxDuration = 30;
 
 export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient();
@@ -38,13 +38,6 @@ export default async function DashboardPage() {
     user.email?.split('@')[0] ??
     'صديقي';
 
-  // The card board (queries + row→card mapping + per-position layout) is shared
-  // with /my-day via buildDashboardBoard — import, don't rebuild.
-  const [initialBriefing, board] = await Promise.all([
-    loadCachedBriefing().catch(() => null),
-    buildDashboardBoard({ profileId: current?.id ?? null, role: current?.role }),
-  ]);
-
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'صباح الخير' : hour < 18 ? 'مرحباً' : 'مساء الخير';
   const dateStr = new Date().toLocaleDateString('ar-SA', {
@@ -59,16 +52,15 @@ export default async function DashboardPage() {
       }}
       activePath="/dashboard"
     >
-      {/* AI Daily Briefing — hero */}
-      <BriefingCard
-        initial={initialBriefing}
+      {/* AI Daily Briefing hero + V5 bento grid — streamed behind Suspense so
+          the shell opens instantly even when the board's queries are cold. */}
+      <StreamedDashboard
+        profileId={current?.id ?? null}
+        role={current?.role}
         greeting={greeting}
         dateStr={dateStr}
         firstName={greetingName}
       />
-
-      {/* V5 bento — customizable card grid (size / reorder / show-hide) */}
-      <DashboardGrid items={board.items} initialLayout={board.layout} catalogCount={board.catalogCount} />
 
       <div className="flex items-center justify-between border-t border-[var(--line)] pt-4 text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
         <span>— Antagna Dashboard</span>
