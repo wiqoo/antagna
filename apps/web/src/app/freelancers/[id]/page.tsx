@@ -6,7 +6,7 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@a
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Star, MapPin, Briefcase, Mail, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { addFreelancerAvailability, removeFreelancerAvailability } from '../actions';
 
@@ -51,17 +51,25 @@ export default async function FreelancerDetailPage({
   if (!user) redirect(`/login?next=/freelancers/${id}`);
   await requirePermission('team.read');
 
+  // Financial/PII fields (rate, email, payout method) are a narrower grant
+  // than directory access — masked unless the viewer holds financials.read.
+  const canFinance = await can('financials.read');
+
   const [fR, asgR, avR] = await Promise.all([
     db.execute(sql`
       SELECT id::text AS id, code, full_name AS "fullName", full_name_ar AS "fullNameAr",
-             email_primary AS "emailPrimary", specialties, city_base AS "cityBase",
-             default_rate_sar AS "defaultRateSar", default_rate_unit AS "defaultRateUnit",
+             ${canFinance ? sql`email_primary` : sql`NULL::text`} AS "emailPrimary",
+             specialties, city_base AS "cityBase",
+             ${canFinance ? sql`default_rate_sar` : sql`NULL::numeric`} AS "defaultRateSar",
+             ${canFinance ? sql`default_rate_unit` : sql`NULL::text`} AS "defaultRateUnit",
              projects_completed AS "projectsCompleted", average_rating AS "averageRating",
              last_worked_at AS "lastWorkedAt", preferred,
-             payout_method_ref AS "payoutMethodRef", notes
+             ${canFinance ? sql`payout_method_ref` : sql`NULL::text`} AS "payoutMethodRef", notes
       FROM freelancers WHERE id = ${id}::uuid LIMIT 1`),
     db.execute(sql`
-      SELECT pa.role::text AS role, pa.rate_sar AS "rateSar", pa.rate_unit AS "rateUnit",
+      SELECT pa.role::text AS role,
+             ${canFinance ? sql`pa.rate_sar` : sql`NULL::numeric`} AS "rateSar",
+             ${canFinance ? sql`pa.rate_unit` : sql`NULL::text`} AS "rateUnit",
              pa.start_date AS "startDate", pa.end_date AS "endDate",
              p.id::text AS "projectId", COALESCE(p.title_ar, p.title) AS "projectTitle",
              p.stage::text AS stage
@@ -134,20 +142,22 @@ export default async function FreelancerDetailPage({
           </div>
 
           <dl className="mt-4 space-y-2 text-[13px]">
-            {f.emailPrimary && (
+            {canFinance && f.emailPrimary && (
               <Row
                 k={<Mail size={12} className="text-[var(--text-dim)]" />}
                 v={<span className="font-mono text-[12px]" dir="ltr">{f.emailPrimary}</span>}
               />
             )}
-            <Row
-              k="السعر الافتراضي"
-              v={
-                f.defaultRateSar
-                  ? `${Number(f.defaultRateSar).toLocaleString('en-US')} ر.س ${RATE_UNIT_AR[f.defaultRateUnit ?? ''] ?? ''}`
-                  : '—'
-              }
-            />
+            {canFinance && (
+              <Row
+                k="السعر الافتراضي"
+                v={
+                  f.defaultRateSar
+                    ? `${Number(f.defaultRateSar).toLocaleString('en-US')} ر.س ${RATE_UNIT_AR[f.defaultRateUnit ?? ''] ?? ''}`
+                    : '—'
+                }
+              />
+            )}
             <Row
               k="التقييم"
               v={
@@ -167,7 +177,7 @@ export default async function FreelancerDetailPage({
               v={f.lastWorkedAt ? new Date(f.lastWorkedAt).toISOString().slice(0, 10) : 'لم يعمل'}
               mono
             />
-            {f.payoutMethodRef && <Row k="طريقة الدفع" v={f.payoutMethodRef} />}
+            {canFinance && f.payoutMethodRef && <Row k="طريقة الدفع" v={f.payoutMethodRef} />}
           </dl>
 
           {f.specialties && f.specialties.length > 0 && (

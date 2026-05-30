@@ -157,6 +157,35 @@ export default async function NewContactPage({
                 </Field>
               </div>
 
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Field label="لينكدإن">
+                  <input
+                    type="text"
+                    name="linkedin"
+                    placeholder="linkedin.com/in/username"
+                    className="form-input font-mono"
+                    dir="ltr"
+                  />
+                </Field>
+                <Field label="إنستغرام">
+                  <input
+                    type="text"
+                    name="instagram"
+                    placeholder="@username"
+                    className="form-input font-mono"
+                    dir="ltr"
+                  />
+                </Field>
+                <Field label="أخرى">
+                  <input
+                    type="text"
+                    name="other"
+                    placeholder="رابط أو معرّف آخر"
+                    className="form-input"
+                  />
+                </Field>
+              </div>
+
               <div className="flex flex-wrap gap-6 rounded-lg border border-[var(--line)] bg-[var(--surface)]/40 px-4 py-3">
                 <label className="inline-flex items-center gap-2 text-sm text-[var(--text)]">
                   <input type="checkbox" name="isPrimary" className="h-4 w-4" />

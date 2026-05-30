@@ -11,7 +11,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Sparkles, FileSignature } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { TalentsWorkspace, type TalentRow } from './TalentsWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -24,18 +24,33 @@ export default async function TalentsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/talents');
+
+  // Page guard: lacking team.read → /dashboard (signed-out → /login).
   await requirePermission('team.read');
+
+  // Commission % is financial data — a separate, narrower grant than directory access.
+  const canFinance = await can('financials.read');
 
   const list = rows<TalentRow>(
     await db.execute(sql`
       SELECT id::text AS id, code, display_name AS "displayName",
              display_name_en AS "displayNameEn", contract_type::text AS "contractType",
-             commission_pct AS "commissionPct", category, niches, languages,
+             ${
+               canFinance
+                 ? sql`commission_pct`
+                 : sql`NULL::numeric`
+             } AS "commissionPct", category, niches, languages,
              city_base AS "cityBase", signed_contract_at AS "signedContractAt"
       FROM talents
       WHERE archived_at IS NULL AND active
       ORDER BY display_name`),
   );
+
+  // Defense in depth: the SELECT already omits commission, but null it again so it
+  // never crosses the wire to a viewer without the financials grant.
+  if (!canFinance) {
+    for (const t of list) t.commissionPct = null;
+  }
 
   const contracted = list.filter((t) => t.signedContractAt).length;
   const exclusive = list.filter((t) => t.contractType === 'exclusive').length;

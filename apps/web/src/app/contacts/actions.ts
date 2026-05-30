@@ -26,11 +26,20 @@ function normalizePhone(v: string): string {
   return v.replace(/[^0-9+]/g, '');
 }
 
+type ContactMethodType = 'email' | 'phone' | 'whatsapp' | 'linkedin' | 'instagram' | 'other';
+
+/** Normalize a method value for the UNIQUE(method_type, normalized_value) key. */
+function normalizeMethodValue(type: ContactMethodType, value: string): string {
+  if (type === 'phone' || type === 'whatsapp') return normalizePhone(value);
+  // email / linkedin / instagram / other → case-insensitive, trimmed.
+  return value.trim().toLowerCase();
+}
+
 /** Replace all contact_methods of a given type for a contact, inside an open tx. */
 async function syncMethod(
   tx: Parameters<Parameters<typeof withActor>[1]>[0],
   contactId: string,
-  type: 'email' | 'phone' | 'whatsapp',
+  type: ContactMethodType,
   value: string | null,
   isPrimary = false,
 ) {
@@ -41,7 +50,7 @@ async function syncMethod(
     WHERE contact_id = ${contactId}::uuid AND method_type = ${type}::contact_method_type
   `);
   if (!value) return;
-  const normalized = type === 'email' ? value.toLowerCase() : normalizePhone(value);
+  const normalized = normalizeMethodValue(type, value);
   await tx.execute(sql`
     INSERT INTO contact_methods (contact_id, method_type, value, normalized_value, is_primary)
     VALUES (${contactId}::uuid, ${type}::contact_method_type, ${value}, ${normalized}, ${isPrimary})
@@ -60,6 +69,9 @@ export async function createContact(formData: FormData) {
   const email = formData.get('email')?.toString().trim() || null;
   const phone = formData.get('phone')?.toString().trim() || null;
   const whatsapp = formData.get('whatsapp')?.toString().trim() || null;
+  const linkedin = formData.get('linkedin')?.toString().trim() || null;
+  const instagram = formData.get('instagram')?.toString().trim() || null;
+  const other = formData.get('other')?.toString().trim() || null;
   const isPrimary = formData.get('isPrimary') === 'on';
   const isDecisionMaker = formData.get('isDecisionMaker') === 'on';
   const notes = formData.get('notes')?.toString().trim() || null;
@@ -82,6 +94,9 @@ export async function createContact(formData: FormData) {
     await syncMethod(tx, id, 'email', email, true);
     await syncMethod(tx, id, 'phone', phone);
     await syncMethod(tx, id, 'whatsapp', whatsapp);
+    await syncMethod(tx, id, 'linkedin', linkedin);
+    await syncMethod(tx, id, 'instagram', instagram);
+    await syncMethod(tx, id, 'other', other);
     return id;
   });
 
@@ -112,6 +127,9 @@ export async function updateContact(contactId: string, formData: FormData) {
   const email = formData.get('email')?.toString().trim() || null;
   const phone = formData.get('phone')?.toString().trim() || null;
   const whatsapp = formData.get('whatsapp')?.toString().trim() || null;
+  const linkedin = formData.get('linkedin')?.toString().trim() || null;
+  const instagram = formData.get('instagram')?.toString().trim() || null;
+  const other = formData.get('other')?.toString().trim() || null;
   const isPrimary = formData.get('isPrimary') === 'on';
   const isDecisionMaker = formData.get('isDecisionMaker') === 'on';
   const notes = formData.get('notes')?.toString().trim() || null;
@@ -136,6 +154,9 @@ export async function updateContact(contactId: string, formData: FormData) {
     await syncMethod(tx, contactId, 'email', email, true);
     await syncMethod(tx, contactId, 'phone', phone);
     await syncMethod(tx, contactId, 'whatsapp', whatsapp);
+    await syncMethod(tx, contactId, 'linkedin', linkedin);
+    await syncMethod(tx, contactId, 'instagram', instagram);
+    await syncMethod(tx, contactId, 'other', other);
     return cid ?? null;
   });
 

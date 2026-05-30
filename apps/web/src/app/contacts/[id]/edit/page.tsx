@@ -57,6 +57,9 @@ export default async function EditContactPage({
   const email = firstOf('email');
   const phone = firstOf('phone');
   const whatsapp = firstOf('whatsapp');
+  const linkedin = firstOf('linkedin');
+  const instagram = firstOf('instagram');
+  const other = firstOf('other');
 
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
@@ -142,6 +145,38 @@ export default async function EditContactPage({
                   defaultValue={whatsapp}
                   className="form-input font-mono"
                   dir="ltr"
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Field label="لينكدإن">
+                <input
+                  type="text"
+                  name="linkedin"
+                  defaultValue={linkedin}
+                  placeholder="linkedin.com/in/username"
+                  className="form-input font-mono"
+                  dir="ltr"
+                />
+              </Field>
+              <Field label="إنستغرام">
+                <input
+                  type="text"
+                  name="instagram"
+                  defaultValue={instagram}
+                  placeholder="@username"
+                  className="form-input font-mono"
+                  dir="ltr"
+                />
+              </Field>
+              <Field label="أخرى">
+                <input
+                  type="text"
+                  name="other"
+                  defaultValue={other}
+                  placeholder="رابط أو معرّف آخر"
+                  className="form-input"
                 />
               </Field>
             </div>

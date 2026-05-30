@@ -11,7 +11,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { Users } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 import { FreelancersWorkspace, type FreelancerRow } from './FreelancersWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -31,17 +31,27 @@ export default async function FreelancersPage() {
   if (!user) redirect('/login?next=/freelancers');
   await requirePermission('team.read');
 
+  // Financial/PII columns (rates) are a narrower grant than directory access.
+  const canFinance = await can('financials.read');
+
   const list = rows<FreelancerRow>(
     await db.execute(sql`
       SELECT id::text AS id, code, full_name AS "fullName", full_name_ar AS "fullNameAr",
              specialties, city_base AS "cityBase",
-             default_rate_sar AS "defaultRateSar", default_rate_unit AS "defaultRateUnit",
+             ${canFinance ? sql`default_rate_sar` : sql`NULL::numeric`} AS "defaultRateSar",
+             ${canFinance ? sql`default_rate_unit` : sql`NULL::text`} AS "defaultRateUnit",
              projects_completed AS "projectsCompleted", average_rating AS "averageRating",
              last_worked_at AS "lastWorkedAt", preferred
       FROM freelancers
       WHERE archived_at IS NULL AND active
       ORDER BY preferred DESC, last_worked_at DESC NULLS LAST, full_name`),
   );
+
+  // Defense in depth: the SELECT already nulls rates, but strip them again
+  // server-side so they never cross the wire to a viewer without the grant.
+  const safeList: FreelancerRow[] = canFinance
+    ? list
+    : list.map((r) => ({ ...r, defaultRateSar: null, defaultRateUnit: null }));
 
   const preferredCount = list.filter((f) => f.preferred).length;
   const idleCount = list.filter((f) => {
@@ -78,7 +88,7 @@ export default async function FreelancersPage() {
           />
         </Card>
       ) : (
-        <FreelancersWorkspace items={list} />
+        <FreelancersWorkspace items={safeList} />
       )}
     </Shell>
   );

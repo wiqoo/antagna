@@ -6,7 +6,7 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@a
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Instagram, FileSignature, Users } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/authz';
+import { can, requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,15 +46,24 @@ export default async function TalentDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/talents/${id}`);
+
+  // Page guard: lacking team.read → /dashboard (signed-out → /login).
   await requirePermission('team.read');
+
+  // Commission %, payout method, and legal name are financial/PII — a separate,
+  // narrower grant than directory access.
+  const canFinance = await can('financials.read');
 
   const [tR, accR] = await Promise.all([
     db.execute(sql`
       SELECT id::text AS id, code, display_name AS "displayName",
-             display_name_en AS "displayNameEn", legal_name AS "legalName",
-             contract_type::text AS "contractType", commission_pct AS "commissionPct",
+             display_name_en AS "displayNameEn",
+             ${canFinance ? sql`legal_name` : sql`NULL::text`} AS "legalName",
+             contract_type::text AS "contractType",
+             ${canFinance ? sql`commission_pct` : sql`NULL::numeric`} AS "commissionPct",
              signed_contract_at AS "signedContractAt", category, niches, languages,
-             city_base AS "cityBase", payout_method_ref AS "payoutMethodRef"
+             city_base AS "cityBase",
+             ${canFinance ? sql`payout_method_ref` : sql`NULL::text`} AS "payoutMethodRef"
       FROM talents WHERE id = ${id}::uuid LIMIT 1`),
     db.execute(sql`
       SELECT id::text AS id, handle, platform::text AS platform,
@@ -65,6 +74,14 @@ export default async function TalentDetailPage({
 
   const t = rows<Talent>(tR)[0];
   if (!t) notFound();
+
+  // Defense in depth: the SELECT already omits these, but null them again so
+  // financial/PII fields never cross the wire to a viewer without the grant.
+  if (!canFinance) {
+    t.commissionPct = null;
+    t.payoutMethodRef = null;
+    t.legalName = null;
+  }
   const accounts = rows<{
     id: string;
     handle: string;
