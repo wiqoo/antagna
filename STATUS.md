@@ -193,6 +193,28 @@ attendance is done.
 
 ## ⚠️ Recent events
 
+- **2026-05-30 (full-scope follow-ups, waves 1-5)** — Executed every audit
+  follow-up. **W1 AI cost-safety:** new `assertAiBudget()` guard in `@antagna/ai`
+  (enforces company monthly budget + per-user hard caps BEFORE each model call —
+  the admin "hard cap" was display-only) wired into all ~15 AI surfaces; added
+  `recordUsage` to the untracked spenders (gmail-summarize/email-intel/whatsapp-
+  bot/meeting-notes) + prompt caching to gmail-summarize; priced gpt-4o-mini.
+  **W2:** Drive folder now created synchronously at project creation (cron still
+  backstop); `/search` gated + routed through `v_*_safe` (was leaking team
+  email); M6/L9 legacy `profiles.role` gates → permission keys. **W3 nav perm-
+  filtering:** privileged nav items hidden from users lacking the keys (sidebar+
+  dock+drawer); `canMany` rewritten to ONE query (was N — flooded the cold pool
+  via Shell, broke the dashboard; fixed). **W4 worker:** kpi-engine `profiles.
+  active`→`status='active'` (was writing 0 snapshots); alert-notifier ROLE_MAP
+  missing audiences→falls back to admins (alerts notified nobody). **Worker
+  redeployed** (Trigger.dev v20260530.1). **W5:** L2 addContact errors surfaced,
+  L4 industry dropdown parity, L5 repairs gating, L10 receipt table wrap.
+  Verified live (view-as videographer: gates redirect, financials masked, nav
+  trimmed, dashboard healthy cold+warm). **Still open (your call):** off-policy
+  gpt-4o-mini swap (now tracked+capped), Gmail OAuth connect (creds+SITE_URL
+  ready), freelancers/talents masking views, Arabic-in-mono font, + the new-
+  feature gaps (leads create route, client_health pipeline, contact_methods
+  social types). See `docs/AUDIT-2026-05-30.md`.
 - **2026-05-30 (deep audit + fixes)** — Two multi-agent audits (page-by-page +
   UX/IA/fonts/AI/permissions) → `docs/AUDIT-2026-05-30.md`. **Permissions were
   NOT uniformly enforced**: DB model (`has_permission`, `v_*_safe`) correct, but
