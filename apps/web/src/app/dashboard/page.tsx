@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
+import { ListChecks } from 'lucide-react';
 import { db } from '@antagna/db';
 import { Shell } from '@/components/Shell';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
 import { can } from '@/lib/authz';
-import { StreamedDashboard } from './board-section';
+import { StreamedBriefing, StreamedBoard } from './board-section';
+import { StreamedMyDay } from './my-day-section';
 
 export const dynamic = 'force-dynamic';
 // The streamed board has ~10 DB queries; give the function headroom so a cold
@@ -57,15 +59,27 @@ export default async function DashboardPage() {
       }}
       activePath="/dashboard"
     >
-      {/* AI Daily Briefing hero + V5 bento grid — streamed behind Suspense so
-          the shell opens instantly even when the board's queries are cold. */}
-      <StreamedDashboard
+      {/* Three independent streamed lanes — the shell flushes instantly and each
+          section streams in on its own when ready (a slow board never blocks the
+          briefing or the personal "my day" items, and vice-versa):
+          1) AI briefing hero  2) my routine + today's items  3) position board. */}
+      <StreamedBriefing greeting={greeting} dateStr={dateStr} firstName={greetingName} />
+
+      {current?.id && (
+        <StreamedMyDay
+          profileId={current.id}
+          isImpersonating={!!current.isImpersonating}
+        />
+      )}
+
+      <div className="flex items-center gap-2 pt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
+        <ListChecks size={13} />
+        <span>لوحة منصبك</span>
+      </div>
+      <StreamedBoard
         profileId={current?.id ?? null}
         role={current?.role}
         canFinance={canFinance}
-        greeting={greeting}
-        dateStr={dateStr}
-        firstName={greetingName}
       />
 
       <div className="flex items-center justify-between border-t border-[var(--line)] pt-4 text-[10px] uppercase tracking-[0.18em] text-[var(--text-dim)]">

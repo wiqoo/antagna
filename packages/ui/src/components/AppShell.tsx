@@ -19,7 +19,6 @@ import {
   MoreHorizontal,
   Clock,
   MessageCircle,
-  Sun,
   Bell,
   CheckCircle2,
   Wrench,
@@ -50,7 +49,7 @@ export type NavLabels = Record<string, string>;
 const NAV_GROUPS: NavGroup[] = [
   {
     items: [
-      { href: '/my-day', key: 'myDay', label: 'يومي', icon: Sun },
+      // /my-day merged into /dashboard (routine + today's items render there now).
       { href: '/dashboard', key: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
       { href: '/search', key: 'search', label: 'بحث', icon: Search },
       { href: '/projects', key: 'projects', label: 'المشاريع', icon: Briefcase },
@@ -96,7 +95,7 @@ const PRIMARY_NAV = NAV_GROUPS[0]!.items;
 // (core daily surface + carries the unread badge); search drops to ⌘K + the
 // "more" drawer. Everything not docked goes to the drawer's overflow block so
 // nothing in the primary group is unreachable on mobile.
-const DOCK_HREFS = ['/my-day', '/dashboard', '/inbox', '/projects'];
+const DOCK_HREFS = ['/dashboard', '/inbox', '/projects', '/tasks'];
 const DOCK_NAV: NavItem[] = DOCK_HREFS.map(
   (h) => PRIMARY_NAV.find((i) => i.href === h)!,
 ).filter(Boolean);

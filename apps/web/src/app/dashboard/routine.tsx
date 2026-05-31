@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { CheckCircle2, Circle, Sunrise, Sun, Sunset, Clock } from 'lucide-react';
-import { completeTask } from './actions';
+import { completeTask } from './my-day-actions';
 
 export type RoutineRow = {
   /** daily_tasks.id */

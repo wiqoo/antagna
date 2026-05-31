@@ -14,7 +14,8 @@ import { loadRoutines, riyadhToday, routineSourceKey } from '@/lib/routines';
  * (owner_id, source_key), so we read the existing keys first and insert the
  * gap — wrapped in withActor so the audit trigger sees the actor.
  *
- * Gated by daily_task.manage_self (every positioned user holds it).
+ * Gated by daily_task.manage_self (every positioned user holds it). Rendered by
+ * the My-Day section now merged into /dashboard.
  */
 export async function ensureTodayRoutine(
   profileId: string,
@@ -53,14 +54,14 @@ export async function ensureTodayRoutine(
 
   await withActor(actorId, async (tx) => {
     // ON CONFLICT against the partial unique index (owner_id, source_key) —
-    // race-safe if two /my-day loads materialize the same day concurrently
+    // race-safe if two /dashboard loads materialize the same day concurrently
     // (migration 056). The read above just trims the common no-op case.
     await tx
       .insert(dailyTasks)
       .values(toInsert)
       .onConflictDoNothing({ target: [dailyTasks.ownerId, dailyTasks.sourceKey] });
   });
-  // No revalidatePath here: ensureTodayRoutine runs during the /my-day render
+  // No revalidatePath here: ensureTodayRoutine runs during the /dashboard render
   // (calling revalidatePath mid-render throws "Route used revalidatePath…"). The
   // page reads daily_tasks AFTER this call in the same render, so new rows show
   // immediately. revalidatePath stays in completeTask (a real action).
@@ -88,7 +89,7 @@ export async function completeTask(
       .where(and(eq(dailyTasks.id, taskId), eq(dailyTasks.ownerId, actorId)));
   });
 
-  revalidatePath('/my-day');
+  revalidatePath('/dashboard');
   revalidatePath('/tasks');
   return { ok: true };
 }

@@ -90,7 +90,10 @@ const DEFAULT_ORDER: CardId[] = [
   'glance', 'email_triage', 'ai_suggestions',
   'project_health', 'capacity_fc',
   'approvals', 'stale_convos', 'shoots',
-  'equip_conflicts', 'mtd_revenue',
+  'equip_conflicts',
+  // mtd_revenue removed for the phase-1 launch (financials hidden). The
+  // `boardable()` filter below keeps it (and any future money card) off every
+  // default board until finance ships; re-add by relaxing PHASE1_HIDDEN_IDS.
 ];
 
 export const DEFAULT_LAYOUT: DashLayout = {
@@ -174,10 +177,48 @@ const POSITION_LAYOUT: Record<string, CardId[]> = {
   creative_director: ['ai_suggestions', 'project_health', 'shoots', 'capacity_fc', 'stale_convos'],
 };
 
+/** Card ids actually wired to real data in board.tsx (mirrors the catalog
+ *  `live` flag). A board id outside this set is a phantom — the renderer drops
+ *  it (it never gets a node), leaving a half-empty board. */
+const LIVE_IDS = new Set<CardId>(
+  (CARD_CATALOG as readonly CatalogEntry[])
+    .filter((c) => c.live)
+    .map((c) => c.id as CardId),
+);
+
+/** Financial cards hidden for the phase-1 launch (revenue / cash / AI-cost).
+ *  Kept off every default board so no position shows money. Re-enable finance
+ *  by trimming this set (and flipping FINANCIALS_HIDDEN). */
+const PHASE1_HIDDEN_IDS = new Set<CardId>(['mtd_revenue', 'cashflow', 'ai_cost']);
+
+/** A card may sit on a default board only when it renders real data AND isn't
+ *  hidden for phase-1. Guarantees boards are never phantom-padded or money-leaky. */
+function boardable(id: CardId): boolean {
+  return LIVE_IDS.has(id) && !PHASE1_HIDDEN_IDS.has(id);
+}
+
+/** Neutral always-live cards used to pad a position board whose spec list is too
+ *  thin once phantom/financial cards are filtered out. */
+const FALLBACK_LIVE: CardId[] = [
+  'glance', 'project_health', 'approvals', 'stale_convos', 'shoots',
+];
+
+/** Filter a card list to renderable cards, padding to ≥4 with neutral live ones
+ *  (in order, no dups). The single guard that makes every default board solid. */
+function boardableOrder(ids: readonly CardId[]): CardId[] {
+  const out = ids.filter(boardable);
+  for (const id of FALLBACK_LIVE) {
+    if (out.length >= 4) break;
+    if (!out.includes(id)) out.push(id);
+  }
+  return out;
+}
+
 /**
  * The default board for a position. Spec Part 7 board if the position_key is
  * mapped; otherwise falls back to the legacy role lead, then DEFAULT_LAYOUT.
- * The position board is *exclusive* — only its spec cards are visible.
+ * The position board is *exclusive* — only its (renderable, non-financial)
+ * spec cards are visible, padded so no one ever lands on a half-empty board.
  */
 export function positionDefaultLayout(
   positionKey?: string | null,
@@ -185,20 +226,27 @@ export function positionDefaultLayout(
 ): DashLayout {
   const lead = positionKey ? POSITION_LAYOUT[positionKey] : undefined;
   if (lead) {
-    const leadSet = new Set(lead);
+    const order = boardableOrder(lead);
+    const leadSet = new Set(order);
     const hidden = CARD_CATALOG.map((c) => c.id).filter((id) => !leadSet.has(id));
     const sizes: Partial<Record<CardId, CardSize>> = {};
-    for (const id of lead) sizes[id] = CARD_BY_ID[id]?.defaultSize ?? 'md';
-    return { order: [...lead], sizes, hidden };
+    for (const id of order) sizes[id] = CARD_BY_ID[id]?.defaultSize ?? 'md';
+    return { order, sizes, hidden };
   }
   return roleDefaultLayout(role);
 }
 
 export function roleDefaultLayout(role?: string | null): DashLayout {
   const lead = role ? ROLE_LEAD[role] : undefined;
-  if (!lead) return DEFAULT_LAYOUT;
-  const order = [...lead, ...DEFAULT_ORDER.filter((id) => !lead.includes(id))];
-  return { ...DEFAULT_LAYOUT, order };
+  const base = lead
+    ? [...lead, ...DEFAULT_ORDER.filter((id) => !lead.includes(id))]
+    : DEFAULT_ORDER;
+  const order = boardableOrder(base);
+  const leadSet = new Set(order);
+  const hidden = CARD_CATALOG.map((c) => c.id).filter((id) => !leadSet.has(id));
+  const sizes: Partial<Record<CardId, CardSize>> = {};
+  for (const id of order) sizes[id] = CARD_BY_ID[id]?.defaultSize ?? 'md';
+  return { order, sizes, hidden };
 }
 
 /**

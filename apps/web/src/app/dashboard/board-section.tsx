@@ -69,63 +69,43 @@ export function StreamedBoard({
   );
 }
 
-async function DashboardInner({
-  profileId,
-  role,
-  canFinance,
+function HeroSkeleton() {
+  return (
+    <div className="h-44 animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--surface)]/40" />
+  );
+}
+
+async function BriefingInner({
   greeting,
   dateStr,
   firstName,
 }: {
-  profileId: string | null;
-  role: string | null | undefined;
-  canFinance: boolean;
   greeting: string;
   dateStr: string;
   firstName: string;
 }) {
-  // Briefing is a light cache read; the board is the heavy part. Run together,
-  // both behind the same Suspense boundary so the shell never waits on them.
-  const [initialBriefing, board] = await Promise.all([
-    loadCachedBriefing().catch(() => null),
-    buildDashboardBoard({ profileId, role, canFinance }),
-  ]);
+  const initialBriefing = await loadCachedBriefing().catch(() => null);
   return (
-    <>
-      <BriefingCard
-        initial={initialBriefing}
-        greeting={greeting}
-        dateStr={dateStr}
-        firstName={firstName}
-      />
-      <DashboardGrid
-        items={board.items}
-        initialLayout={board.layout}
-        catalogCount={board.catalogCount}
-      />
-    </>
+    <BriefingCard
+      initial={initialBriefing}
+      greeting={greeting}
+      dateStr={dateStr}
+      firstName={firstName}
+    />
   );
 }
 
-/** Briefing hero + card grid, streamed. Used by /dashboard. */
-export function StreamedDashboard(props: {
-  profileId: string | null;
-  role: string | null | undefined;
-  canFinance: boolean;
+/** AI briefing hero, streamed on its OWN Suspense lane so the (light) cache read
+ *  never waits on the heavy My-Day queries or the card board — and vice-versa.
+ *  Used by /dashboard. */
+export function StreamedBriefing(props: {
   greeting: string;
   dateStr: string;
   firstName: string;
 }) {
   return (
-    <Suspense
-      fallback={
-        <>
-          <div className="h-44 animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--surface)]/40" />
-          <BoardSkeleton />
-        </>
-      }
-    >
-      <DashboardInner {...props} />
+    <Suspense fallback={<HeroSkeleton />}>
+      <BriefingInner {...props} />
     </Suspense>
   );
 }

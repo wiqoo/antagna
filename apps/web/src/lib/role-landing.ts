@@ -1,18 +1,12 @@
 /**
- * Role-aware landing — where each role most wants to start after login (and at
- * root `/`).
+ * Post-login landing (also used at root `/`).
  *
- * As of the per-position My Day home (Phase 2): every non-admin lands on
- * `/my-day` — their position's daily routine + today's items + their position
- * card board, all in one place. Admins (system_admin / general_manager) keep
- * the full overview `/dashboard` (they run the whole shop, not one position).
- *
- * `role` here is the legacy `profiles.role`. Admin detection mirrors
- * ADMIN_ROLES in view-as.ts / Shell.tsx.
+ * As of 2026-05-31 the per-position "My Day" surface is merged INTO
+ * `/dashboard` — the routine checklist + today's items now render as a section
+ * above the position card board. So EVERYONE (admins and positioned users
+ * alike) lands on the one unified `/dashboard`. Kept as a function so the root
+ * dispatcher + middleware stay stable if landing ever diverges again.
  */
-const ADMIN_ROLES = new Set(['system_admin', 'general_manager']);
-
-export function roleLanding(role: string | null | undefined): string {
-  if (role && ADMIN_ROLES.has(role)) return '/dashboard';
-  return '/my-day';
+export function roleLanding(_role?: string | null): string {
+  return '/dashboard';
 }
