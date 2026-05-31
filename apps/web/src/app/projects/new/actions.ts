@@ -114,6 +114,63 @@ export async function parseBriefRich(
   }
 }
 
+/**
+ * Same brief extraction as parseBriefRich, but from UPLOADED FILES — images go
+ * to Claude as vision blocks, PDFs as document blocks (Claude reads both
+ * natively, no server-side text extraction needed). Up to 8 files.
+ */
+export async function parseBriefFromFiles(
+  files: { name: string; type: string; dataBase64: string }[],
+): Promise<{ ok: true; parsed: ParsedBrief } | { ok: false; error: string }> {
+  const actorId = await requirePermissionAction('brief.parse_ai');
+  if (!files?.length) return { ok: false, error: 'empty' };
+  await assertAiBudget({ userId: actorId, feature: 'brief_parse_files' });
+  const supabase = await getSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'unauthorized' };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const system = PARSE_SYSTEM.replace('{{TODAY}}', today);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blocks: any[] = [];
+  for (const f of files.slice(0, 8)) {
+    if (f.type.startsWith('image/')) {
+      blocks.push({ type: 'image', source: { type: 'base64', media_type: f.type, data: f.dataBase64 } });
+    } else if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.dataBase64 } });
+    }
+  }
+  if (!blocks.length) return { ok: false, error: 'no_supported_files' };
+  blocks.push({ type: 'text', text: 'استخرج بيانات البريف من الملفات المرفقة (صور و/أو مستندات). أخرج JSON فقط حسب الـ schema.' });
+
+  try {
+    const anthropic = getAnthropic();
+    const resp = await anthropic.messages.create({
+      model: ANTHROPIC_MODELS.sonnet,
+      max_tokens: 2000,
+      system,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: [{ role: 'user', content: blocks as any }],
+    });
+    await recordUsage({
+      feature: 'brief_parse_files',
+      model: ANTHROPIC_MODELS.sonnet,
+      inputTokens: resp.usage.input_tokens,
+      outputTokens: resp.usage.output_tokens,
+      authUserId: user.id,
+    });
+    const text = resp.content.find((b) => b.type === 'text');
+    const raw = text && text.type === 'text' ? text.text : '{}';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return { ok: false, error: 'no_json' };
+    const parsed = JSON.parse(match[0]) as ParsedBrief;
+    return { ok: true, parsed };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'unknown' };
+  }
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // COMMIT — create project + brief + deliverables + assignments in one go
 // ════════════════════════════════════════════════════════════════════════════
@@ -128,6 +185,8 @@ export async function createProject(formData: FormData) {
   const description = formData.get('description')?.toString() || null;
   const projectType = (formData.get('projectType')?.toString() ?? 'shoot') as
     | 'shoot' | 'edit_only' | 'live_coverage' | 'content_creation' | 'consulting' | 'other';
+  // Sub-brand: Volt (production) vs محتوى أبو لوكا — drives the "is_abu_luka_content" flag.
+  const isAbuLuka = formData.get('forBrandUnit')?.toString() === 'abu_luka';
 
   if (!clientId) throw new Error('clientId required');
 
@@ -194,7 +253,7 @@ export async function createProject(formData: FormData) {
       const res = await tx.execute<{ id: string }>(sql`
         INSERT INTO projects (
           title, title_ar, description, client_id, agency_id,
-          project_type, stage,
+          project_type, stage, is_abu_luka_content,
           project_manager_id, account_manager_id, production_manager_id,
           delivery_due_at, shoot_starts_at, shoot_ends_at,
           brief_received_at,
@@ -204,7 +263,7 @@ export async function createProject(formData: FormData) {
           ${title}, ${titleAr}, ${description},
           ${clientId}::uuid,
           ${agencyId ? sql`${agencyId}::uuid` : sql`NULL`},
-          ${projectType}::project_type, 'brief'::project_stage,
+          ${projectType}::project_type, 'brief'::project_stage, ${isAbuLuka},
           ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
           ${amId ? sql`${amId}::uuid` : sql`NULL`},
           ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},

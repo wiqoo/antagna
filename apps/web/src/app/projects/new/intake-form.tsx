@@ -5,7 +5,7 @@ import {
   Sparkles, Loader2, Plus, X, Building2, Film, MapPin,
   Users, ChevronDown, ChevronUp,
 } from 'lucide-react';
-import { parseBriefRich, type ParsedBrief } from './actions';
+import { parseBriefRich, parseBriefFromFiles, type ParsedBrief } from './actions';
 
 type Client = { id: string; code: string; nameAr: string; isAgency?: boolean };
 type Profile = { id: string; displayName: string; positionKey: string | null };
@@ -103,6 +103,8 @@ export function IntakeForm({
     return () => clearInterval(id);
   }, [isPending]);
   const [briefText, setBriefText] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [forBrandUnit, setForBrandUnit] = useState('volt_production');
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedBrief | null>(null);
   const [step, setStep] = useState(0);
@@ -144,6 +146,28 @@ export function IntakeForm({
   const projectManagers = profilesFor(['project_manager']);
   const productionManagers = profilesFor(['production_director']);
 
+  function applyParsed(p: ParsedBrief) {
+    setParsed(p);
+    setTitleEn(p.title_en || '');
+    setTitleAr(p.title_ar || '');
+    setObjective(p.objective || '');
+    setToneStyle(p.tone_style || 'cinematic');
+    setProjectType(p.project_type || 'shoot');
+    setShootStartsAt(p.shoot_date_iso || '');
+    setDeliveryDueAt(p.delivery_due_iso || '');
+    setClientAssets(p.client_assets_provided || []);
+    setLocations(p.locations || []);
+    setDeliverables(
+      (p.deliverables || []).map((d) => ({
+        format: d.format,
+        aspect_ratio: d.aspect_ratio,
+        duration_sec: d.duration_sec,
+      })),
+    );
+    setShowAdvanced(true);
+    setStep(1); // auto-advance to first data step after a successful parse
+  }
+
   async function handleParse() {
     if (!briefText.trim()) return;
     setParseError(null);
@@ -153,27 +177,37 @@ export function IntakeForm({
         setParseError(res.error);
         return;
       }
-      const p = res.parsed;
-      setParsed(p);
-      setTitleEn(p.title_en || '');
-      setTitleAr(p.title_ar || '');
-      setObjective(p.objective || '');
-      setToneStyle(p.tone_style || 'cinematic');
-      setProjectType(p.project_type || 'shoot');
-      setShootStartsAt(p.shoot_date_iso || '');
-      setDeliveryDueAt(p.delivery_due_iso || '');
-      setClientAssets(p.client_assets_provided || []);
-      setLocations(p.locations || []);
-      setDeliverables(
-        (p.deliverables || []).map((d) => ({
-          format: d.format,
-          aspect_ratio: d.aspect_ratio,
-          duration_sec: d.duration_sec,
-        })),
-      );
-      setShowAdvanced(true);
-      // Auto-advance to first data step after a successful parse
-      setStep(1);
+      applyParsed(res.parsed);
+    });
+  }
+
+  function fileToBase64(file: File): Promise<{ name: string; type: string; dataBase64: string }> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || '');
+        resolve({ name: file.name, type: file.type, dataBase64: result.split(',')[1] ?? '' });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleParseFiles() {
+    if (files.length === 0) return;
+    setParseError(null);
+    startTransition(async () => {
+      try {
+        const payload = await Promise.all(files.slice(0, 8).map(fileToBase64));
+        const res = await parseBriefFromFiles(payload);
+        if (!res.ok) {
+          setParseError(res.error);
+          return;
+        }
+        applyParsed(res.parsed);
+      } catch {
+        setParseError('تعذّر قراءة الملفات');
+      }
     });
   }
 
@@ -261,6 +295,7 @@ export function IntakeForm({
     <form action={commitAction} onSubmit={preSubmit} className="space-y-6">
       {/* AI hidden fields — always submitted regardless of step */}
       <input type="hidden" name="sourceText" value={briefText} />
+      <input type="hidden" name="forBrandUnit" value={forBrandUnit} />
       <input type="hidden" name="parsedSummary" value={parsed?.objective ?? ''} />
       <input type="hidden" name="completeness" value={parsed?.completeness_score ?? 0} />
       <input type="hidden" name="missingFields" value={(parsed?.missing_fields ?? []).join(',')} />
@@ -316,6 +351,20 @@ export function IntakeForm({
             </p>
           </div>
         </div>
+
+        {/* Sub-brand: Volt vs محتوى أبو لوكا */}
+        <div className="space-y-1.5">
+          <label className="block text-[12px] font-medium text-[var(--text)]">العلامة</label>
+          <select
+            value={forBrandUnit}
+            onChange={(e) => setForBrandUnit(e.target.value)}
+            className="w-full max-w-xs rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
+          >
+            <option value="volt_production">Volt — إنتاج</option>
+            <option value="abu_luka">محتوى أبو لوكا</option>
+          </select>
+        </div>
+
         <textarea
           value={briefText}
           onChange={(e) => setBriefText(e.target.value)}
@@ -335,6 +384,33 @@ export function IntakeForm({
             {isPending ? PARSE_HINTS[parseHintIdx] : 'حلّل بالـ AI'}
           </button>
         </div>
+
+        {/* OR: upload files (images / PDFs) for AI to read */}
+        <div className="rounded-md border border-dashed border-[var(--line-strong)] bg-[var(--bg-elevated)]/50 p-3 space-y-2">
+          <p className="text-[12px] font-medium text-[var(--text)]">أو ارفع ملفات (صور أو مستندات) والـ AI يحلّلها</p>
+          <input
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 8))}
+            className="block w-full text-[12px] text-[var(--text-muted)] file:me-3 file:rounded-md file:border-0 file:bg-[var(--surface)] file:px-3 file:py-1.5 file:text-[12px] file:text-[var(--text)] hover:file:bg-[var(--surface-hover)]"
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-[var(--text-dim)]">
+              {files.length > 0 ? `${files.length} ملف · ${files.map((f) => f.name).join('، ').slice(0, 60)}` : 'صور (jpg/png) أو PDF — حتى ٨ ملفات'}
+            </p>
+            <button
+              type="button"
+              onClick={handleParseFiles}
+              disabled={isPending || files.length === 0}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isPending ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              حلّل الملفات بالـ AI
+            </button>
+          </div>
+        </div>
+
         {parseError && <p className="text-[12px] text-[var(--danger)]">⚠ {parseError}</p>}
         {parsed && (
           <div className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] p-3 text-[12px]">
