@@ -59,7 +59,15 @@ async function MyDayInner({
   isImpersonating: boolean;
 }) {
   const me = profileId;
-
+  // Resilience: this section fans out 7 queries alongside the board's ~11 + the
+  // briefing — on a COLD serverless function that connection storm can drop a
+  // connection ("Connection closed"). Unlike the board (which wraps each query
+  // in a timeout-guard), a throw here would propagate past Suspense to the page
+  // error boundary and crash the WHOLE dashboard. So the entire load+render runs
+  // inside try/catch → render nothing on failure. Worst case the personal items
+  // are briefly absent on a cold hit (board + briefing still render); they're
+  // back on the next warm load. Never crash the page.
+  try {
   const posRows = await db.execute<{ position_key: string | null; name_ar: string | null }>(
     sql`SELECT p.position_key,
                (SELECT name_ar FROM positions WHERE key = p.position_key) AS name_ar
@@ -346,6 +354,10 @@ async function MyDayInner({
       )}
     </section>
   );
+  } catch (err) {
+    console.error('[my-day-section] render failed (degraded to hidden)', err);
+    return null;
+  }
 }
 
 /** My-Day section, streamed on its own Suspense lane. Renders nothing when the
