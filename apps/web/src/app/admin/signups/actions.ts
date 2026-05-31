@@ -48,3 +48,38 @@ export async function resendInviteAction(formData: FormData) {
       encodeURIComponent(`إعادة الدعوة معدّة لـ ${target.display_name} — الإرسال مُعطّل (بانتظار الموافقة).`),
   );
 }
+
+/**
+ * Approve a self-registered account: flip status 'invited' → 'active' so the
+ * user can access the app. Open registration + admin approval — the user
+ * already set their own password at signup, so no email/invite is sent (not
+ * category-5). Gated on user.invite.
+ */
+export async function approveSignupAction(formData: FormData) {
+  await requirePermissionAction('user.invite');
+
+  const id = String(formData.get('id') ?? '').trim();
+  if (!id) redirect('/admin/signups?error=' + encodeURIComponent('معرّف غير صالح'));
+
+  const rows = (await db.execute<{ email: string; display_name: string; status: string }>(
+    sql`SELECT email, display_name, status FROM profiles WHERE id = ${id}::uuid LIMIT 1`,
+  )) as unknown as { email: string; display_name: string; status: string }[];
+
+  const target = rows[0];
+  if (!target) {
+    redirect('/admin/signups?error=' + encodeURIComponent('المستخدم غير موجود'));
+  }
+  if (target.status !== 'invited') {
+    redirect('/admin/signups?error=' + encodeURIComponent('هذا المستخدم ليس بانتظار الموافقة'));
+  }
+
+  await db.execute(sql`
+    UPDATE profiles SET status = 'active', updated_at = now()
+    WHERE id = ${id}::uuid AND status = 'invited'
+  `);
+
+  revalidatePath('/admin/signups');
+  redirect(
+    '/admin/signups?ok=' + encodeURIComponent(`تم تفعيل حساب ${target.display_name}.`),
+  );
+}

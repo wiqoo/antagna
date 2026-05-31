@@ -66,10 +66,11 @@ export async function registerAction(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  // If email confirmation is required, session is null and the user lands on login
-  // with a message. Otherwise they're already signed in and we go to dashboard.
+  // Open registration + admin approval: the account is created as 'invited'
+  // (pending). The user can sign in but lands on /pending until an admin
+  // activates them at /admin/signups.
   redirect(
     '/login?message=' +
-      encodeURIComponent('تم إنشاء الحساب. تحقّق من بريدك إن طُلب التفعيل، ثم سجّل الدخول.'),
+      encodeURIComponent('تم إنشاء حسابك — بانتظار موافقة الإدارة. ستقدر تدخل بعد التفعيل.'),
   );
 }

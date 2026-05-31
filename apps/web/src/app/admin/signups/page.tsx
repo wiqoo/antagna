@@ -3,10 +3,10 @@ import { asc, eq } from 'drizzle-orm';
 import { db, profiles, positions } from '@antagna/db';
 import { PageHeader, Card, CardHeader, StatBox, StatusPill, Avatar, EmptyState } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { ArrowLeft, UserPlus, MailWarning, Send, Clock } from 'lucide-react';
+import { ArrowLeft, UserPlus, MailWarning, Check, Clock } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermission, can } from '@/lib/authz';
-import { resendInviteAction } from './actions';
+import { approveSignupAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +61,7 @@ export default async function SignupsAdminPage(props: { searchParams: SearchPara
       <PageHeader
         eyebrow="Admin · الانضمام"
         title="طلبات الانضمام"
-        subtitle="الحسابات المدعوّة بانتظار إكمال التسجيل (status = invited). أعِد إرسال الدعوة عند الحاجة."
+        subtitle="حسابات سجّلت بنفسها وبانتظار موافقتك (status = invited). اضغط «تفعيل» ليتمكّن المستخدم من الدخول."
       />
 
       {ok && (
@@ -143,15 +143,15 @@ export default async function SignupsAdminPage(props: { searchParams: SearchPara
                       </td>
                       <td className="px-5 py-3.5 text-end">
                         {canResend && (
-                          <form action={resendInviteAction}>
+                          <form action={approveSignupAction}>
                             <input type="hidden" name="id" value={p.id} />
                             <button
                               type="submit"
-                              title="إعادة إرسال الدعوة (الإرسال مُعطّل مؤقتاً)"
-                              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[11px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                              title="تفعيل الحساب — يسمح للمستخدم بالدخول"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20"
                             >
-                              <Send size={12} />
-                              إعادة الدعوة
+                              <Check size={12} />
+                              تفعيل
                             </button>
                           </form>
                         )}
@@ -162,7 +162,7 @@ export default async function SignupsAdminPage(props: { searchParams: SearchPara
               </table>
             </div>
             <p className="border-t border-[var(--line)] px-5 py-3 text-[11px] text-[var(--text-dim)]">
-              ملاحظة: إرسال بريد الدعوة مُعطّل مؤقتاً (بانتظار موافقة الإدارة) — زر الإعادة يسجّل النية فقط ولا يرسل بريداً.
+              التسجيل مفتوح: أي شخص يقدر يسجّل بنفسه، والحساب يفضل بانتظار موافقتك (invited) لحد ما تضغط «تفعيل».
             </p>
           </Card>
         </>

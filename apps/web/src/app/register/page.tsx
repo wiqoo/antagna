@@ -18,7 +18,7 @@ export default async function RegisterPage(props: { searchParams: SearchParams }
   return (
     <AuthCard
       title="إنشاء حساب في Antagna"
-      subtitle="أي بريد يعمل — سيُسنِد المدير دورك بعد التسجيل · Admin assigns your role"
+      subtitle="التسجيل مفتوح — حسابك يُفعّل بعد موافقة الإدارة · Admin approval after signup"
       footer={
         <>
           لديك حساب بالفعل؟{' '}

@@ -42,6 +42,7 @@ export async function getRealProfile(): Promise<{
   email: string;
   displayName: string;
   role: string;
+  status: string;
 } | null> {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -53,6 +54,7 @@ export async function getRealProfile(): Promise<{
       email: profiles.email,
       displayName: profiles.displayName,
       role: profiles.role,
+      status: profiles.status,
     })
     .from(profiles)
     .where(eq(profiles.authUserId, user.id))

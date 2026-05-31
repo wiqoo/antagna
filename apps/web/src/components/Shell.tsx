@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { AppShell, CommandPalette, NAV_PERM_KEYS } from '@antagna/ui';
 import { canMany } from '@/lib/authz';
@@ -34,6 +35,14 @@ export async function Shell({
     // still gates access; this just hides links the user can't use.
     canMany([...NAV_PERM_KEYS]),
   ]);
+
+  // Open registration + admin approval: a signed-in account that isn't 'active'
+  // yet (self-signed-up, awaiting admin approval at /admin/signups) can't use
+  // the app — bounce it to the "awaiting approval" screen. Gate on the REAL
+  // profile so an admin viewing-as someone is never locked out.
+  if (real && real.status !== 'active') {
+    redirect('/pending');
+  }
 
   // Show the View-As bar only for real admins.
   const showBar = real != null && ADMIN_ROLES.has(real.role);
