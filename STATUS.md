@@ -34,7 +34,7 @@ RED by design — delete the override row when ready) + real invite-email dispat
 (category-5, needs your OK). See `01PERMISSIONSforClaudeCode.md` + D-037→D-041.
 
 **Live URLs:**
-- App: <https://antagna-v2.vercel.app> (custom domain `antagna.me` zone added on Cloudflare 2026-05-21)
+- App: **<https://antagna.me>** — PRODUCTION (cut over from volt-os → antagna-v2 on 2026-05-31). `antagna-v2.vercel.app` still aliases the same prod.
 - WhatsApp bot tunnel: <https://whatsapp.antagna.me> (WPPConnect → Cloudflare tunnel → localhost:21465)
 
 ---
@@ -192,6 +192,17 @@ attendance is done.
 ---
 
 ## ⚠️ Recent events
+
+- **2026-05-31 — GO LIVE.** antagna-v2 promoted to the production domain: moved
+  `antagna.me` + `www.antagna.me` off the volt-os project (prj_CPB8…, the old
+  live) onto antagna-v2 (prj_C7il…) via the Vercel API (verified=True). antagna.me
+  now serves the new system (confirmed: Vazirmatn body font = the new build).
+  `NEXT_PUBLIC_SITE_URL` → https://antagna.me + redeploy. **Mohammed's choice:
+  fresh start** — clients/projects/history NOT migrated (they stay on volt-os at
+  its .vercel.app URL, per D-014 out-of-scope). Gmail reconnected by Mohammed (40
+  threads synced). **Still to do (Mohammed):** send the 10 team invites (they're
+  `invited`, no accounts yet — held as category-5, his call). **Remaining feature
+  work:** leads create route + client_health pipeline (new features, not blockers).
 
 - **2026-05-30 (full-scope follow-ups, waves 1-5)** — Executed every audit
   follow-up. **W1 AI cost-safety:** new `assertAiBudget()` guard in `@antagna/ai`
