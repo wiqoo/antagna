@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import { db, withActor } from '@antagna/db';
 import { requirePermissionAction } from '@/lib/authz';
 import { sendText } from '@/lib/whatsapp';
+import { resolveAndMergeLid } from '@/lib/whatsapp-lid';
 import { writeActivity } from '@/lib/activity';
 
 /** Send a WhatsApp message from the team line + persist it as an outbound row. */
@@ -50,6 +51,34 @@ export async function sendWhatsappMessage(
   revalidatePath(`/whatsapp/${encodeURIComponent(threadKey)}`);
   revalidatePath('/whatsapp');
   return { ok: true };
+}
+
+/**
+ * Try to unmask a `lid:NNN` thread: ask the WhatsApp session's contact store for
+ * the real number and, if found, collapse the lid-keyed messages onto the phone
+ * thread. Surfaces a clear reason when WhatsApp genuinely can't give the number
+ * (unsaved + privacy-hidden). Returns the resolved phone so the UI can jump to
+ * the now-unblocked conversation.
+ */
+export async function resolveLidThread(
+  threadKey: string,
+): Promise<{ ok: boolean; phone?: string; error?: string }> {
+  await requirePermissionAction('whatsapp.send');
+  if (!threadKey.startsWith('lid:')) {
+    return { ok: false, error: 'هذه ليست محادثة LID.' };
+  }
+  const result = await resolveAndMergeLid(threadKey.slice(4));
+  if (!result) {
+    return {
+      ok: false,
+      error:
+        'تعذّر حل الرقم — على الأغلب جهة الاتصال غير محفوظة على هاتف الواتساب، أو رقمها مخفي بإعدادات الخصوصية.',
+    };
+  }
+  revalidatePath(`/whatsapp/${encodeURIComponent(threadKey)}`);
+  revalidatePath(`/whatsapp/${encodeURIComponent(result.phone)}`);
+  revalidatePath('/whatsapp');
+  return { ok: true, phone: result.phone };
 }
 
 /** B4: spin up a project_task straight from a WhatsApp thread so the request

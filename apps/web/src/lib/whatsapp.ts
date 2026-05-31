@@ -171,3 +171,86 @@ export async function setTyping(toE164: string, value: boolean): Promise<void> {
     // Best-effort — never let typing indicator failures break the bot.
   }
 }
+
+// ── LID → phone resolution ───────────────────────────────────────────────────
+// WhatsApp's @lid hides the phone number INSIDE the message, but the session
+// (the linked phone) still knows the real number for any SAVED contact. We ask
+// the session via WPPConnect's getPnLidEntry — REST route
+// `GET /api/:session/contact/pn-lid/:pnLid`, which returns { lid, phoneNumber,
+// contact }. For an unsaved stranger with privacy on, WhatsApp genuinely never
+// gives the number → returns null and the chat stays a LID.
+
+/** Coerce a Wid / serialized-JID / digit string into +E.164. Null for @lid/@g.us. */
+function widToE164(v: unknown): string | null {
+  if (typeof v === 'string') {
+    const at = v.indexOf('@');
+    const local = at === -1 ? v : v.slice(0, at);
+    const suffix = at === -1 ? '' : v.slice(at + 1);
+    // Only c.us / s.whatsapp.net are real phones; @lid/@g.us are not.
+    if (suffix && suffix !== 'c.us' && suffix !== 's.whatsapp.net') return null;
+    const digits = local.replace(/[^0-9]/g, '');
+    return digits.length >= 7 ? `+${digits}` : null;
+  }
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return widToE164(o._serialized) ?? widToE164(o.user) ?? null;
+  }
+  return null;
+}
+
+/** Dig the real phone out of a getPnLidEntry response, tolerant of the exact
+ *  shape (wppconnect/wa-js versions differ): top-level phoneNumber/pn/wid/id, a
+ *  { status, response } envelope, or a nested contact object. */
+function extractPnLidPhone(json: unknown): string | null {
+  if (!json || typeof json !== 'object') return null;
+  const top = json as Record<string, unknown>;
+  const r =
+    top.response && typeof top.response === 'object'
+      ? (top.response as Record<string, unknown>)
+      : top;
+  for (const key of ['phoneNumber', 'pn', 'phone', 'wid', 'id']) {
+    const e = widToE164(r[key]);
+    if (e) return e;
+  }
+  if (r.contact && typeof r.contact === 'object') {
+    const c = r.contact as Record<string, unknown>;
+    for (const key of ['phoneNumber', 'id', 'wid']) {
+      const e = widToE164(c[key]);
+      if (e) return e;
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve an @lid to a real +E.164 by asking the WhatsApp session's contact
+ * store. Works when the contact is SAVED on the session phone (the common case
+ * the operator hit). Returns null when the number is genuinely unavailable
+ * (unsaved + privacy-hidden) or the lookup fails — never throws.
+ *
+ * `lid` may be the bare digits or `lid:NNN` / `NNN@lid` — we normalize.
+ */
+export async function resolveLidToPhone(lid: string): Promise<string | null> {
+  const digits = lid.replace(/[^0-9]/g, '');
+  if (!digits) return null;
+  try {
+    const res = await wppFetch(
+      `/contact/pn-lid/${encodeURIComponent(`${digits}@lid`)}`,
+      { method: 'GET' },
+    );
+    if (!res.ok) {
+      console.error('[whatsapp] pn-lid lookup HTTP', res.status, await res.text().catch(() => ''));
+      return null;
+    }
+    const json = (await res.json().catch(() => null)) as unknown;
+    const phone = extractPnLidPhone(json);
+    if (!phone) {
+      // Log the raw shape once so we can refine the parser if a version differs.
+      console.warn('[whatsapp] pn-lid no phone for', digits, JSON.stringify(json)?.slice(0, 400));
+    }
+    return phone;
+  } catch (e) {
+    console.error('[whatsapp] resolveLidToPhone error', e);
+    return null;
+  }
+}

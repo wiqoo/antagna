@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, AlertTriangle } from 'lucide-react';
-import { sendWhatsappMessage } from '../actions';
+import { Send, AlertTriangle, SearchCheck } from 'lucide-react';
+import { sendWhatsappMessage, resolveLidThread } from '../actions';
 
 export function WhatsappComposer({
   threadKey,
@@ -18,10 +18,42 @@ export function WhatsappComposer({
   const [pending, start] = useTransition();
 
   if (!toE164) {
+    const isLid = threadKey.startsWith('lid:');
     return (
-      <div className="border-t border-[var(--line)] px-4 py-3 text-[12px] text-[var(--warning)]">
-        <AlertTriangle size={13} className="me-1.5 inline" />
-        لا يمكن الرد — هذه المحادثة برقم محجوب (LID) ولم يُحلَّ بعد إلى رقم حقيقي.
+      <div className="border-t border-[var(--line)] px-4 py-3">
+        <p className="text-[12px] text-[var(--warning)]">
+          <AlertTriangle size={13} className="me-1.5 inline" />
+          لا يمكن الرد — هذه المحادثة برقم محجوب (LID) ولم يُحلَّ بعد إلى رقم حقيقي.
+        </p>
+        {isLid && (
+          <>
+            {error && (
+              <p className="mt-2 text-[11px] text-[var(--danger)]">{error}</p>
+            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  setError(null);
+                  const res = await resolveLidThread(threadKey);
+                  if (res.ok && res.phone) {
+                    router.push(`/whatsapp/${encodeURIComponent(res.phone)}`);
+                  } else {
+                    setError(res.error ?? 'تعذّر حل الرقم.');
+                  }
+                })
+              }
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-1.5 text-[12px] font-medium text-[var(--text)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+            >
+              <SearchCheck size={13} />
+              {pending ? 'جارٍ المحاولة…' : 'حاول حل الرقم الآن'}
+            </button>
+            <p className="mt-1.5 text-[10px] text-[var(--text-dim)]">
+              يسأل الواتساب عن جهة الاتصال — ينجح إذا كان الرقم محفوظاً على هاتف الجلسة.
+            </p>
+          </>
+        )}
       </div>
     );
   }

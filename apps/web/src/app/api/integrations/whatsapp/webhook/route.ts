@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
 import { db, whatsappMessages } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
 import { handleInboundForBot } from '@/lib/whatsapp-bot';
+import { resolveLidToPhone } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 // Bot tool-calling can take 5-20s on the first turn. Default function
@@ -201,6 +202,34 @@ export async function POST(req: Request) {
         threadKey = mapped;
         if (fromMe) toE164Final = mapped;
         else fromE164Final = mapped;
+      } else {
+        // Last resort: ask the WhatsApp session's contact store. A contact SAVED
+        // on the session phone resolves here even though the @lid message hides
+        // the number in its payload (the operator's real-world case). Then
+        // collapse any earlier lid-keyed rows into this phone thread so the
+        // person stops splitting into two conversations.
+        const resolved = await resolveLidToPhone(lid).catch(() => null);
+        if (resolved) {
+          threadKey = resolved;
+          if (fromMe) toE164Final = resolved;
+          else fromE164Final = resolved;
+          await db
+            .execute(sql`
+              UPDATE profiles SET whatsapp_lid = ${lid}, updated_at = now()
+              WHERE whatsapp_e164 = ${resolved}
+                AND (whatsapp_lid IS NULL OR whatsapp_lid <> ${lid})
+            `)
+            .catch((e) => console.error('[whatsapp-webhook] lid map failed', e));
+          await db
+            .execute(sql`
+              UPDATE whatsapp_messages
+              SET thread_key = ${resolved},
+                  from_e164 = CASE WHEN from_e164 = ${peer} THEN ${resolved} ELSE from_e164 END,
+                  to_e164   = CASE WHEN to_e164   = ${peer} THEN ${resolved} ELSE to_e164   END
+              WHERE thread_key = ${peer}
+            `)
+            .catch((e) => console.error('[whatsapp-webhook] lid merge failed', e));
+        }
       }
     }
   }
