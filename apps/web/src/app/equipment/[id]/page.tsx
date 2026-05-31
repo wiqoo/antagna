@@ -224,7 +224,7 @@ export default async function EquipmentDetailPage({
     });
 
   // QR label (server-rendered SVG) — scanning opens this item's page.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://antagna-v2.vercel.app';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://antagna.me';
   const qrSvg = await QRCode.toString(`${siteUrl}/equipment/${eq.id}`, {
     type: 'svg',
     margin: 1,

@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { eq, isNull, asc } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import {
   db,
   clients,
   profiles,
-  projectTemplates,
 } from '@antagna/db';
 import { PageHeader } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
@@ -25,7 +24,7 @@ export default async function NewProjectPage() {
   // Page guard: creating a project is gated on project.create.
   await requirePermission('project.create');
 
-  const [clientList, profileList, templateList] = await Promise.all([
+  const [clientList, profileList] = await Promise.all([
     db
       .select({
         id: clients.id,
@@ -37,20 +36,14 @@ export default async function NewProjectPage() {
       .where(isNull(clients.archivedAt))
       .orderBy(clients.nameAr),
     db
-      .select({ id: profiles.id, displayName: profiles.displayName })
+      .select({
+        id: profiles.id,
+        displayName: profiles.displayName,
+        positionKey: profiles.positionKey,
+      })
       .from(profiles)
       .where(eq(profiles.status, 'active'))
       .orderBy(profiles.displayName),
-    db
-      .select({
-        id: projectTemplates.id,
-        nameAr: projectTemplates.nameAr,
-        nameEn: projectTemplates.nameEn,
-        useCount: projectTemplates.useCount,
-      })
-      .from(projectTemplates)
-      .where(eq(projectTemplates.active, true))
-      .orderBy(asc(projectTemplates.nameAr)),
   ]);
 
   return (
@@ -73,7 +66,6 @@ export default async function NewProjectPage() {
         <IntakeForm
           clients={clientList}
           profiles={profileList}
-          templates={templateList}
           commitAction={createProject}
         />
       </div>

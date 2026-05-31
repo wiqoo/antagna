@@ -28,7 +28,7 @@ import { sendText, setTyping } from './whatsapp';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
-const BOT_BASE_URL = 'https://antagna-v2.vercel.app';
+const BOT_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://antagna.me';
 
 // Provider switch. Default to OpenAI — gpt-4o-mini follows tone + language
 // switch rules more strictly than Haiku in our prompt. Override via env.

@@ -166,7 +166,7 @@ export function ScannerClient() {
         </form>
         <div className="mt-4 space-y-1 border-t border-[var(--line)] pt-3 text-[11px] text-[var(--text-dim)]">
           <p>· وجِّه الكاميرا الخلفية نحو الملصق.</p>
-          <p>· التطبيق يحتاج HTTPS (مُتاح على antagna-v2.vercel.app).</p>
+          <p>· التطبيق يحتاج HTTPS (مُتاح على antagna.me).</p>
           <p>· الـ QR يُولَّد من صفحة المعدة (ملصق قابل للطباعة).</p>
         </div>
       </Card>

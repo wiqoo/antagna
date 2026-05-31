@@ -7,7 +7,7 @@ import { getAnthropic, ANTHROPIC_MODELS, recordUsage, assertAiBudget } from '@an
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { writeActivity } from '@/lib/activity';
 import { requirePermissionAction } from '@/lib/authz';
-import { parseNum, parseDate } from '@/lib/parse';
+import { parseDate } from '@/lib/parse';
 import { ensureProjectFolderTree } from '@/lib/drive';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -128,17 +128,15 @@ export async function createProject(formData: FormData) {
   const description = formData.get('description')?.toString() || null;
   const projectType = (formData.get('projectType')?.toString() ?? 'shoot') as
     | 'shoot' | 'edit_only' | 'live_coverage' | 'content_creation' | 'consulting' | 'other';
-  const templateId = formData.get('templateId')?.toString() || null;
 
   if (!clientId) throw new Error('clientId required');
 
   // ── Section 1: Client & Commercial ────────────────────────────────────
   const agencyId = formData.get('agencyId')?.toString() || null;
-  const budgetSar = parseNum(formData.get('budgetSar'));
+  const quoteNumber = formData.get('quoteNumber')?.toString().trim() || null;
 
   // ── Section 2: Creative ───────────────────────────────────────────────
   const objective = formData.get('objective')?.toString() || null;
-  const targetAudience = formData.get('targetAudience')?.toString() || null;
   const toneStyle = formData.get('toneStyle')?.toString() || null;
 
   // ── Section 3: Logistics ──────────────────────────────────────────────
@@ -147,10 +145,7 @@ export async function createProject(formData: FormData) {
   const deliveryDueAt = parseDate(formData.get('deliveryDueAt'));
 
   const locationsJson = formData.get('locations')?.toString() || '[]';
-  const languagesCsv = formData.get('languages')?.toString() || '';
-  const vehiclesCsv = formData.get('vehicles')?.toString() || '';
   const clientAssetsCsv = formData.get('clientAssetsProvided')?.toString() || '';
-  const postScopeCsv = formData.get('postProductionScope')?.toString() || '';
 
   // ── Section 4: Ownership ──────────────────────────────────────────────
   const pmId = formData.get('pmId')?.toString() || null;
@@ -164,8 +159,6 @@ export async function createProject(formData: FormData) {
     format: string;
     aspect_ratio: string;
     duration_sec: number | null;
-    count: number;
-    platform: string;
   }> = [];
   try { deliverablesArr = JSON.parse(deliverablesJson); } catch {}
 
@@ -183,11 +176,9 @@ export async function createProject(formData: FormData) {
   // Build customFields jsonb from the soft fields
   const customFields: Record<string, unknown> = {};
   if (objective) customFields.objective = objective;
-  if (targetAudience) customFields.target_audience = targetAudience;
   if (toneStyle) customFields.tone_style = toneStyle;
+  if (quoteNumber) customFields.quote_number = quoteNumber;
   if (clientAssetsCsv) customFields.client_assets_provided = clientAssetsCsv.split(',').map((s) => s.trim()).filter(Boolean);
-  if (postScopeCsv) customFields.post_production_scope = postScopeCsv.split(',').map((s) => s.trim()).filter(Boolean);
-  if (vehiclesCsv) customFields.vehicles = vehiclesCsv.split(',').map((s) => s.trim()).filter(Boolean);
   if (locationsJson && locationsJson !== '[]') {
     try { customFields.locations = JSON.parse(locationsJson); } catch {}
   }
@@ -199,21 +190,12 @@ export async function createProject(formData: FormData) {
   const newId = await withActor(pid, async (tx) => {
     let id = '';
 
-    if (templateId) {
-      const res = await tx.execute<{ id: string }>(
-        sql`SELECT public.fn_create_project_from_template(
-          ${templateId}::uuid, ${clientId}::uuid, ${title}::text,
-          ${projectType}::project_type
-        ) AS id`,
-      );
-      id = (res as unknown as Array<{ id: string }>)[0]?.id ?? '';
-    } else {
+    {
       const res = await tx.execute<{ id: string }>(sql`
         INSERT INTO projects (
           title, title_ar, description, client_id, agency_id,
           project_type, stage,
           project_manager_id, account_manager_id, production_manager_id,
-          contracted_value_sar,
           delivery_due_at, shoot_starts_at, shoot_ends_at,
           brief_received_at,
           custom_fields,
@@ -226,7 +208,6 @@ export async function createProject(formData: FormData) {
           ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
           ${amId ? sql`${amId}::uuid` : sql`NULL`},
           ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},
-          ${budgetSar != null ? sql`${budgetSar}::numeric` : sql`NULL`},
           ${deliveryDueAt ? sql`${deliveryDueAt}::timestamptz` : sql`NULL`},
           ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
           ${shootEndsAt ? sql`${shootEndsAt}::timestamptz` : sql`NULL`},
@@ -241,25 +222,6 @@ export async function createProject(formData: FormData) {
 
     if (!id) throw new Error('project insert failed');
 
-    // Patch template path with PM/AM (function only sets a subset)
-    if (templateId) {
-      await tx.execute(sql`
-        UPDATE projects SET
-          title_ar = ${titleAr},
-          description = ${description},
-          agency_id = ${agencyId ? sql`${agencyId}::uuid` : sql`NULL`},
-          project_manager_id = ${pmId ? sql`${pmId}::uuid` : sql`NULL`},
-          account_manager_id = ${amId ? sql`${amId}::uuid` : sql`NULL`},
-          production_manager_id = ${productionManagerId ? sql`${productionManagerId}::uuid` : sql`NULL`},
-          contracted_value_sar = ${budgetSar != null ? sql`${budgetSar}::numeric` : sql`NULL`},
-          delivery_due_at = ${deliveryDueAt ? sql`${deliveryDueAt}::timestamptz` : sql`NULL`},
-          shoot_starts_at = ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
-          shoot_ends_at = ${shootEndsAt ? sql`${shootEndsAt}::timestamptz` : sql`NULL`},
-          custom_fields = COALESCE(custom_fields, '{}'::jsonb) || ${JSON.stringify(customFields)}::jsonb
-        WHERE id = ${id}::uuid
-      `);
-    }
-
     // ── Brief row (if there was source text) ─────────────────────────────
     if (sourceText) {
       await tx.execute(sql`
@@ -269,8 +231,8 @@ export async function createProject(formData: FormData) {
           completeness_score, missing_fields, created_by
         ) VALUES (
           ${id}::uuid, 1, ${sourceText}, ${parsedSummary},
-          string_to_array(NULLIF(${languagesCsv}, ''), ','),
-          ${budgetSar != null ? sql`${budgetSar}::numeric` : sql`NULL`},
+          NULL,
+          NULL,
           ${shootStartsAt ? sql`${shootStartsAt}::timestamptz` : sql`NULL`},
           ${completeness},
           string_to_array(NULLIF(${missingFields}, ''), ','),
@@ -302,21 +264,28 @@ export async function createProject(formData: FormData) {
         const groupId = (groupRes as unknown as Array<{ id: string }>)[0]?.id;
         if (!groupId) continue;
 
-        // Expand by count
+        // One deliverable per row (quantity field removed). For photo formats
+        // the duration value carries a photo count; for video it's an average
+        // length in seconds.
         let n = 1;
         for (const item of items) {
-          for (let i = 0; i < item.count; i++) {
-            const itemNum = `${fmt.toUpperCase()}-${String(n++).padStart(2, '0')}`;
-            const titleStr = `${item.aspect_ratio}${item.duration_sec ? ` · ${item.duration_sec}s` : ''}${item.platform ? ` · ${item.platform}` : ''}`;
-            await tx.execute(sql`
-              INSERT INTO deliverables (
-                group_id, project_id, item_number, title, status, position
-              ) VALUES (
-                ${groupId}::uuid, ${id}::uuid,
-                ${itemNum}, ${titleStr}, 'draft'::deliverable_status, ${n}
-              )
-            `);
-          }
+          const itemNum = `${fmt.toUpperCase()}-${String(n).padStart(2, '0')}`;
+          const isPhoto = fmt === 'photo' || fmt === 'image' || fmt === 'صور';
+          const detail = item.duration_sec
+            ? isPhoto
+              ? ` · ${item.duration_sec} صورة`
+              : ` · ${item.duration_sec}s`
+            : '';
+          const titleStr = `${item.aspect_ratio}${detail}`;
+          await tx.execute(sql`
+            INSERT INTO deliverables (
+              group_id, project_id, item_number, title, status, position
+            ) VALUES (
+              ${groupId}::uuid, ${id}::uuid,
+              ${itemNum}, ${titleStr}, 'draft'::deliverable_status, ${n}
+            )
+          `);
+          n++;
         }
       }
     }
@@ -405,7 +374,7 @@ export async function createProject(formData: FormData) {
     action: 'project_created',
     summaryAr: `أُنشئ مشروع جديد: ${titleAr ?? title}`,
     summaryEn: `New project created: ${title}`,
-    metadata: { project_type: projectType, from_template: !!templateId },
+    metadata: { project_type: projectType },
   });
 
   redirect(`/projects/${newId}`);

@@ -8,15 +8,12 @@ import {
 import { parseBriefRich, type ParsedBrief } from './actions';
 
 type Client = { id: string; code: string; nameAr: string; isAgency?: boolean };
-type Profile = { id: string; displayName: string };
-type Template = { id: string; nameAr: string; nameEn: string | null; useCount: number };
+type Profile = { id: string; displayName: string; positionKey: string | null };
 
 type Deliverable = {
   format: string;
   aspect_ratio: string;
   duration_sec: number | null;
-  count: number;
-  platform: string;
 };
 
 type Location = {
@@ -48,7 +45,10 @@ const FORMATS = [
 ];
 
 const ASPECT_RATIOS = ['9:16', '16:9', '1:1', '4:5'];
-const PLATFORMS = ['instagram', 'tiktok', 'youtube', 'snapchat', 'print', 'other'];
+
+// Photo/image deliverable types — for these the "duration" column becomes a
+// count-of-photos field rather than an average video length.
+const PHOTO_FORMATS = ['photo', 'image', 'صور'];
 
 const CREW_ROLES = [
   { v: 'project_manager',   l: 'Project Manager' },
@@ -71,19 +71,14 @@ const CREW_ROLES = [
 const ASSET_OPTIONS = [
   'script', 'talent', 'wardrobe', 'vehicles', 'location', 'brand_guidelines',
 ];
-const POST_SCOPE_OPTIONS = [
-  'color', 'sound_mix', 'motion_graphics', 'subtitles_ar', 'subtitles_en',
-];
 
 export function IntakeForm({
   clients,
   profiles,
-  templates,
   commitAction,
 }: {
   clients: Client[];
   profiles: Profile[];
-  templates: Template[];
   commitAction: (formData: FormData) => void | Promise<void>;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -115,21 +110,16 @@ export function IntakeForm({
   // form state — pre-filled from parsed, but always editable
   const [clientId, setClientId] = useState('');
   const [agencyId, setAgencyId] = useState('');
-  const [templateId, setTemplateId] = useState('');
   const [titleAr, setTitleAr] = useState('');
   const [titleEn, setTitleEn] = useState('');
   const [projectType, setProjectType] = useState('shoot');
-  const [budgetSar, setBudgetSar] = useState('');
+  const [quoteNumber, setQuoteNumber] = useState('');
   const [objective, setObjective] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
   const [toneStyle, setToneStyle] = useState('cinematic');
   const [shootStartsAt, setShootStartsAt] = useState('');
   const [shootEndsAt, setShootEndsAt] = useState('');
   const [deliveryDueAt, setDeliveryDueAt] = useState('');
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [vehicles, setVehicles] = useState('');
   const [clientAssets, setClientAssets] = useState<string[]>([]);
-  const [postScope, setPostScope] = useState<string[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [crew, setCrew] = useState<CrewLine[]>([]);
@@ -140,6 +130,19 @@ export function IntakeForm({
 
   const brands = clients.filter((c) => !c.isAgency);
   const agencies = clients.filter((c) => c.isAgency);
+
+  // Manager dropdowns are filtered by position. general_manager is always
+  // eligible for any of the three roles; the optional crew picker stays
+  // unfiltered (uses the full `profiles` list).
+  const profilesFor = (allowed: string[]) =>
+    profiles.filter(
+      (p) =>
+        p.positionKey === 'general_manager' ||
+        (p.positionKey != null && allowed.includes(p.positionKey)),
+    );
+  const accountManagers = profilesFor(['account_manager']);
+  const projectManagers = profilesFor(['project_manager']);
+  const productionManagers = profilesFor(['production_director']);
 
   async function handleParse() {
     if (!briefText.trim()) return;
@@ -155,18 +158,19 @@ export function IntakeForm({
       setTitleEn(p.title_en || '');
       setTitleAr(p.title_ar || '');
       setObjective(p.objective || '');
-      setTargetAudience(p.target_audience || '');
       setToneStyle(p.tone_style || 'cinematic');
       setProjectType(p.project_type || 'shoot');
-      setBudgetSar(p.budget_sar ? String(p.budget_sar) : '');
       setShootStartsAt(p.shoot_date_iso || '');
       setDeliveryDueAt(p.delivery_due_iso || '');
-      setLanguages(p.languages || []);
-      setVehicles((p.vehicles || []).join(', '));
       setClientAssets(p.client_assets_provided || []);
-      setPostScope(p.post_production_scope || []);
       setLocations(p.locations || []);
-      setDeliverables(p.deliverables || []);
+      setDeliverables(
+        (p.deliverables || []).map((d) => ({
+          format: d.format,
+          aspect_ratio: d.aspect_ratio,
+          duration_sec: d.duration_sec,
+        })),
+      );
       setShowAdvanced(true);
       // Auto-advance to first data step after a successful parse
       setStep(1);
@@ -196,7 +200,7 @@ export function IntakeForm({
   function addDeliverable() {
     setDeliverables((arr) => [
       ...arr,
-      { format: 'reel', aspect_ratio: '9:16', duration_sec: 15, count: 1, platform: 'instagram' },
+      { format: 'reel', aspect_ratio: '9:16', duration_sec: 15 },
     ]);
   }
   function patchDeliverable(i: number, patch: Partial<Deliverable>) {
@@ -349,17 +353,6 @@ export function IntakeForm({
 
       {/* Section 1: Client & Commercial */}
       <Section eyebrow="٢. العميل والمالية" icon={<Building2 size={14} />} hidden={step !== 1}>
-        <Row label="القالب (Template)" hint="اختياري — يولّد deliverables + tasks تلقائياً">
-          <select name="templateId" value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="form-input">
-            <option value="">— بدون template —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nameAr}{t.useCount > 0 ? ` · ${t.useCount}×` : ''}
-              </option>
-            ))}
-          </select>
-        </Row>
-
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Row label="العميل النهائي (Brand)" required>
             <select name="clientId" required value={clientId} onChange={(e) => setClientId(e.target.value)} className="form-input">
@@ -403,13 +396,13 @@ export function IntakeForm({
           </Row>
         </div>
 
-        <Row label="الميزانية (ر.س)" hint="ضع رقم تقريبي — الـ AI بيقترح bracket">
+        <Row label="رقم عرض السعر" hint="رقم/مرجع عرض السعر (Quote) المرتبط بالمشروع">
           <input
-            type="number"
-            name="budgetSar"
-            step="100"
-            value={budgetSar}
-            onChange={(e) => setBudgetSar(e.target.value)}
+            type="text"
+            name="quoteNumber"
+            value={quoteNumber}
+            onChange={(e) => setQuoteNumber(e.target.value)}
+            placeholder="Q-2026-0042"
             className="form-input font-mono"
           />
         </Row>
@@ -428,23 +421,11 @@ export function IntakeForm({
           />
         </Row>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Row label="الجمهور المستهدف">
-            <input
-              type="text"
-              name="targetAudience"
-              value={targetAudience}
-              onChange={(e) => setTargetAudience(e.target.value)}
-              placeholder="السعوديون 18-30، عشاق السيارات"
-              className="form-input"
-            />
-          </Row>
-          <Row label="نمط الإخراج">
-            <select name="toneStyle" value={toneStyle} onChange={(e) => setToneStyle(e.target.value)} className="form-input">
-              {TONE_STYLES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
-            </select>
-          </Row>
-        </div>
+        <Row label="نمط الإخراج">
+          <select name="toneStyle" value={toneStyle} onChange={(e) => setToneStyle(e.target.value)} className="form-input">
+            {TONE_STYLES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
+          </select>
+        </Row>
 
         <Row label="نوع المشروع">
           <select name="projectType" value={projectType} onChange={(e) => setProjectType(e.target.value)} className="form-input">
@@ -470,43 +451,44 @@ export function IntakeForm({
             </p>
           ) : (
             <div className="space-y-2">
-              {deliverables.map((d, i) => (
-                <div key={i} className="grid grid-cols-[1.2fr_0.8fr_0.6fr_0.5fr_1fr_auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
-                  <select value={d.format} onChange={(e) => patchDeliverable(i, { format: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px]">
-                    {FORMATS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
-                  </select>
-                  <select value={d.aspect_ratio} onChange={(e) => patchDeliverable(i, { aspect_ratio: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-mono">
-                    {ASPECT_RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  <input
-                    type="number"
-                    min={1}
-                    value={d.duration_sec ?? ''}
-                    onChange={(e) => patchDeliverable(i, { duration_sec: e.target.value ? Number(e.target.value) : null })}
-                    placeholder="ثانية"
-                    className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-mono"
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    value={d.count}
-                    onChange={(e) => patchDeliverable(i, { count: Math.max(1, Number(e.target.value || 1)) })}
-                    className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-mono"
-                  />
-                  <select value={d.platform} onChange={(e) => patchDeliverable(i, { platform: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px]">
-                    {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => removeDeliverable(i)}
-                    className="grid h-8 w-8 place-items-center rounded-md text-[var(--text-dim)] hover:bg-red-500/10 hover:text-red-400"
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              ))}
+              {/* Column headers — the third column relabels per row type */}
+              <div className="grid grid-cols-[1.2fr_0.8fr_1fr_auto] gap-1.5 px-2 text-[10px] font-medium text-[var(--text-dim)]">
+                <span>النوع</span>
+                <span>الأبعاد</span>
+                <span>متوسط مدة الفيديو</span>
+                <span className="w-8" />
+              </div>
+              {deliverables.map((d, i) => {
+                const isPhoto = PHOTO_FORMATS.includes(d.format);
+                return (
+                  <div key={i} className="grid grid-cols-[1.2fr_0.8fr_1fr_auto] gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)]/40 p-2">
+                    <select value={d.format} onChange={(e) => patchDeliverable(i, { format: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px]">
+                      {FORMATS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
+                    </select>
+                    <select value={d.aspect_ratio} onChange={(e) => patchDeliverable(i, { aspect_ratio: e.target.value })} className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-mono">
+                      {ASPECT_RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <input
+                      type="number"
+                      min={1}
+                      value={d.duration_sec ?? ''}
+                      onChange={(e) => patchDeliverable(i, { duration_sec: e.target.value ? Number(e.target.value) : null })}
+                      placeholder={isPhoto ? 'عدد الصور' : 'متوسط مدة الفيديو'}
+                      aria-label={isPhoto ? 'عدد الصور' : 'متوسط مدة الفيديو'}
+                      className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 text-[11px] font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeDeliverable(i)}
+                      className="grid h-8 w-8 place-items-center rounded-md text-[var(--text-dim)] hover:bg-red-500/10 hover:text-red-400"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                );
+              })}
               <p className="text-[10px] text-[var(--text-dim)]">
-                سيُنشأ {deliverables.reduce((s, d) => s + d.count, 0)} عنصر في {new Set(deliverables.map((d) => d.format)).size} مجموعة
+                سيُنشأ {deliverables.length} عنصر في {new Set(deliverables.map((d) => d.format)).size} مجموعة
               </p>
             </div>
           )}
@@ -573,29 +555,6 @@ export function IntakeForm({
           <input type="hidden" name="locations" value={JSON.stringify(locations)} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Row label="اللغات">
-            <input
-              type="text"
-              name="languages"
-              value={languages.join(', ')}
-              onChange={(e) => setLanguages(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-              placeholder="ar, en"
-              className="form-input font-mono"
-            />
-          </Row>
-          <Row label="السيارات">
-            <input
-              type="text"
-              name="vehicles"
-              value={vehicles}
-              onChange={(e) => setVehicles(e.target.value)}
-              placeholder="Toyota Land Cruiser, Lexus LX"
-              className="form-input"
-            />
-          </Row>
-        </div>
-
         <Row label="أصول يقدّمها العميل">
           <div className="flex flex-wrap gap-1.5">
             {ASSET_OPTIONS.map((opt) => (
@@ -616,27 +575,6 @@ export function IntakeForm({
           </div>
           <input type="hidden" name="clientAssetsProvided" value={clientAssets.join(',')} />
         </Row>
-
-        <Row label="نطاق ما بعد الإنتاج">
-          <div className="flex flex-wrap gap-1.5">
-            {POST_SCOPE_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => toggleInArray(postScope, setPostScope, opt)}
-                className={
-                  'rounded-md border px-2 py-0.5 text-[11px] ' +
-                  (postScope.includes(opt)
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
-                    : 'border-[var(--line)] bg-[var(--surface)] text-[var(--text-muted)]')
-                }
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-          <input type="hidden" name="postProductionScope" value={postScope.join(',')} />
-        </Row>
       </Section>
 
       {/* Section 4: Ownership & Crew */}
@@ -645,19 +583,19 @@ export function IntakeForm({
           <Row label="مدير الحساب">
             <select name="amId" value={amId} onChange={(e) => setAmId(e.target.value)} className="form-input">
               <option value="">— غير محدد —</option>
-              {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
+              {accountManagers.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
             </select>
           </Row>
           <Row label="مدير المشروع">
             <select name="pmId" value={pmId} onChange={(e) => setPmId(e.target.value)} className="form-input">
               <option value="">— غير محدد —</option>
-              {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
+              {projectManagers.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
             </select>
           </Row>
           <Row label="مدير الإنتاج">
             <select name="productionManagerId" value={productionManagerId} onChange={(e) => setProductionManagerId(e.target.value)} className="form-input">
               <option value="">— غير محدد —</option>
-              {profiles.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
+              {productionManagers.map((p) => <option key={p.id} value={p.id}>{p.displayName}</option>)}
             </select>
           </Row>
         </div>

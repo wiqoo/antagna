@@ -1,7 +1,24 @@
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
+  // Canonical domain: forward any *.vercel.app PAGE request to antagna.me so
+  // redirects/links never strand the user on the deployment URL. /api and
+  // /monitoring are excluded so the worker's server-to-server calls (which hit
+  // antagna-v2.vercel.app/api/*) keep working.
+  const host = request.headers.get('host') ?? '';
+  const path = request.nextUrl.pathname;
+  if (
+    host.endsWith('.vercel.app') &&
+    !path.startsWith('/api') &&
+    !path.startsWith('/monitoring')
+  ) {
+    const url = new URL(request.url);
+    url.protocol = 'https:';
+    url.host = 'antagna.me';
+    url.port = '';
+    return NextResponse.redirect(url, 308);
+  }
   return updateSession(request);
 }
 
