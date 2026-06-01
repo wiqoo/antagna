@@ -32,6 +32,12 @@ const nextConfig: NextConfig = {
   // page count grows.
   experimental: {
     webpackMemoryOptimizations: true,
+    // The "حلّل الملفات بالـ AI" brief upload sends base64 PDFs/images to a
+    // server action; Next caps server-action bodies at 1MB by default, so any
+    // real brief PDF threw before reaching the action ("تعذّر قراءة الملفات").
+    // Raise to 8MB. (Vercel's own function-payload ceiling is ~4.5MB, so PDFs
+    // bigger than ~3MB still need the storage-upload path — guarded client-side.)
+    serverActions: { bodySizeLimit: '8mb' },
   },
 
   // pdfjs-dist@5 (transitive of pdf-parse@2) ships browser-only code that

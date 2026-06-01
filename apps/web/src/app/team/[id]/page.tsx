@@ -8,6 +8,7 @@ import { ArrowLeft, Award, Briefcase, History, Mail, Phone } from 'lucide-react'
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
+import { financialsHidden } from '@/lib/financials';
 
 export const dynamic = 'force-dynamic';
 
@@ -208,7 +209,7 @@ export default async function TeamMemberPage({
                       )}
                       <p className="mt-0.5 text-[11px] text-[var(--text-dim)]">
                         {a.role}
-                        {a.rateSar
+                        {!financialsHidden() && a.rateSar
                           ? ` · ${Number(a.rateSar).toLocaleString('en-US')} ر.س ${a.rateUnit ?? ''}`
                           : ''}
                       </p>

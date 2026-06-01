@@ -199,6 +199,13 @@ export function IntakeForm({
     startTransition(async () => {
       try {
         const payload = await Promise.all(files.slice(0, 8).map(fileToBase64));
+        // Vercel caps a function payload at ~4.5MB; base64 inflates ~33%. Guard
+        // before the call so big files get a clear message, not a raw throw.
+        const totalChars = payload.reduce((s, p) => s + p.dataBase64.length, 0);
+        if (totalChars > 5_000_000) {
+          setParseError('الملفات كبيرة جداً (الحد ~٣.٥ ميجابايت). اختصرها أو الصق نص البريف بدلاً منها.');
+          return;
+        }
         const res = await parseBriefFromFiles(payload);
         if (!res.ok) {
           setParseError(res.error);
@@ -206,7 +213,7 @@ export function IntakeForm({
         }
         applyParsed(res.parsed);
       } catch {
-        setParseError('تعذّر قراءة الملفات');
+        setParseError('تعذّر قراءة الملفات — تأكد أنها PDF أو صورة وأقل من ~٣.٥ ميجابايت، أو الصق النص بدلاً منها.');
       }
     });
   }

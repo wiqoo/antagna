@@ -15,6 +15,7 @@ import { BarChart3 } from 'lucide-react';
 import { KpiTrend } from './kpi-trend';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { canAny } from '@/lib/authz';
+import { financialsHidden } from '@/lib/financials';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,7 +88,14 @@ export default async function KpisPage() {
     trendByKey.set(h.k, arr);
   }
 
-  const byScope = rows.reduce<Record<string, KpiRow[]>>((acc, r) => {
+  // Phase-1: drop money KPIs (revenue / payment / margin / SAR) when finance is
+  // hidden — the operational KPIs (projects, equipment, team) stay.
+  const FINANCIAL_KPI = (r: { unit: string; key: string }) =>
+    r.unit === 'sar' ||
+    /revenue|payment|profit|margin|pipeline|concentration|invoice|cash|delivered_value/i.test(r.key);
+  const visibleRows = financialsHidden() ? rows.filter((r) => !FINANCIAL_KPI(r)) : rows;
+
+  const byScope = visibleRows.reduce<Record<string, KpiRow[]>>((acc, r) => {
     (acc[r.scope] ??= []).push(r);
     return acc;
   }, {});

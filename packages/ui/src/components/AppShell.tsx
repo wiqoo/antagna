@@ -130,9 +130,15 @@ const NAV_PERM: Record<string, string[]> = {
 /** All permission keys referenced by the nav — Shell evaluates these once. */
 export const NAV_PERM_KEYS: string[] = [...new Set(Object.values(NAV_PERM).flat())];
 
+/** Nav items hidden when financials are turned off system-wide (phase-1). */
+const FINANCIAL_NAV_KEYS = new Set(['reports', 'orders']);
+
 /** An item is visible when it has no perm requirement, when permits weren't
  *  provided (fail-open during load), or when the user holds ANY required key. */
 function navItemVisible(key: string, permits?: Record<string, boolean>): boolean {
+  if (process.env.NEXT_PUBLIC_FINANCIALS_HIDDEN === 'true' && FINANCIAL_NAV_KEYS.has(key)) {
+    return false;
+  }
   const req = NAV_PERM[key];
   if (!req) return true;
   if (!permits) return true;

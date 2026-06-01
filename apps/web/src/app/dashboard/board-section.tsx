@@ -40,7 +40,16 @@ async function BoardInner({
   role: string | null | undefined;
   canFinance: boolean;
 }) {
-  const board = await buildDashboardBoard({ profileId, role, canFinance });
+  // Resilient: a cold-start connection drop inside the board build must NOT
+  // escape the Suspense boundary to the page error boundary (that was crashing
+  // the whole dashboard). Degrade to an empty board instead.
+  let board;
+  try {
+    board = await buildDashboardBoard({ profileId, role, canFinance });
+  } catch (e) {
+    console.error('[dashboard] board build failed', e);
+    return null;
+  }
   return (
     <DashboardGrid
       items={board.items}

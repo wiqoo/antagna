@@ -7,6 +7,11 @@ export function MoneyDisplay({
   currency?: string;
   className?: string;
 }) {
+  // Phase-1: financials hidden system-wide (NEXT_PUBLIC_FINANCIALS_HIDDEN).
+  // Neutralizes every money display in one place; flip the env to restore.
+  if (process.env.NEXT_PUBLIC_FINANCIALS_HIDDEN === 'true') {
+    return <span className={`text-[var(--text-dim)] ${className ?? ''}`} aria-hidden>—</span>;
+  }
   if (amount == null || amount === '') {
     return <span className={`text-[var(--text-dim)] ${className ?? ''}`}>—</span>;
   }

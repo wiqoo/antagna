@@ -9,6 +9,7 @@ import {
   withProfileScope,
 } from '@antagna/db';
 import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
+import { financialsHidden } from '@/lib/financials';
 import {
 
   PageHeader,
@@ -444,7 +445,7 @@ export default async function ClientDetailPage({
                   <span className="flex-1 truncate text-sm text-[var(--text)]">
                     {p.titleAr ?? p.title}
                   </span>
-                  {p.contractedValueSar && (
+                  {!financialsHidden() && p.contractedValueSar && (
                     <span className="font-mono text-xs text-[var(--text-muted)]">
                       {Number(p.contractedValueSar).toLocaleString('en-US')} ر.س
                     </span>

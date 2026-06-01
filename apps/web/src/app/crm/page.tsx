@@ -8,6 +8,7 @@ import {
   withProfileScope,
 } from '@antagna/db';
 import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
+import { financialsHidden } from '@/lib/financials';
 import {
 
   PageHeader,
@@ -337,7 +338,7 @@ export default async function CrmPage({
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-end font-mono text-xs text-[var(--text-muted)]">
-                        {l.estimatedValue
+                        {!financialsHidden() && l.estimatedValue
                           ? `${Number(l.estimatedValue).toLocaleString('en-US')} ر.س`
                           : '—'}
                       </td>

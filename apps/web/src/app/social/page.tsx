@@ -14,6 +14,7 @@ import {
 import { Shell } from '@/components/Shell';
 import { AtSign, CalendarDays, Megaphone, BarChart3, ArrowLeft } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { financialsHidden } from '@/lib/financials';
 import { canAny } from '@/lib/authz';
 import { getTranslations } from 'next-intl/server';
 import { SocialTabs } from './SocialTabs';
@@ -163,7 +164,7 @@ export default async function SocialPage() {
         <StatBox
           label="صفقات نشطة"
           value={activeDeals}
-          sub={pipelineValue > 0 ? `${fmtNum(pipelineValue)} ر.س pipeline` : undefined}
+          sub={!financialsHidden() && pipelineValue > 0 ? `${fmtNum(pipelineValue)} ر.س pipeline` : undefined}
           tone="accent"
         />
       </section>

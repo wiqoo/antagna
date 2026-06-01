@@ -6,6 +6,7 @@ import { Shell } from '@/components/Shell';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/view-as';
 import { can } from '@/lib/authz';
+import { financialsHidden } from '@/lib/financials';
 import { StreamedBriefing, StreamedBoard } from './board-section';
 import { StreamedMyDay } from './my-day-section';
 
@@ -19,21 +20,30 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/dashboard');
 
-  // Honor View-As impersonation — the greeting / topbar / any per-user
-  // data should match the profile the admin is viewing as.
-  const current = await getCurrentProfile();
+  // Honor View-As impersonation. Resilient: a cold-start DB hiccup here must NOT
+  // crash the home page — degrade to no-profile rather than the error boundary.
+  const current = await getCurrentProfile().catch((e) => {
+    console.error('[dashboard] getCurrentProfile failed', e);
+    return null;
+  });
 
-  // First-login flow (Pillar 16 §H.4). Only redirect the REAL user (not
-  // when an admin is viewing-as someone else, otherwise they get bounced
-  // every time they pick a fake profile that hasn't onboarded).
+  // First-login flow (Pillar 16 §H.4). Only redirect the REAL user. The query is
+  // wrapped so a cold-start connection drop skips the gate instead of crashing;
+  // the redirect() itself stays OUTSIDE the try (it throws NEXT_REDIRECT which
+  // must propagate, not be swallowed).
+  let onboardingStatus: string | undefined;
   if (current && !current.isImpersonating) {
-    const [self] = await db.execute<{ status: string }>(
-      sql`SELECT onboarding_state->>'status' AS status FROM profiles WHERE id = ${current.id}::uuid`,
-    );
-    const status = (self as unknown as { status: string }[])[0]?.status;
-    if (status === 'pending' || status === 'in_progress') {
-      redirect('/welcome');
+    try {
+      const [self] = await db.execute<{ status: string }>(
+        sql`SELECT onboarding_state->>'status' AS status FROM profiles WHERE id = ${current.id}::uuid`,
+      );
+      onboardingStatus = (self as unknown as { status: string }[])[0]?.status;
+    } catch (e) {
+      console.error('[dashboard] onboarding check failed', e);
     }
+  }
+  if (onboardingStatus === 'pending' || onboardingStatus === 'in_progress') {
+    redirect('/welcome');
   }
 
   const greetingName =
@@ -41,9 +51,11 @@ export default async function DashboardPage() {
     user.email?.split('@')[0] ??
     'صديقي';
 
-  // Resolved here (page phase, before the streamed board's query storm) and
-  // passed down so the board never runs an unprotected can() that could hang.
-  const canFinance = await can('financials.read');
+  // Finance hidden for phase-1 → no canFinance query at all (one fewer cold-start
+  // query). When re-enabled, the can() check is .catch-guarded so it can't crash.
+  const canFinance = financialsHidden()
+    ? false
+    : await can('financials.read').catch(() => false);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'صباح الخير' : hour < 18 ? 'مرحباً' : 'مساء الخير';
