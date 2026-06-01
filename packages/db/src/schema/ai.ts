@@ -41,6 +41,38 @@ export const dailyBriefs = pgTable(
   (t) => [unique('daily_brief_unique').on(t.profileId, t.briefDate)],
 );
 
+// ── weekly_reports (AI Weekly Performance Report — accountability layer) ──────
+// One row per person per ISO-week. The AI drafts it from that person's actual
+// system activity graded against their job-description (config/job-descriptions
+// .yaml). The person reviews/edits → approves → it's sent to their manager
+// (reports_to). status: draft → approved → sent.
+
+export const weeklyReports = pgTable(
+  'weekly_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id),
+    weekStart: text('week_start').notNull(), // ISO Monday 'YYYY-MM-DD' (Riyadh)
+    positionKey: text('position_key'), // snapshot of the role this report graded
+    content: text('content').notNull(), // headline / plain-text fallback
+    highlights: jsonb('highlights'), // parsed JSON: {summary, kpis, wins, concerns, focus}
+    editedHighlights: jsonb('edited_highlights'), // person's edits before approval
+    status: text('status').notNull().default('draft'), // draft | approved | sent
+    modelUsed: text('model_used'),
+    costUsd: numeric('cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().default(sql`now()`),
+    approvedById: uuid('approved_by_id').references(() => profiles.id),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    sentToManagerId: uuid('sent_to_manager_id').references(() => profiles.id),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+  },
+  (t) => [unique('weekly_report_unique').on(t.profileId, t.weekStart)],
+);
+
+export type WeeklyReport = typeof weeklyReports.$inferSelect;
+
 // ── project_insights (the "amber/red flag" surface) ──────────────────────────
 
 export const projectInsights = pgTable('project_insights', {

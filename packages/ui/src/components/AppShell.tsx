@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
   Clock,
   MessageCircle,
+  Gauge,
   Bell,
   CheckCircle2,
   Wrench,
@@ -80,6 +81,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     headingKey: 'groupAnalytics', heading: 'التحليلات والإدارة',
     items: [
+      { href: '/performance', key: 'performance', label: 'أدائي', icon: Gauge },
       { href: '/kpis', key: 'kpis', label: 'مؤشرات الأداء', icon: BarChart3 },
       { href: '/reports', key: 'reports', label: 'التقارير', icon: FileText },
       { href: '/changelog', key: 'changelog', label: 'سجل التغييرات', icon: History },

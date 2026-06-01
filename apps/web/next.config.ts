@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
   // be missing from the serverless bundle. Path is relative to this app dir.
   outputFileTracingIncludes: {
     '/my-day': ['../../config/routines.yaml'],
+    '/dashboard': ['../../config/routines.yaml'], // My-Day section merged into the dashboard
+    '/performance': ['../../config/job-descriptions.yaml'], // JD rubric + weekly report
   },
 };
 

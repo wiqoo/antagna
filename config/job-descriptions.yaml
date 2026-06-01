@@ -1,0 +1,104 @@
+# Antagna — Structured Job Descriptions (the accountability "rubric")
+#
+# Source of truth for each position's MISSION + RESPONSIBILITIES + KPIs +
+# reporting line. Read by apps/web/src/lib/job-descriptions.ts (loadJobDescription)
+# and used to:
+#   1. drive the AI Weekly Performance Report (the AI grades actual system
+#      activity against these responsibilities + KPI targets),
+#   2. render the "أدائي / Performance" surface (JD + live KPI status),
+#   3. resolve a person's manager for nudges/report routing (reports_to → the
+#      active holder of that position).
+#
+# Keyed by `position_key` (the 16-position model, migration 049). Add positions
+# as the team grows. KPI `key`s SHOULD match kpi_definitions keys where a metric
+# is computed; `measurable: true` marks the ones the system can score today,
+# `measurable: false` are manual/awaiting-data (Dafterah / survey) — shown but
+# not auto-scored.
+#
+# Shape:
+#   <position_key>:
+#     title_ar: <role title>
+#     mission_ar: <one-line mission>
+#     reports_to: <manager position_key | null>
+#     responsibilities:
+#       - { key: <stable id>, title_ar: <short>, detail_ar: <what it means> }
+#     kpis:
+#       - { key, title_ar, target: <number>, unit: pct|count|hours|days|sar|ratio,
+#           direction: higher|lower, measurable: true|false }
+
+positions:
+  project_manager:
+    title_ar: مدير المشاريع وما قبل البيع
+    mission_ar: استقطاب العملاء وإتمام الصفقات وتسليم المشاريع في موعدها وميزانيتها بجودة عالية.
+    reports_to: general_manager
+    responsibilities:
+      - { key: win_deals, title_ar: استقطاب العملاء وإتمام الصفقات, detail_ar: تسجيل الطلبات، إعداد العروض والتسعير، التفاوض، اعتماد التوجه الإبداعي والتسعير قبل العرض، وإتمام العقد. }
+      - { key: handoff, title_ar: تسليم المشروع للإنتاج ومتابعته, detail_ar: اجتماع تسليم رسمي مع مدير الإنتاج، تسليم ملخص العميل كاملاً، تحديثات دورية، والرد خلال ساعتين، والتصعيد للطلبات خارج النطاق. }
+      - { key: permits, title_ar: إدارة اللوجستيات والتصاريح, detail_ar: استخراج التصاريح الحكومية وتصاريح التصوير في موعدها والتنسيق الأمني واللوجستي. }
+      - { key: contracts, title_ar: إدارة العقود قانونياً, detail_ar: التنسيق مع المستشار القانوني، مراجعة السرية وحقوق الاستخدام، وتوثيق التعديلات. }
+      - { key: vendors, title_ar: إدارة الموردين والمستقلين, detail_ar: استقطاب العارضين والمصورين المستقلين، التفاوض ضمن الميزانية، وإصدار عقودهم ومتابعة التزامهم. }
+      - { key: budget, title_ar: إدارة ميزانية المشاريع, detail_ar: ميزانية تفصيلية لكل مشروع، متابعة المصروفات أسبوعياً، وتقرير ربحية نهائي. }
+      - { key: team, title_ar: متابعة الفريق وتوزيع المهام, detail_ar: متابعة يومية، توزيع عادل حسب التخصص، ووضوح المسؤوليات وحل التعارضات بسرعة. }
+      - { key: reports, title_ar: التقارير الأسبوعية والشهرية, detail_ar: تقرير أسبوعي بحالة المشاريع للمدير العام، وتقرير شهري بالإيرادات، وتنبيه مبكر للمشاريع المتعثرة. }
+      - { key: email_doc, title_ar: التوثيق الرسمي عبر البريد, detail_ar: توثيق كل الاتفاقيات والموافقات والتعديلات بالبريد لا بالواتساب وحده. }
+      - { key: closeout, title_ar: التسليم النهائي وتحصيل المستحقات, detail_ar: تسليم المخرجات بعد الاعتماد، متابعة التحصيل، واستبيان رضا العميل والحفاظ على العلاقة. }
+    kpis:
+      - { key: lead_to_proposal_pct, title_ar: تحويل العملاء المحتملين إلى عروض, target: 40, unit: pct, direction: higher, measurable: true }
+      - { key: proposal_to_deal_pct, title_ar: تحويل العروض إلى صفقات, target: 50, unit: pct, direction: higher, measurable: true }
+      - { key: on_time_delivery_pct, title_ar: تسليم المشاريع في موعدها, target: 88, unit: pct, direction: higher, measurable: true }
+      - { key: avg_response_time_hours, title_ar: زمن الرد على العملاء, target: 2, unit: hours, direction: lower, measurable: true }
+      - { key: weekly_report_submitted, title_ar: رفع التقرير الأسبوعي, target: 1, unit: count, direction: higher, measurable: true }
+      - { key: budget_adherence_pct, title_ar: الالتزام بالميزانية المعتمدة, target: 5, unit: pct, direction: lower, measurable: false }
+      - { key: permits_on_time_pct, title_ar: استخراج التصاريح في موعدها, target: 100, unit: pct, direction: higher, measurable: false }
+      - { key: client_satisfaction, title_ar: تقييم رضا العميل, target: 4, unit: ratio, direction: higher, measurable: false }
+
+  account_manager:
+    title_ar: مدير حسابات — حساب أبو لوكا
+    mission_ar: نقطة الاتصال الوحيدة للعلامات، جلب الفرص وتنمية الإيراد، وحماية صورة أبو لوكا.
+    reports_to: project_manager
+    responsibilities:
+      - { key: intake, title_ar: استقبال الطلبات والمتابعة اليومية, detail_ar: استقبال الطلبات عبر البريد/الجوال/الواتساب وتسجيلها فوراً، والرد خلال ساعة، ومتابعة كل طلب يومياً. }
+      - { key: brand_rel, title_ar: إدارة العلاقات مع العلامات, detail_ar: نقطة الاتصال الوحيدة، بناء علاقات طويلة الأمد، وتمثيل أبو لوكا في الاجتماعات. }
+      - { key: biz_dev, title_ar: استقطاب الفرص والتواصل التجاري, detail_ar: البحث عن فرص تعاون، التواصل مع الوكالات والعلامات، واقتراح حملات وتنمية الإيراد. }
+      - { key: negotiate, title_ar: التفاوض وإتمام الاتفاقيات, detail_ar: ترجمة الطلبات لنطاق عمل، التفاوض على الأسعار والحقوق، وإعداد العروض وبنود الحصرية. }
+      - { key: contracts_fin, title_ar: إدارة العقود والمتابعة المالية, detail_ar: صياغة العقود مع القانوني، إصدار الفواتير ومتابعة التحصيل، وتقرير مالي شهري. }
+      - { key: publishing, title_ar: متابعة نشر المحتوى, detail_ar: التأكد من النشر بالصيغة والتوقيت المطلوب وتنسيق مواعيد التصوير وجدول أبو لوكا. }
+      - { key: travel, title_ar: إدارة السفر واللوجستيات, detail_ar: حجوزات الطيران والفنادق، لوجستيات السيارات والتفاويض، وجداول الرحلات والتصاريح. }
+      - { key: prod_coord, title_ar: التنسيق مع الإنتاج, detail_ar: تسليم الملخص لحمادة قبل التصوير، توافق التوقعات، ومتابعة الموافقات وطلبات التعديل ضمن النطاق. }
+      - { key: shoot_content, title_ar: حضور التصوير وإعداد المحتوى, detail_ar: حضور كل الجلسات، إعداد سكريبت أبو لوكا، وموافقة العميل الموثّقة بالبريد قبل التصوير. }
+      - { key: email_doc, title_ar: التوثيق الرسمي عبر البريد, detail_ar: توثيق كل الاتفاقيات والموافقات بالبريد لا بالواتساب وحده. }
+      - { key: data_security, title_ar: تأمين بيانات العملاء, detail_ar: حفظ البيانات بسرية وإنشاء قاعدة احترازية محدّثة أسبوعياً. }
+      - { key: brand_protect, title_ar: حماية العلامة الشخصية لأبو لوكا, detail_ar: رفض الاتفاقيات غير المناسبة وضمان توافق المحتوى مع التموضع الإعلامي. }
+    kpis:
+      - { key: avg_response_time_hours, title_ar: زمن الرد على الطلبات, target: 1, unit: hours, direction: lower, measurable: true }
+      - { key: new_opportunities_count, title_ar: فرص تعاون جديدة شهرياً, target: 4, unit: count, direction: higher, measurable: true }
+      - { key: shoot_attendance_pct, title_ar: حضور جلسات التصوير, target: 100, unit: pct, direction: higher, measurable: true }
+      - { key: weekly_report_submitted, title_ar: تحديث قاعدة البيانات/التقرير, target: 1, unit: count, direction: higher, measurable: true }
+      - { key: invoice_collection_pct, title_ar: تحصيل الفواتير خلال ٦٠ يوم, target: 90, unit: pct, direction: higher, measurable: false }
+      - { key: client_satisfaction, title_ar: تقييم رضا العميل, target: 4.5, unit: ratio, direction: higher, measurable: false }
+      - { key: contract_compliance_pct, title_ar: الالتزام بشروط العقود, target: 100, unit: pct, direction: higher, measurable: false }
+
+  general_manager:
+    title_ar: المدير العام
+    mission_ar: قيادة الشركة، اعتماد التوجه الإبداعي والتسعير، وضمان صحة المشاريع والإيراد.
+    reports_to: null
+    responsibilities:
+      - { key: approvals, title_ar: اعتماد التوجه الإبداعي والتسعير, detail_ar: اعتماد العروض والمخرجات النهائية والتدخل في القرارات الكبرى. }
+      - { key: oversight, title_ar: الإشراف على صحة المشاريع والإيراد, detail_ar: متابعة المشاريع المتعثرة، الإيراد، وأداء الفريق. }
+      - { key: escalations, title_ar: استقبال التصعيدات, detail_ar: حسم الطلبات خارج النطاق والتعارضات الإبداعية والتشغيلية. }
+    kpis:
+      - { key: on_time_delivery_pct, title_ar: تسليم المشاريع في موعدها (الشركة), target: 85, unit: pct, direction: higher, measurable: true }
+      - { key: open_approvals_count, title_ar: الموافقات المعلّقة على طاولتك, target: 0, unit: count, direction: lower, measurable: true }
+
+  production_director:
+    title_ar: مدير الإنتاج
+    mission_ar: جاهزية التصوير، توزيع الحمولة، وتسليم الإنتاج في موعده بجودة عالية.
+    reports_to: general_manager
+    responsibilities:
+      - { key: capacity, title_ar: إدارة حمولة الفريق, detail_ar: توقّع الـ overload وتوزيع المصورين والمحررين بعدالة. }
+      - { key: shoot_ready, title_ar: جاهزية التصوير, detail_ar: التأكد من جاهزية الطاقم والمعدّات قبل كل تصوير. }
+      - { key: equipment, title_ar: متابعة المعدّات, detail_ar: حالة المعدّات والبطاريات وحل التعارضات في الحجوزات. }
+      - { key: delivery, title_ar: تسليم الإنتاج في موعده, detail_ar: التدخل في المشاريع المعرّضة لتأخير التسليم. }
+    kpis:
+      - { key: on_time_delivery_pct, title_ar: تسليم الإنتاج في موعده, target: 88, unit: pct, direction: higher, measurable: true }
+      - { key: shoot_attendance_pct, title_ar: جاهزية/حضور التصوير, target: 95, unit: pct, direction: higher, measurable: true }
