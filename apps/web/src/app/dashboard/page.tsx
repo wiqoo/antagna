@@ -9,6 +9,7 @@ import { can } from '@/lib/authz';
 import { financialsHidden } from '@/lib/financials';
 import { StreamedBriefing, StreamedBoard } from './board-section';
 import { StreamedMyDay } from './my-day-section';
+import { BoardRefreshButton } from './board-refresh-button';
 
 export const dynamic = 'force-dynamic';
 // The streamed board has ~10 DB queries; give the function headroom so a cold
@@ -84,9 +85,12 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="flex items-center gap-2 pt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
-        <ListChecks size={13} />
-        <span>لوحة منصبك</span>
+      <div className="flex items-center justify-between pt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--text-dim)]">
+        <span className="flex items-center gap-2">
+          <ListChecks size={13} />
+          <span>لوحة منصبك</span>
+        </span>
+        <BoardRefreshButton />
       </div>
       <StreamedBoard
         profileId={current?.id ?? null}
