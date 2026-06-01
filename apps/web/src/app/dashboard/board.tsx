@@ -472,7 +472,7 @@ export async function buildDashboardBoard({
     { id: 'email_triage', node: <CardEmailTriage data={emailTriageData} /> },
     { id: 'ai_suggestions', node: <CardSmartSuggestions data={suggestionsData} /> },
     { id: 'project_health', node: <CardProjectHealth data={projectHealthData} /> },
-    { id: 'capacity_fc', node: <CardCapacityForecast data={capacityData} /> },
+    // capacity_fc (حمولة الفريق) removed — retired per owner.
     { id: 'approvals', node: <CardApprovals data={approvalsData} /> },
     { id: 'stale_convos', node: <CardStaleConvos data={staleConvosData} /> },
     { id: 'shoots', node: <CardTodayShoots data={shootsData} /> },

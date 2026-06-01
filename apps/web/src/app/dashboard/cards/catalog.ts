@@ -39,7 +39,10 @@ export const CARD_CATALOG = [
   { id: 'email_triage', title: 'Email Triage', titleAr: 'فرز الإيميلات', group: 'AI Heavy', ai: 'heavy', component: CardEmailTriage, defaultSize: 'md', desc: 'إيميلات مرتبة بـ AI حسب الأهمية', live: true },
   { id: 'ai_suggestions', title: 'Smart Suggestions', titleAr: 'اقتراحات ذكية', group: 'AI Heavy', ai: 'heavy', component: CardSmartSuggestions, defaultSize: 'md', desc: 'اقتراحات AI من الإيميل بانتظار مراجعتك', live: true },
   { id: 'project_health', title: 'Project Health Pulse', titleAr: 'صحة المشاريع', group: 'AI Heavy', ai: 'heavy', component: CardProjectHealth, defaultSize: 'lg', desc: 'R/A/G لكل مشروع نشط مع شرح AI', live: true },
-  { id: 'capacity_fc', title: 'Capacity Forecast', titleAr: 'توقّع حمولة الفريق', group: 'AI Heavy', ai: 'heavy', component: CardCapacityForecast, defaultSize: 'lg', desc: 'AI يتوقع overload قبل ما يحصل', live: true },
+  // capacity_fc (حمولة الفريق) retired — owner deemed it not useful + it was the
+  // heaviest board query (14× generate_series fan-out). Not `live` → boardable()
+  // drops it from every board.
+  { id: 'capacity_fc', title: 'Capacity Forecast', titleAr: 'توقّع حمولة الفريق', group: 'AI Heavy', ai: 'heavy', component: CardCapacityForecast, defaultSize: 'lg', desc: 'AI يتوقع overload قبل ما يحصل' },
   { id: 'approvals', title: 'Pending Approvals', titleAr: 'موافقات معلّقة', group: 'AI Medium', ai: 'medium', component: CardApprovals, defaultSize: 'md', desc: 'موافقات معلقة', live: true },
   { id: 'stale_convos', title: 'Stale Conversations', titleAr: 'محادثات متوقّفة', group: 'AI Heavy', ai: 'heavy', component: CardStaleConvos, defaultSize: 'md', desc: 'محادثات AI شاف إنها متوقفة', live: true },
   { id: 'shoots', title: "This Week's Shoots", titleAr: 'تصوير هذا الأسبوع', group: 'AI Light', ai: 'light', component: CardTodayShoots, defaultSize: 'md', desc: 'لقطات الأسبوع مع conflict detection', live: true },
