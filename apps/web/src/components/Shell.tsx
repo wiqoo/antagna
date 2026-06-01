@@ -23,13 +23,17 @@ export async function Shell({
   user?: { email: string; displayName?: string };
   activePath?: string;
 }) {
+  // Resilient: the Shell wraps EVERY page and renders synchronously, so an
+  // unguarded throw here (e.g. a cold-start "Connection closed") crashes the
+  // whole page — this was the recurring dashboard crash. Each query degrades to
+  // a safe fallback instead of throwing.
   const [notifications, real, current, permits] = await Promise.all([
-    fetchNotifications(),
-    getRealProfile(),
-    getCurrentProfile(),
+    fetchNotifications().catch(() => []),
+    getRealProfile().catch(() => null),
+    getCurrentProfile().catch(() => null),
     // Which privileged nav items the (effective) user may see — the page itself
-    // still gates access; this just hides links the user can't use.
-    canMany([...NAV_PERM_KEYS]),
+    // still gates access; this just hides links the user can't use. Fail-open.
+    canMany([...NAV_PERM_KEYS]).catch(() => ({} as Record<string, boolean>)),
   ]);
 
   // Open registration + admin approval: a signed-in account that isn't 'active'
