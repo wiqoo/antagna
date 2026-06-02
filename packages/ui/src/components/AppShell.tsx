@@ -395,14 +395,17 @@ export function AppShell({
           <div className="hidden flex-1 md:block">{commandPalette}</div>
 
           <div className="ms-auto flex items-center gap-2">
+            {/* Always visible — on mobile it's a compact "+" pill (icon only),
+                on desktop the full "+ مشروع" label. Mobile users had no way to
+                create a project before (this was hidden below md). */}
             <a
               href="/projects/new"
               title={lbl(labels, 'newProject', 'مشروع')}
-              className="hidden h-8 items-center gap-1.5 rounded-md px-3 text-[12px] font-semibold text-white hover:opacity-90 md:inline-flex"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-white hover:opacity-90 md:px-3"
               style={{ background: 'var(--accent-gradient)' }}
             >
               <Plus size={13} />
-              {lbl(labels, 'newProject', 'مشروع')}
+              <span className="hidden md:inline">{lbl(labels, 'newProject', 'مشروع')}</span>
             </a>
             {localeSwitch}
             {notifications && onMarkAllRead && onMarkOneRead && (
