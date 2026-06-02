@@ -279,3 +279,12 @@ textarea.form-input {
 .card-clean .text-white\/90 { color: rgba(255,255,255,0.94); }
 /* footer meta a touch brighter than the V5 mono footer */
 .card-clean footer { color: rgba(255,255,255,0.55) !important; }
+
+/* ── Press feedback ──────────────────────────────────────────────────────────
+   Any button / link / summary subtly scales down the instant it's pressed, so a
+   click ALWAYS registers visibly (pairs with the top progress bar, which covers
+   navigation loading). `:where()` keeps specificity at 0 so nothing is fought;
+   `transform` only — existing color/bg transitions are untouched. */
+:where(button, [role='button'], a, summary, label.cursor-pointer):active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(0.97);
+}

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SubmitButton } from '@antagna/ui';
 import { AuthCard, authField, authButton } from '@/components/AuthCard';
 import { loginAction } from './actions';
 
@@ -77,9 +78,9 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
           </p>
         )}
 
-        <button type="submit" className={authButton}>
+        <SubmitButton className={authButton} pendingText="جارٍ الدخول…">
           تسجيل الدخول
-        </button>
+        </SubmitButton>
       </form>
     </AuthCard>
   );

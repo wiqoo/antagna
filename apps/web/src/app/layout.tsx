@@ -7,6 +7,7 @@ import {
 } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
+import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 import { InstallPrompt } from '@/components/InstallPrompt';
@@ -83,6 +84,17 @@ export default async function RootLayout({
       className={`${geist.variable} ${geistMono.variable} ${vazirmatn.variable} ${plexArabic.variable} locale-${locale} h-full antialiased`}
     >
       <body className="min-h-full bg-[var(--bg)] text-[var(--text)]">
+        {/* Global navigation progress — a thin brand-colored bar at the top that
+            shows the moment any link/route navigation starts, so a click always
+            gives immediate "something is loading" feedback. */}
+        <NextTopLoader
+          color="#FF6B1A"
+          height={2}
+          showSpinner={false}
+          shadow={false}
+          crawlSpeed={180}
+          speed={250}
+        />
         <NextIntlClientProvider>
           {children}
           <PWARegister />

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { SubmitButton } from '@antagna/ui';
 import { AuthCard, authField, authButton } from '@/components/AuthCard';
 import { registerAction } from './actions';
 
@@ -82,9 +83,9 @@ export default async function RegisterPage(props: { searchParams: SearchParams }
           </p>
         )}
 
-        <button type="submit" className={authButton}>
+        <SubmitButton className={authButton} pendingText="جارٍ الإنشاء…">
           إنشاء الحساب
-        </button>
+        </SubmitButton>
       </form>
     </AuthCard>
   );
