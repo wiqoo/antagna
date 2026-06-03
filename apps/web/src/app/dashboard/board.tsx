@@ -19,8 +19,10 @@ import {
   CardGlance, CardEmailTriage, CardSmartSuggestions, CardProjectHealth,
   CardApprovals, CardStaleConvos, CardTodayShoots,
   CardEquipmentConflicts, CardMTDRevenue, CardAtRisk,
+  CardPmList, CardPmStats, CardPmFunnel,
   resolveLayout, DASH_LAYOUT_COOKIE, type CardId, type DashLayout,
 } from './cards';
+import { gatherPmCards } from './pm-board';
 
 const WEEKDAYS_AR = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 const QUERY_TIMEOUT_MS = 6000;
@@ -53,7 +55,19 @@ export type DashboardBoard = {
  * JSON-serializable object — cacheable. Each query is timeout+catch-guarded.
  * Exported so a worker / refresh action can recompute + cache it off-request.
  */
-export async function gatherBoardData() {
+export async function gatherBoardData(
+  profileId: string | null,
+  positionKey: string | null,
+) {
+  // Per-position cards (only the PM board for now) — scoped to this profile.
+  const pm =
+    profileId && positionKey === 'project_manager'
+      ? await gatherPmCards(profileId).catch((e) => {
+          console.error('[board] pm cards failed', e);
+          return null;
+        })
+      : null;
+
   const [
     statsRow, shootsArr, deliverablesQueueArr, budgetBurnArr, conflictsArr,
     commHealthRow, pendingSuggestionsArr, recentThreadsArr, staleFollowupsArr,
@@ -271,13 +285,13 @@ export async function gatherBoardData() {
   // Revenue always computed into the payload; the CARD is gated by canFinance at render.
   const revenueData = { value: stats.mtd_revenue ? Number(stats.mtd_revenue) : 0 };
 
-  return { glanceData, emailTriageData, suggestionsData, projectHealthData, atRiskData, approvalsData, staleConvosData, shootsData, conflictsData, revenueData };
+  return { glanceData, emailTriageData, suggestionsData, projectHealthData, atRiskData, approvalsData, staleConvosData, shootsData, conflictsData, revenueData, pm };
 }
 
 /** Serve board data from the per-profile cache (20-min TTL); lazily recompute +
  *  upsert on miss. Anonymous (no profile) → always fresh, no cache. */
-async function getCachedBoardData(profileId: string | null): Promise<BoardData> {
-  if (!profileId) return gatherBoardData();
+async function getCachedBoardData(profileId: string | null, positionKey: string | null): Promise<BoardData> {
+  if (!profileId) return gatherBoardData(profileId, positionKey);
   const rows = await safe(
     'cacheRead',
     () => db.execute<{ payload: BoardData }>(sql`
@@ -289,7 +303,7 @@ async function getCachedBoardData(profileId: string | null): Promise<BoardData> 
   const cached = (rows as unknown as { payload: BoardData }[])[0]?.payload;
   if (cached) return cached;
 
-  const data = await gatherBoardData();
+  const data = await gatherBoardData(profileId, positionKey);
   await safe('cacheWrite', () => db.execute(sql`
     INSERT INTO dashboard_board_cache (profile_id, payload, computed_at)
     VALUES (${profileId}::uuid, ${JSON.stringify(data)}::jsonb, now())
@@ -326,7 +340,7 @@ export async function buildDashboardBoard({
   const layout = resolveLayout(storedLayout, role, positionKey);
 
   // Board data — from cache (instant) or lazily recomputed.
-  const d = await getCachedBoardData(profileId);
+  const d = await getCachedBoardData(profileId, positionKey);
 
   const items: { id: CardId; node: ReactNode }[] = [
     { id: 'glance', node: <CardGlance data={d.glanceData} /> },
@@ -342,13 +356,30 @@ export async function buildDashboardBoard({
     { id: 'at_risk', node: <CardAtRisk data={d.atRiskData} /> },
   ];
 
+  // Per-position PM cards (present only for project managers).
+  if (d.pm) {
+    items.push(
+      { id: 'pm_pipeline_funnel' as CardId, node: <CardPmFunnel data={d.pm.pipeline} /> },
+      { id: 'pm_deals_to_close' as CardId, node: <CardPmList data={d.pm.deals} /> },
+      { id: 'pm_client_response_overdue' as CardId, node: <CardPmList data={d.pm.response} /> },
+      { id: 'pm_my_approvals' as CardId, node: <CardPmList data={d.pm.approvals} /> },
+      { id: 'pm_at_risk_delivery' as CardId, node: <CardPmList data={d.pm.atRisk} /> },
+      { id: 'pm_handoff_status' as CardId, node: <CardPmList data={d.pm.handoff} /> },
+      { id: 'pm_on_time' as CardId, node: <CardPmStats data={d.pm.onTime} /> },
+      { id: 'pm_weekly_report' as CardId, node: <CardPmStats data={d.pm.weekly} /> },
+    );
+  }
+
   return { items, layout, catalogCount: items.length };
 }
 
 /** Force-recompute + cache a profile's board (used by the manual refresh action
  *  and a background pre-warm). */
 export async function refreshBoardCache(profileId: string): Promise<void> {
-  const data = await gatherBoardData();
+  const posRows = (await db.execute<{ position_key: string | null }>(
+    sql`SELECT position_key FROM profiles WHERE id = ${profileId}::uuid`,
+  )) as unknown as { position_key: string | null }[];
+  const data = await gatherBoardData(profileId, posRows[0]?.position_key ?? null);
   await db.execute(sql`
     INSERT INTO dashboard_board_cache (profile_id, payload, computed_at)
     VALUES (${profileId}::uuid, ${JSON.stringify(data)}::jsonb, now())

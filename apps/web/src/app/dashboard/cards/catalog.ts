@@ -18,6 +18,7 @@ import {
   CardEmailSLA, CardVelocity, CardWinRate, CardOAuthHealth, CardWorkerStatus,
   CardAITip, CardGlance,
 } from './cards';
+import { CardPmList, CardPmStats, CardPmFunnel } from './pm-cards';
 
 export type CardComponent = ComponentType<{ size?: CardSize; editable?: boolean }>;
 
@@ -69,6 +70,16 @@ export const CARD_CATALOG = [
   { id: 'email_sla', title: 'Email Response SLA', titleAr: 'سرعة الرد (٢٤س)', group: 'No AI', ai: 'none', component: CardEmailSLA, defaultSize: 'sm', desc: '٪ الـ threads المردود عليها خلال ٢٤س' },
   { id: 'oauth_health', title: 'OAuth Health', titleAr: 'صحة الربط', group: 'No AI', ai: 'none', component: CardOAuthHealth, defaultSize: 'sm', desc: 'صحة tokens الـ Google/WhatsApp' },
   { id: 'workers', title: 'Worker Status', titleAr: 'حالة المهام', group: 'No AI', ai: 'none', component: CardWorkerStatus, defaultSize: 'sm', desc: 'Trigger.dev tasks status' },
+
+  // ── Project-Manager board (per-PM, scoped to the signed-in PM) ────────────
+  { id: 'pm_pipeline_funnel', title: 'Pipeline Funnel', titleAr: 'قمع الصفقات', group: 'No AI', ai: 'none', component: CardPmFunnel, defaultSize: 'lg', desc: 'مراحل الـ leads ومعدّلات التحويل مقابل الهدف', live: true },
+  { id: 'pm_deals_to_close', title: 'Deals to Close', titleAr: 'صفقات قاب قوسين', group: 'No AI', ai: 'none', component: CardPmList, defaultSize: 'md', desc: 'عروض مرسلة تنتظر قرار العميل، بالقيمة والعمر', live: true },
+  { id: 'pm_client_response_overdue', title: 'Response Overdue', titleAr: 'ردود متأخرة على العملاء', group: 'AI Light', ai: 'light', component: CardPmList, defaultSize: 'md', desc: 'عملاء ينتظرون ردّك (هدف الساعتين)', live: true },
+  { id: 'pm_my_approvals', title: 'My Approvals', titleAr: 'مراجعات تنتظرني', group: 'No AI', ai: 'none', component: CardPmList, defaultSize: 'md', desc: 'مخرجات على توقيعك مع عدّاد SLA', live: true },
+  { id: 'pm_at_risk_delivery', title: 'At-Risk Delivery', titleAr: 'مشاريع مهدّدة بالتأخير', group: 'AI Heavy', ai: 'heavy', component: CardPmList, defaultSize: 'md', desc: 'مشاريعك المعرّضة للتأخير + إجراء AI', live: true },
+  { id: 'pm_handoff_status', title: 'Handoff Status', titleAr: 'حالة التسليم للإنتاج', group: 'No AI', ai: 'none', component: CardPmList, defaultSize: 'md', desc: 'صفقات معتمدة لم تُسلَّم للإنتاج بعد', live: true },
+  { id: 'pm_on_time', title: 'On-Time Scorecard', titleAr: 'التسليم في الموعد', group: 'No AI', ai: 'none', component: CardPmStats, defaultSize: 'sm', desc: 'نسبة تسليمك في الموعد (٩٠ يوم)', live: true },
+  { id: 'pm_weekly_report', title: 'Weekly Report', titleAr: 'حالة التقرير الأسبوعي', group: 'AI Light', ai: 'light', component: CardPmStats, defaultSize: 'sm', desc: 'حالة تقريرك الأسبوعي للمدير العام', live: true },
 ] as const satisfies readonly CatalogEntry[];
 
 export type CardId = (typeof CARD_CATALOG)[number]['id'];
@@ -144,8 +155,13 @@ const POSITION_LAYOUT: Record<string, CardId[]> = {
   // Production Director — capacity, shoots, equipment readiness, active projects,
   // AI queue, system health. Financial cards intentionally absent (spec NOT list).
   production_director: ['capacity_fc', 'shoots', 'battery', 'project_health', 'ai_suggestions', 'oauth_health', 'workers'],
-  // Project Manager — my projects, pipeline, client responses, milestones, AI.
-  project_manager: ['project_health', 'hot_leads', 'stale_convos', 'open_tasks', 'ai_suggestions'],
+  // Project Manager — his own desk: delivery risk, client SLA, his approvals,
+  // production handoff, pipeline/deals, on-time scorecard, weekly report.
+  project_manager: [
+    'pm_at_risk_delivery', 'pm_client_response_overdue', 'pm_my_approvals',
+    'pm_handoff_status', 'pm_pipeline_funnel', 'pm_deals_to_close',
+    'pm_on_time', 'pm_weekly_report', 'glance', 'project_health',
+  ],
   // Account Manager — pipeline, brand responses, approvals waiting, this-month revenue.
   // (my_abu_luka_deals = follow-up card)
   account_manager: ['hot_leads', 'email_triage', 'stale_convos', 'approvals', 'mtd_revenue'],
