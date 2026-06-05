@@ -367,6 +367,7 @@ export async function buildDashboardBoard({
       { id: 'pm_handoff_status' as CardId, node: <CardPmList data={d.pm.handoff} /> },
       { id: 'pm_on_time' as CardId, node: <CardPmStats data={d.pm.onTime} /> },
       { id: 'pm_weekly_report' as CardId, node: <CardPmStats data={d.pm.weekly} /> },
+      { id: 'pm_email_undocumented' as CardId, node: <CardPmList data={d.pm.docGap} /> },
     );
   }
 

@@ -19,6 +19,7 @@ export type PmBoardData = {
   handoff: PmListData;
   onTime: PmStatsData;
   weekly: PmStatsData;
+  docGap: PmListData;
 };
 
 const TIMEOUT_MS = 5000;
@@ -50,7 +51,7 @@ const ageDays = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date
 export async function gatherPmCards(profileId: string): Promise<PmBoardData> {
   const weekStart = riyadhWeekStart();
 
-  const [leadsRows, activeProjRows, onTimeRow, apprRows, emailRows, weeklyRow] = await Promise.all([
+  const [leadsRows, activeProjRows, onTimeRow, apprRows, emailRows, weeklyRow, docGapRows] = await Promise.all([
     // 1) leads owned by me — feeds pipeline funnel + deals-to-close
     safe('leads', () => db.execute(sql`
       SELECT l.id::text AS id, l.status::text AS status,
@@ -111,6 +112,21 @@ export async function gatherPmCards(profileId: string): Promise<PmBoardData> {
     safe('weekly', () => db.execute(sql`
       SELECT status FROM weekly_reports WHERE profile_id = ${profileId}::uuid AND week_start = ${weekStart} LIMIT 1
     `), [] as unknown[]).then((r) => rows<{ status: string }>(r)[0] ?? null),
+
+    // 7) documentation gap — my active projects with recent WhatsApp but no
+    //    matching recent email (the JD wants decisions documented by email).
+    safe('docGap', () => db.execute(sql`
+      SELECT p.id::text AS id, COALESCE(p.title_ar, p.title) AS name,
+             max(w.received_at) AS last_wa,
+             (SELECT max(t.last_message_at) FROM email_threads t WHERE t.project_id = p.id) AS last_email
+      FROM projects p
+      JOIN whatsapp_messages w ON w.project_id = p.id
+      WHERE p.project_manager_id = ${profileId}::uuid AND p.archived_at IS NULL
+        AND p.stage NOT IN ('delivered','archived','lost','cancelled')
+        AND w.received_at > now() - interval '21 days'
+      GROUP BY p.id, p.title_ar, p.title
+      ORDER BY max(w.received_at) DESC LIMIT 12
+    `), [] as unknown[]).then(rows<{ id: string; name: string; last_wa: string | null; last_email: string | null }>),
   ]);
 
   // ── pipeline funnel + conversion KPIs ──────────────────────────────────────
@@ -230,5 +246,21 @@ export async function gatherPmCards(profileId: string): Promise<PmBoardData> {
     ],
   };
 
-  return { pipeline, deals, response, approvals, atRisk, handoff, onTime, weekly };
+  // ── documentation gap (recent WhatsApp newer than the last email) ──────────
+  const docGapItems = docGapRows.filter((r) => {
+    const wa = r.last_wa ? new Date(r.last_wa).getTime() : 0;
+    const em = r.last_email ? new Date(r.last_email).getTime() : 0;
+    return wa > em; // WhatsApp activity not (yet) mirrored in an email
+  }).slice(0, 6);
+  const docGap: PmListData = {
+    title: '// email_undocumented', ai: 'light', empty: 'كل التواصل موثّق بالبريد ✓',
+    footer: docGapItems.length ? `${docGapItems.length} يحتاجوا توثيق بالبريد` : undefined,
+    items: docGapItems.map((r): PmRow => ({
+      primary: r.name,
+      secondary: r.last_email ? `آخر بريد قبل ${ageDays(r.last_email)}ي · واتساب أحدث` : 'واتساب بدون بريد موثّق',
+      metric: 'وثّق', tone: 'amber', href: `/projects/${r.id}`,
+    })),
+  };
+
+  return { pipeline, deals, response, approvals, atRisk, handoff, onTime, weekly, docGap };
 }

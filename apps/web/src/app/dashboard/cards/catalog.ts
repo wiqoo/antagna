@@ -80,6 +80,7 @@ export const CARD_CATALOG = [
   { id: 'pm_handoff_status', title: 'Handoff Status', titleAr: 'حالة التسليم للإنتاج', group: 'No AI', ai: 'none', component: CardPmList, defaultSize: 'md', desc: 'صفقات معتمدة لم تُسلَّم للإنتاج بعد', live: true },
   { id: 'pm_on_time', title: 'On-Time Scorecard', titleAr: 'التسليم في الموعد', group: 'No AI', ai: 'none', component: CardPmStats, defaultSize: 'sm', desc: 'نسبة تسليمك في الموعد (٩٠ يوم)', live: true },
   { id: 'pm_weekly_report', title: 'Weekly Report', titleAr: 'حالة التقرير الأسبوعي', group: 'AI Light', ai: 'light', component: CardPmStats, defaultSize: 'sm', desc: 'حالة تقريرك الأسبوعي للمدير العام', live: true },
+  { id: 'pm_email_undocumented', title: 'Undocumented', titleAr: 'فجوة التوثيق', group: 'AI Light', ai: 'light', component: CardPmList, defaultSize: 'md', desc: 'مشاريع عليها واتساب بدون توثيق رسمي بالبريد', live: true },
 ] as const satisfies readonly CatalogEntry[];
 
 export type CardId = (typeof CARD_CATALOG)[number]['id'];
@@ -159,8 +160,8 @@ const POSITION_LAYOUT: Record<string, CardId[]> = {
   // production handoff, pipeline/deals, on-time scorecard, weekly report.
   project_manager: [
     'pm_at_risk_delivery', 'pm_client_response_overdue', 'pm_my_approvals',
-    'pm_handoff_status', 'pm_pipeline_funnel', 'pm_deals_to_close',
-    'pm_on_time', 'pm_weekly_report', 'glance', 'project_health',
+    'pm_handoff_status', 'pm_email_undocumented', 'pm_pipeline_funnel',
+    'pm_deals_to_close', 'pm_on_time', 'pm_weekly_report', 'glance', 'project_health',
   ],
   // Account Manager — pipeline, brand responses, approvals waiting, this-month revenue.
   // (my_abu_luka_deals = follow-up card)
