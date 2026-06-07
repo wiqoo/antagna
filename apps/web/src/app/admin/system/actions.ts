@@ -5,6 +5,8 @@ import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { markChunkUseful } from '@antagna/ai';
 import { requirePermissionAction } from '@/lib/authz';
+import { sendText } from '@/lib/whatsapp';
+import { WHATSAPP_DEFAULTS, type WhatsappSettings } from '@/lib/whatsapp-settings';
 
 const PATH = '/admin/system';
 
@@ -125,6 +127,50 @@ export async function setSubscriptions(subs: Subscription[]) {
     }));
   await writeSetting('subscriptions', clean);
   revalidatePath(PATH);
+}
+
+/* ──────────────────────────── (g) WhatsApp bot ─────────────────────────── */
+
+export async function saveWhatsappSettings(input: WhatsappSettings) {
+  await requirePermissionAction('integration.manage');
+  const modes = ['auto', 'draft', 'off'] as const;
+  const clean: WhatsappSettings = {
+    enabled: !!input.enabled,
+    replyMode: modes.includes(input.replyMode) ? input.replyMode : 'auto',
+    allowedPositions:
+      Array.isArray(input.allowedPositions) && input.allowedPositions.length
+        ? input.allowedPositions.map(String)
+        : ['*'],
+    persona: String(input.persona ?? '').slice(0, 2000),
+    tools:
+      input.tools && typeof input.tools === 'object'
+        ? Object.fromEntries(Object.entries(input.tools).map(([k, v]) => [k, !!v]))
+        : WHATSAPP_DEFAULTS.tools,
+    provider: input.provider === 'anthropic' ? 'anthropic' : 'openai',
+    model: String(input.model ?? WHATSAPP_DEFAULTS.model).slice(0, 80) || WHATSAPP_DEFAULTS.model,
+    maxTokens: Number.isFinite(input.maxTokens)
+      ? Math.min(2000, Math.max(100, Math.round(input.maxTokens)))
+      : 400,
+  };
+  await writeSetting('whatsapp_bot', clean);
+  revalidatePath(PATH);
+}
+
+/** Send a one-off WhatsApp from the production bridge (diagnostic / test). */
+export async function sendTestWhatsapp(
+  to: string,
+  body: string,
+): Promise<{ ok: boolean; messageId?: string; error?: string }> {
+  await requirePermissionAction('integration.manage');
+  if (!to?.trim() || !body?.trim()) return { ok: false, error: 'الرقم والنص مطلوبان' };
+  try {
+    const res = await sendText(to.trim(), body.trim());
+    return res.ok
+      ? { ok: true, messageId: res.messageId }
+      : { ok: false, error: 'فشل الإرسال — راجِع اتصال البريدج (التَنَل/الجلسة)' };
+  } catch (e) {
+    return { ok: false, error: (e as { message?: string })?.message ?? 'خطأ غير معروف' };
+  }
 }
 
 /* ───────────────────────────────── helper ──────────────────────────────── */

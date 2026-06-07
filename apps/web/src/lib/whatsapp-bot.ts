@@ -14,7 +14,7 @@
  * anything to outsiders).
  */
 import { db, whatsappMessages, profiles, projects, projectTasks, dailyTasks } from '@antagna/db';
-import { eq, and, or, desc, sql, isNull, gte, gt } from 'drizzle-orm';
+import { eq, and, or, desc, sql, isNull, gte } from 'drizzle-orm';
 import {
   getAnthropic,
   getOpenAI,
@@ -25,17 +25,15 @@ import {
   AiBudgetError,
 } from '@antagna/ai';
 import { sendText, setTyping } from './whatsapp';
+import { getWhatsappSettings } from './whatsapp-settings.server';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
+interface TurnCfg { model: string; maxTokens: number; toolNames: string[] }
+
 const BOT_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://antagna.me';
 
-// Provider switch. Default to OpenAI — gpt-4o-mini follows tone + language
-// switch rules more strictly than Haiku in our prompt. Override via env.
-const BOT_PROVIDER = (process.env.WHATSAPP_BOT_PROVIDER ?? 'openai') as
-  | 'openai'
-  | 'anthropic';
-const OPENAI_MODEL = process.env.WHATSAPP_BOT_OPENAI_MODEL ?? 'gpt-4o-mini';
+// Provider + model are controlled from /admin/system?tab=whatsapp (system_settings).
 
 // ── tool surface ──────────────────────────────────────────────────────────
 
@@ -161,7 +159,10 @@ export interface BotReplyResult {
     | 'no_inbound'
     | 'already_replied'
     | 'duplicate_processing'
-    | 'superseded';
+    | 'superseded'
+    | 'disabled'
+    | 'reply_off'
+    | 'not_allowed';
   profileId?: string;
   reply?: string;
   confidence?: 'high' | 'low';
@@ -186,6 +187,14 @@ export async function handleInboundForBot(
   if (msg.aiClassification) {
     // already processed
     return { ok: true, skipped: 'duplicate_processing' };
+  }
+
+  // Control panel (/admin/system?tab=whatsapp). Master switch first — when off
+  // the bot does nothing (the message is still stored by the webhook).
+  const botCfg = await getWhatsappSettings();
+  if (!botCfg.enabled) {
+    await db.update(whatsappMessages).set({ aiClassification: 'bot_disabled' }).where(eq(whatsappMessages.id, msg.id));
+    return { ok: true, skipped: 'disabled' };
   }
 
   // Debounce — collapse rapid-fire messages from the same person into one
@@ -225,6 +234,7 @@ export async function handleInboundForBot(
       id: profiles.id,
       displayName: profiles.displayName,
       role: profiles.role,
+      positionKey: profiles.positionKey,
       whatsappE164: profiles.whatsappE164,
     })
     .from(profiles)
@@ -270,24 +280,15 @@ export async function handleInboundForBot(
     return { ok: true, skipped: 'no_profile' };
   }
 
-  // Dedupe rapid-fire: if a NEWER inbound already exists in this thread, skip —
-  // the newest message's own invocation answers the whole batch as ONE reply.
-  // Without this, sending 2-3 quick messages triggers 2-3 separate bot replies.
-  if (msg.threadKey) {
-    const newer = await db
-      .select({ id: whatsappMessages.id })
-      .from(whatsappMessages)
-      .where(
-        and(
-          eq(whatsappMessages.threadKey, msg.threadKey),
-          eq(whatsappMessages.direction, 'inbound'),
-          gt(whatsappMessages.receivedAt, msg.receivedAt),
-        ),
-      )
-      .limit(1);
-    if (newer.length > 0) {
-      return { ok: true, skipped: 'superseded' };
+  // Control panel gates: who's allowed + reply mode.
+  if (!botCfg.allowedPositions.includes('*')) {
+    const pos = senderProfile.positionKey;
+    if (!pos || !botCfg.allowedPositions.includes(pos)) {
+      return { ok: true, skipped: 'not_allowed' };
     }
+  }
+  if (botCfg.replyMode === 'off') {
+    return { ok: true, skipped: 'reply_off' };
   }
 
   // Gather ALL unanswered inbound messages since the last outbound — the
@@ -378,6 +379,7 @@ export async function handleInboundForBot(
 
   const systemFull =
     SYSTEM_PROMPT +
+    (botCfg.persona ? `\n\n## Extra instructions (from admin — follow these)\n${botCfg.persona}` : '') +
     `\n\n## Current user\n${senderProfile.displayName} — role: ${senderProfile.role} — profile_id: ${senderProfile.id}` +
     memoryContext;
 
@@ -405,12 +407,19 @@ export async function handleInboundForBot(
   let reply = '';
   let confidence: 'high' | 'low' = 'high';
 
-  if (BOT_PROVIDER === 'openai') {
-    const r = await runOpenAiTurn(systemFull, messages, senderProfile);
+  const turnCfg: TurnCfg = {
+    model: botCfg.model,
+    maxTokens: botCfg.maxTokens,
+    toolNames: Object.entries(botCfg.tools)
+      .filter(([, on]) => on)
+      .map(([k]) => k),
+  };
+  if (botCfg.provider === 'openai') {
+    const r = await runOpenAiTurn(systemFull, messages, senderProfile, turnCfg);
     reply = r.reply;
     confidence = r.confidence;
   } else {
-    const r = await runAnthropicTurn(systemFull, messages, senderProfile);
+    const r = await runAnthropicTurn(systemFull, messages, senderProfile, turnCfg);
     reply = r.reply;
     confidence = r.confidence;
   }
@@ -420,9 +429,9 @@ export async function handleInboundForBot(
     confidence = 'low';
   }
 
-  // Send if high confidence. ALWAYS send to whatsappE164 (the real phone),
-  // never to a LID — WPPConnect can't deliver to LIDs.
-  if (confidence === 'high') {
+  // Send only when confident AND reply mode is 'auto'. In 'draft' mode we
+  // generate but don't send (falls through to the no-send return below).
+  if (confidence === 'high' && botCfg.replyMode === 'auto') {
     if (!senderProfile.whatsappE164) {
       return {
         ok: false,
@@ -448,7 +457,7 @@ export async function handleInboundForBot(
           toE164: senderProfile.whatsappE164,
           messageType: 'text',
           bodyText: reply,
-          rawPayload: { generated_by: 'volt-bot', provider: BOT_PROVIDER },
+          rawPayload: { generated_by: 'volt-bot', provider: botCfg.provider },
           threadKey: msg.threadKey,
           receivedAt: new Date(),
         });
@@ -553,6 +562,7 @@ async function runOpenAiTurn(
   system: string,
   initialMessages: Anthropic.MessageParam[],
   user: { id: string; displayName: string; role: string },
+  cfg: TurnCfg,
 ): Promise<TurnResult> {
   const client = getOpenAI();
   // Translate Anthropic-style messages into OpenAI chat messages. Our
@@ -566,20 +576,22 @@ async function runOpenAiTurn(
     })),
   ];
 
-  const oaiTools: OpenAI.Chat.ChatCompletionTool[] = TOOLS.map((t) => ({
-    type: 'function',
-    function: {
-      name: t.name,
-      description: t.description ?? '',
-      parameters: t.input_schema as Record<string, unknown>,
-    },
-  }));
+  const oaiTools: OpenAI.Chat.ChatCompletionTool[] = TOOLS
+    .filter((t) => cfg.toolNames.includes(t.name))
+    .map((t) => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description ?? '',
+        parameters: t.input_schema as Record<string, unknown>,
+      },
+    }));
 
   const maxTurns = 3;
   for (let turn = 0; turn < maxTurns; turn++) {
     const resp = await client.chat.completions.create({
-      model: OPENAI_MODEL,
-      max_tokens: 400,
+      model: cfg.model,
+      max_tokens: cfg.maxTokens,
       messages: oaiMessages,
       tools: oaiTools,
       tool_choice: 'auto',
@@ -590,7 +602,7 @@ async function runOpenAiTurn(
     try {
       await recordUsage({
         feature: 'whatsapp_bot',
-        model: OPENAI_MODEL,
+        model: cfg.model,
         inputTokens: resp.usage?.prompt_tokens ?? 0,
         outputTokens: resp.usage?.completion_tokens ?? 0,
         userId: null,
@@ -640,6 +652,7 @@ async function runAnthropicTurn(
   system: string,
   initialMessages: Anthropic.MessageParam[],
   user: { id: string; displayName: string; role: string },
+  cfg: TurnCfg,
 ): Promise<TurnResult> {
   const anthropic = getAnthropic();
   const messages = [...initialMessages];
@@ -647,10 +660,10 @@ async function runAnthropicTurn(
 
   for (let turn = 0; turn < maxTurns; turn++) {
     const resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODELS.haiku,
-      max_tokens: 400,
+      model: cfg.model.startsWith('claude') ? cfg.model : ANTHROPIC_MODELS.haiku,
+      max_tokens: cfg.maxTokens,
       system,
-      tools: TOOLS,
+      tools: TOOLS.filter((t) => cfg.toolNames.includes(t.name)),
       messages,
     });
     // Track cost of this paid call. Bot has no session actor → user_id NULL.

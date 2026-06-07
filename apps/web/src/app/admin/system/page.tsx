@@ -9,15 +9,18 @@ import { SystemConsole, type TabId } from './console';
 import { KeysPanel } from './panels/keys-panel';
 import { CostPanel } from './panels/cost-panel';
 import { EmailPanel } from './panels/email-panel';
+import { WhatsappPanel } from './panels/whatsapp-panel';
 import { BrainPanel } from './panels/brain-panel';
 import { SettingsPanel } from './panels/settings-panel';
 import { SubsPanel } from './panels/subs-panel';
+import { getWhatsappSettings } from '@/lib/whatsapp-settings.server';
+import { getConnectionState } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
 
-const VALID_TABS: TabId[] = ['keys', 'cost', 'email', 'brain', 'settings', 'subs'];
+const VALID_TABS: TabId[] = ['keys', 'cost', 'email', 'whatsapp', 'brain', 'settings', 'subs'];
 
 /* Env vars probed for presence only — never echoed. */
 const ENV_PROBE_KEYS = [
@@ -190,6 +193,27 @@ export default async function SystemConsolePage({
           lastErrorMsg: string | null;
         }>(syncR)[0] ?? null}
         activeRoutes={rows<{ active: number }>(routesR)[0]?.active ?? 0}
+        canManage={caps['integration.manage']}
+      />
+    );
+  } else if (tab === 'whatsapp') {
+    const [settings, regR, posR, conn] = await Promise.all([
+      getWhatsappSettings(),
+      db.execute(sql`
+        SELECT display_name AS name, whatsapp_e164 AS e164
+        FROM profiles WHERE whatsapp_e164 IS NOT NULL AND whatsapp_e164 <> ''
+        ORDER BY display_name`),
+      db.execute(sql`SELECT key, name_ar AS "nameAr" FROM positions WHERE active = true ORDER BY position`),
+      getConnectionState()
+        .then((r) => r.state ?? 'unknown')
+        .catch(() => 'unknown' as const),
+    ]);
+    panel = (
+      <WhatsappPanel
+        settings={settings}
+        registered={rows<{ name: string; e164: string }>(regR)}
+        positions={rows<{ key: string; nameAr: string }>(posR)}
+        connection={conn as 'open' | 'connecting' | 'close' | 'unknown'}
         canManage={caps['integration.manage']}
       />
     );

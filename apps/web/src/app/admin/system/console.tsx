@@ -2,14 +2,15 @@
 
 import type { ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { KeyRound, DollarSign, Mail, BrainCircuit, SlidersHorizontal, CreditCard } from 'lucide-react';
+import { KeyRound, DollarSign, Mail, BrainCircuit, SlidersHorizontal, CreditCard, MessageCircle } from 'lucide-react';
 
-export type TabId = 'keys' | 'cost' | 'email' | 'brain' | 'settings' | 'subs';
+export type TabId = 'keys' | 'cost' | 'email' | 'whatsapp' | 'brain' | 'settings' | 'subs';
 
 const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
   { id: 'keys', label: 'المفاتيح والتوكنات', icon: <KeyRound size={14} /> },
   { id: 'cost', label: 'حارس تكلفة الـ AI', icon: <DollarSign size={14} /> },
   { id: 'email', label: 'تكامل البريد', icon: <Mail size={14} /> },
+  { id: 'whatsapp', label: 'واتساب', icon: <MessageCircle size={14} /> },
   { id: 'brain', label: 'الذاكرة (Brain)', icon: <BrainCircuit size={14} /> },
   { id: 'settings', label: 'إعدادات النظام', icon: <SlidersHorizontal size={14} /> },
   { id: 'subs', label: 'الاشتراكات و Cron', icon: <CreditCard size={14} /> },
