@@ -29,6 +29,7 @@ import {
   Search,
   History,
   ShoppingCart,
+  Sparkles,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { NotificationsBell, type NotificationItem } from './NotificationsBell';
@@ -81,6 +82,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     headingKey: 'groupAnalytics', heading: 'التحليلات والإدارة',
     items: [
+      { href: '/ai', key: 'ai', label: 'مركز الـ AI', icon: Sparkles },
       { href: '/performance', key: 'performance', label: 'أدائي', icon: Gauge },
       { href: '/kpis', key: 'kpis', label: 'مؤشرات الأداء', icon: BarChart3 },
       { href: '/reports', key: 'reports', label: 'التقارير', icon: FileText },
@@ -124,6 +126,7 @@ const NAV_PERM: Record<string, string[]> = {
   employees: ['team.read'],
   kpis: ['financials.read', 'projects.read.all'],
   reports: ['financials.read'],
+  ai: ['ai.cost_dashboard.read', 'access.manage', 'settings.update'],
   admin: ['access.manage'],
 };
 
