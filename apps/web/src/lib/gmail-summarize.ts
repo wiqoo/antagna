@@ -82,6 +82,37 @@ interface ClaudeResponse {
   suggested_actions: { type: string; reason: string }[];
 }
 
+// Map the summarizer's category/urgency onto the inbox TRIAGE columns
+// (category/importance, migration 058) so classification is AUTOMATIC on every
+// summarize run — no separate manual click. The summarizer reads the FULL
+// transcript (all messages, ~6k chars), so this is a higher-quality signal than
+// the old header-only manual classifier.
+const TRIAGE_CATEGORY: Record<string, string> = {
+  business: 'actionable',
+  internal: 'actionable',
+  marketing: 'marketing',
+  spam: 'spam',
+  notification: 'notification',
+  automated: 'notification',
+};
+const NOISE_TRIAGE = new Set(['marketing', 'newsletter', 'spam']);
+
+function mapTriage(
+  category: string,
+  urgency: string,
+  hasOutbound: boolean,
+): { triageCategory: string; importance: string } {
+  let triageCategory = TRIAGE_CATEGORY[String(category).toLowerCase()] ?? 'actionable';
+  // Safety guard: if WE have already replied in this thread it's a real
+  // conversation — never hide it as noise even if the model leaned that way.
+  // This is the #1 fix for "real client mail getting buried".
+  if (hasOutbound && NOISE_TRIAGE.has(triageCategory)) triageCategory = 'actionable';
+  const importance = ['low', 'medium', 'high'].includes(String(urgency).toLowerCase())
+    ? String(urgency).toLowerCase()
+    : 'low';
+  return { triageCategory, importance };
+}
+
 export async function summarizeThreads(
   options: SummarizeOptions = {},
 ): Promise<SummarizeReport> {
@@ -116,6 +147,10 @@ export async function summarizeThreads(
     .where(
       or(
         isNull(emailThreads.aiSummary),
+        // Also pick up threads that were summarized before auto-triage existed
+        // (category still NULL) so they get classified automatically over the
+        // next few worker runs — no manual button needed.
+        isNull(emailThreads.category),
         sql`${emailThreads.aiSummaryUpdatedAt} IS NULL OR ${emailThreads.lastMessageAt} > ${emailThreads.aiSummaryUpdatedAt}`,
       ),
     )
@@ -236,11 +271,23 @@ export async function summarizeThreads(
         ]),
       );
 
+      // AUTO-TRIAGE: derive the dedicated category/importance columns the inbox
+      // filter relies on, right here in the automatic summarize pass.
+      const hasOutbound = msgs.some((m) => m.direction === 'outbound');
+      const { triageCategory, importance } = mapTriage(
+        parsed.category,
+        parsed.urgency,
+        hasOutbound,
+      );
+
       await db
         .update(emailThreads)
         .set({
           aiSummary: parsed.summary_ar,
           aiTopicTags: allTags,
+          category: triageCategory,
+          importance,
+          aiClassifiedAt: sql`now()`,
           aiSummaryUpdatedAt: sql`now()`,
           updatedAt: sql`now()`,
         })
@@ -271,6 +318,14 @@ export async function summarizeThreads(
         if (routed.statusSet === 'closed') report.threadsAutoClosed++;
         if (routed.clientLinked) report.threadsLinkedToClient++;
         if (routed.leadCreated) report.leadsCreated++;
+        // If routing just linked this thread to a real client, it's business —
+        // undo any noise classification so it isn't hidden from the inbox.
+        if (routed.clientLinked && NOISE_TRIAGE.has(triageCategory)) {
+          await db
+            .update(emailThreads)
+            .set({ category: 'actionable', updatedAt: sql`now()` })
+            .where(eq(emailThreads.id, thread.id));
+        }
       } catch (err) {
         report.errors.push({
           threadId: thread.id,

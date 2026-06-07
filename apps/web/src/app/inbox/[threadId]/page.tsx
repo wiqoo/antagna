@@ -212,6 +212,22 @@ export default async function InboxThreadPage({
     }
   }
 
+  // Newest-first for DISPLAY — when you open a thread you see the latest reply
+  // first (matches the list's newest-first ordering + inbox triage flow). The
+  // `messages` array stays chronological for the needs-reply + suggested-actions
+  // logic above and is untouched by the AI pipeline (which queries separately).
+  const messagesForDisplay = [...messages].reverse();
+
+  // "Conversation with" — the external party/parties this thread is between
+  // (inbound senders), most-recent first, de-duplicated by email.
+  const externalParties = Array.from(
+    new Map(
+      messages
+        .filter((m) => m.direction === 'inbound')
+        .map((m) => [m.fromEmail, { name: m.fromName, email: m.fromEmail }]),
+    ).values(),
+  ).reverse();
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/inbox">
       <Link
@@ -248,6 +264,26 @@ export default async function InboxThreadPage({
           </div>
         }
       />
+
+      {/* Who the conversation is between — the external party/parties, shown simply */}
+      {externalParties.length > 0 && (
+        <div className="-mt-2 mb-2 flex flex-wrap items-center gap-2 text-[12px]">
+          <span className="text-[var(--text-dim)]">محادثة مع</span>
+          {externalParties.map((p, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1"
+            >
+              <span className="font-medium text-[var(--text)]">
+                {p.name || p.email.split('@')[0]}
+              </span>
+              <span className="font-mono text-[10px] text-[var(--text-dim)]" dir="ltr">
+                {p.email}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left/main: AI brain + messages */}
@@ -362,7 +398,7 @@ export default async function InboxThreadPage({
               <EmptyState icon={<Mail size={20} />} title="لا رسائل" description="لم تُجلَب الرسائل بعد." />
             ) : (
               <ul className="divide-y divide-[var(--line)]">
-                {messages.map((m) => {
+                {messagesForDisplay.map((m) => {
                   const outbound = m.direction === 'outbound';
                   const fromLabel = m.fromName || m.fromEmail.split('@')[0];
                   return (
