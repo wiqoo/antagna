@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import {
+  db,
   contactMethods,
   projects,
   vClientsSafe,
@@ -31,10 +32,25 @@ import {
   Pencil,
   Plus,
   ExternalLink,
+  Sparkles,
+  Globe,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
-import { addContact } from '../actions';
+import { SubmitButton } from '@antagna/ui';
+import { addContact, enrichClientAction } from '../actions';
+
+type ClientEnrichment = {
+  summary_ar?: string | null;
+  summary_en?: string | null;
+  industry?: string | null;
+  website_url?: string | null;
+  hq_location?: string | null;
+  company_size?: string | null;
+  key_facts?: string[];
+  sources?: string[];
+  enriched_at?: string | null;
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +64,7 @@ export default async function ClientDetailPage({
     fullName?: string;
     jobTitle?: string;
     email?: string;
+    enrichError?: string;
   }>;
 }) {
   const { id } = await params;
@@ -63,6 +80,7 @@ export default async function ClientDetailPage({
   const contactJobTitle =
     typeof sp.jobTitle === 'string' ? sp.jobTitle : '';
   const contactEmail = typeof sp.email === 'string' ? sp.email : '';
+  const enrichError = typeof sp.enrichError === 'string' ? sp.enrichError : null;
 
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -161,6 +179,28 @@ export default async function ClientDetailPage({
       redirect(`/clients/${id}?${qs.toString()}`);
     }
     redirect(`/clients/${id}`);
+  }
+
+  // AI web-research enrichment (stored in custom_fields by enrichClientAction).
+  // Read from the base table — non-masked metadata, same id already confirmed
+  // visible via the safe view above.
+  const enrR = (await db.execute(sql`
+    SELECT custom_fields->'enrichment' AS enrichment
+    FROM clients WHERE id = ${id}::uuid LIMIT 1`)) as unknown as Array<{
+    enrichment: ClientEnrichment | null;
+  }>;
+  const enrichment = enrR[0]?.enrichment ?? null;
+
+  // Void-returning wrapper for the enrich button → runs the web research, then
+  // redirects back (with an error param on failure, mirroring addContactAction).
+  async function enrichAction(): Promise<void> {
+    'use server';
+    const res = await enrichClientAction(id);
+    redirect(
+      res.ok
+        ? `/clients/${id}`
+        : `/clients/${id}?enrichError=${encodeURIComponent(res.error ?? 'تعذّر الإثراء')}`,
+    );
   }
 
   const methodsByContact = methodRows.reduce<
@@ -301,6 +341,100 @@ export default async function ClientDetailPage({
               </div>
             )}
           </div>
+        )}
+      </Card>
+
+      {/* AI web research / enrichment */}
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <CardHeader
+            title={
+              <span className="inline-flex items-center gap-2">
+                <Globe size={14} className="text-[var(--accent)]" /> بحث الـ AI عن العميل
+              </span>
+            }
+            subtitle={
+              enrichment?.enriched_at
+                ? `محدَّث ${new Date(enrichment.enriched_at).toISOString().slice(0, 10)} · يغذّي ذاكرة النظام`
+                : 'يبحث على الويب: مَن هم، قطاعهم، معلومات تفيد البريف — ويضيفها لذاكرة النظام'
+            }
+          />
+          <form action={enrichAction}>
+            <SubmitButton
+              pendingText="يبحث على الويب…"
+              className="h-9 rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20"
+            >
+              <Sparkles size={13} /> {enrichment ? 'حدِّث البحث' : 'ابحث وأثرِ'}
+            </SubmitButton>
+          </form>
+        </div>
+
+        {enrichError && (
+          <p role="alert" className="mt-3 text-[12px] text-[var(--danger,#ef4444)]">
+            ⚠ {enrichError}
+          </p>
+        )}
+
+        {enrichment ? (
+          <div className="mt-4 space-y-3">
+            {enrichment.summary_ar && (
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text)]">
+                {enrichment.summary_ar}
+              </p>
+            )}
+            {(enrichment.industry || enrichment.company_size || enrichment.hq_location) && (
+              <div className="flex flex-wrap gap-2 text-[11px]">
+                {enrichment.industry && (
+                  <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text-muted)]">
+                    {enrichment.industry}
+                  </span>
+                )}
+                {enrichment.company_size && (
+                  <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text-muted)]">
+                    الحجم: {enrichment.company_size}
+                  </span>
+                )}
+                {enrichment.hq_location && (
+                  <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text-muted)]">
+                    {enrichment.hq_location}
+                  </span>
+                )}
+              </div>
+            )}
+            {enrichment.key_facts && enrichment.key_facts.length > 0 && (
+              <ul className="space-y-1.5">
+                {enrichment.key_facts.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-muted)]">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {enrichment.sources && enrichment.sources.length > 0 && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--line)] pt-2.5 text-[10px]">
+                <span className="text-[var(--text-dim)]">المصادر:</span>
+                {enrichment.sources.map((s, i) => (
+                  <a
+                    key={i}
+                    href={s}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    dir="ltr"
+                    className="inline-flex items-center gap-1 font-mono text-[var(--accent)] hover:underline"
+                  >
+                    <ExternalLink size={9} /> {sourceHost(s)}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          !enrichError && (
+            <p className="mt-3 text-[12px] text-[var(--text-dim)]">
+              اضغط "ابحث وأثرِ" ليبحث الـ AI عن الشركة على الويب ويلخّص مَن هم — ويضيف ما يتعلّمه لذاكرة النظام لاقتراحات أذكى لاحقاً.
+            </p>
+          )
         )}
       </Card>
 
@@ -472,4 +606,13 @@ export default async function ClientDetailPage({
       )}
     </Shell>
   );
+}
+
+/** Short, readable host for an enrichment source link. */
+function sourceHost(u: string): string {
+  try {
+    return new URL(u).hostname.replace(/^www\./, '');
+  } catch {
+    return u.slice(0, 28);
+  }
 }

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { db, withActor } from '@antagna/db';
+import { enrichCompanyFromWeb, indexMemory, assertAiBudget } from '@antagna/ai';
 import { requirePermissionAction } from '@/lib/authz';
 import { writeActivity } from '@/lib/activity';
 
@@ -239,6 +240,128 @@ export async function createClientQuick(input: {
     const msg = String((e as { message?: string })?.message ?? e);
     return { ok: false, error: msg.slice(0, 180) };
   }
+}
+
+/**
+ * AI client enrichment: research the company on the open web (Anthropic web
+ * search), store a structured profile in custom_fields.enrichment, and feed the
+ * brain (ai_memory_chunks) so future suggestions about this client are smarter.
+ * Best-effort + budget-guarded; never throws to the caller.
+ */
+export async function enrichClientAction(
+  clientId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const actorId = await requirePermissionAction('client.update');
+
+  const c = (
+    (await db.execute(sql`
+      SELECT name_ar AS "nameAr", name_en AS "nameEn",
+             website_url AS "websiteUrl", country AS "country"
+      FROM clients WHERE id = ${clientId}::uuid LIMIT 1`)) as unknown as Array<{
+      nameAr: string;
+      nameEn: string | null;
+      websiteUrl: string | null;
+      country: string | null;
+    }>
+  )[0];
+  if (!c) return { ok: false, error: 'العميل غير موجود' };
+
+  // Derive a domain: prefer the website, else the primary contact's email host
+  // (skipping free mailbox providers, which tell us nothing about the company).
+  let domain: string | null = null;
+  if (c.websiteUrl) {
+    domain = c.websiteUrl.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim() || null;
+  }
+  if (!domain) {
+    const em = (await db.execute(sql`
+      SELECT cm.value AS email
+      FROM contacts ct
+      JOIN contact_methods cm ON cm.contact_id = ct.id
+      WHERE ct.client_id = ${clientId}::uuid
+        AND cm.method_type = 'email'::contact_method_type
+      ORDER BY cm.is_primary DESC NULLS LAST
+      LIMIT 1`)) as unknown as Array<{ email: string }>;
+    const host = em[0]?.email?.split('@')[1]?.toLowerCase();
+    if (host && !/(gmail|hotmail|outlook|yahoo|icloud|live|proton|aol)\./.test(host)) {
+      domain = host;
+    }
+  }
+
+  try {
+    await assertAiBudget({ userId: actorId, feature: 'client_enrichment' });
+  } catch {
+    return { ok: false, error: 'تم تجاوز حد ميزانية الـ AI لهذا الشهر' };
+  }
+
+  const r = await enrichCompanyFromWeb({
+    name: c.nameEn || c.nameAr,
+    domain,
+    country: c.country,
+  });
+  if (!r.ok) return { ok: false, error: r.error ?? 'تعذّر الإثراء' };
+
+  const blob = {
+    summary_ar: r.summaryAr ?? null,
+    summary_en: r.summaryEn ?? null,
+    industry: r.industry ?? null,
+    website_url: r.websiteUrl ?? null,
+    hq_location: r.hqLocation ?? null,
+    company_size: r.companySize ?? null,
+    key_facts: r.keyFacts ?? [],
+    sources: r.sources ?? [],
+    enriched_at: new Date().toISOString(),
+  };
+
+  await withActor(actorId, (tx) =>
+    tx.execute(sql`
+      UPDATE clients
+      SET custom_fields = jsonb_set(
+            COALESCE(custom_fields, '{}'::jsonb), '{enrichment}', ${JSON.stringify(blob)}::jsonb, true),
+          website_url = COALESCE(website_url, ${r.websiteUrl ?? null}),
+          updated_at = now()
+      WHERE id = ${clientId}::uuid`),
+  );
+
+  // Feed the brain. Replace any prior enrichment chunk so a re-run refreshes it
+  // (indexMemory is ON CONFLICT DO NOTHING, so we delete-then-insert).
+  try {
+    await db.execute(sql`
+      DELETE FROM ai_memory_chunks
+      WHERE source = 'client_enrichment' AND source_id = ${clientId}::uuid`);
+    const memText = [
+      `العميل: ${c.nameAr}${c.nameEn ? ` (${c.nameEn})` : ''}`,
+      r.summaryAr,
+      r.industry ? `القطاع: ${r.industry}` : '',
+      r.keyFacts && r.keyFacts.length ? `حقائق: ${r.keyFacts.join(' · ')}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    if (memText.trim()) {
+      await indexMemory({
+        scope: 'client',
+        scopeId: clientId,
+        source: 'client_enrichment',
+        sourceId: clientId,
+        content: memText,
+        contentLang: 'ar',
+        metadata: { kind: 'enrichment', sources: r.sources ?? [] },
+      });
+    }
+  } catch (e) {
+    console.error('[enrichClientAction memory]', e);
+  }
+
+  await writeActivity({
+    actorId,
+    entityType: 'client',
+    entityId: clientId,
+    action: 'client_enriched',
+    summaryAr: 'أثرى الـ AI بيانات العميل من بحث الويب',
+    summaryEn: 'AI enriched client from web research',
+  });
+
+  revalidatePath(`/clients/${clientId}`);
+  return { ok: true };
 }
 
 export async function updateClient(clientId: string, formData: FormData) {
