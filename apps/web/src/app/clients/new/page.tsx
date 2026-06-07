@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { sql } from 'drizzle-orm';
+import { db } from '@antagna/db';
 import { PageHeader, Card, Button } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Network } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/authz';
 import { createClient } from '../actions';
@@ -12,11 +14,12 @@ export const dynamic = 'force-dynamic';
 export default async function NewClientPage({
   searchParams,
 }: {
-  searchParams: Promise<{ name?: string; leadId?: string }>;
+  searchParams: Promise<{ name?: string; leadId?: string; agencyId?: string }>;
 }) {
   const sp = await searchParams;
   const prefillName = typeof sp.name === 'string' ? sp.name : '';
   const leadId = typeof sp.leadId === 'string' ? sp.leadId : '';
+  const agencyId = typeof sp.agencyId === 'string' ? sp.agencyId : '';
 
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,6 +27,15 @@ export default async function NewClientPage({
 
   // Page guard: creating a client is gated on client.create.
   await requirePermission('client.create');
+
+  // When opened from an agency ("+ عميل نهائي"), resolve its name for the banner.
+  let agencyName: string | null = null;
+  if (agencyId) {
+    const r = (await db.execute(
+      sql`SELECT name_ar FROM clients WHERE id = ${agencyId}::uuid LIMIT 1`,
+    )) as unknown as Array<{ name_ar: string | null }>;
+    agencyName = r[0]?.name_ar ?? null;
+  }
 
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
@@ -48,9 +60,17 @@ export default async function NewClientPage({
           </div>
         )}
 
+        {agencyId && (
+          <div className="inline-flex items-center gap-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-3 text-[13px] text-[var(--text)]">
+            <Network size={15} className="text-[var(--accent)]" />
+            عميل نهائي تحت وكالة{agencyName ? `: ${agencyName}` : ''} — سيُربط بها تلقائياً.
+          </div>
+        )}
+
         <Card>
           <form action={createClient} className="space-y-6">
             {leadId && <input type="hidden" name="leadId" value={leadId} />}
+            {agencyId && <input type="hidden" name="agencyId" value={agencyId} />}
 
             {/* Code is auto-generated server-side from the English/Arabic name. */}
 

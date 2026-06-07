@@ -156,6 +156,20 @@ export async function createClient(formData: FormData) {
     summaryEn: `New client added: ${nameEn ?? nameAr} (${code})`,
   });
 
+  // Created as an end-client (brand) UNDER an agency? Link them (M:N) and flag
+  // the agency side. Used by the CRM "+ عميل نهائي" button (?agencyId=...).
+  const agencyId = formData.get('agencyId')?.toString();
+  if (agencyId && agencyId !== newId) {
+    await withActor(actorId, async (tx) => {
+      await tx.execute(sql`UPDATE clients SET is_agency = true, updated_at = now() WHERE id = ${agencyId}::uuid`);
+      await tx.execute(sql`
+        INSERT INTO agency_brand_links (agency_id, brand_id)
+        VALUES (${agencyId}::uuid, ${newId}::uuid)
+        ON CONFLICT (agency_id, brand_id) DO NOTHING
+      `);
+    });
+  }
+
   // Converting from a lead? Link it to the new client + mark qualified.
   const leadId = formData.get('leadId')?.toString();
   if (leadId) {
