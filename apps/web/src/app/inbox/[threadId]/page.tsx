@@ -116,6 +116,33 @@ const IMPORTANCE_TONE: Record<string, 'neutral' | 'warning' | 'danger'> = {
   low: 'neutral',
 };
 
+// Suggested actions are stored in two shapes: plain strings (from the manual
+// "جدِّد" action) and {type, reason} objects (from the automatic worker pass).
+// Normalize BOTH into a readable Arabic line so neither renders as
+// "[object Object]".
+const ACTION_LABEL: Record<string, string> = {
+  reply: 'ردّ',
+  follow_up: 'متابعة',
+  create_lead: 'أنشئ فرصة',
+  link_to_project: 'اربط بمشروع',
+  create_task: 'أنشئ مهمة',
+  create_project: 'أنشئ مشروع',
+  escalate: 'تصعيد',
+  archive: 'أرشفة',
+  ignore: 'تجاهل',
+};
+function actionText(a: unknown): string {
+  if (typeof a === 'string') return a;
+  if (a && typeof a === 'object') {
+    const o = a as { reason?: unknown; text?: unknown; action?: unknown; type?: unknown };
+    const body = String(o.reason ?? o.text ?? o.action ?? '').trim();
+    const label = typeof o.type === 'string' ? (ACTION_LABEL[o.type] ?? null) : null;
+    if (body) return label ? `${label}: ${body}` : body;
+    if (label) return label;
+  }
+  return String(a);
+}
+
 export default async function InboxThreadPage({
   params,
 }: {
@@ -207,7 +234,10 @@ export default async function InboxThreadPage({
   for (let i = messages.length - 1; i >= 0; i--) {
     const a = messages[i]?.aiSuggestedActions;
     if (Array.isArray(a) && a.length > 0) {
-      suggestedActions = (a as unknown[]).map(String).slice(0, 6);
+      suggestedActions = (a as unknown[])
+        .map(actionText)
+        .filter((s) => s && s !== '[object Object]')
+        .slice(0, 6);
       break;
     }
   }

@@ -126,7 +126,12 @@ export default async function InboxPage() {
           ORDER BY sent_at DESC LIMIT 1
         ) inb ON true
         LEFT JOIN LATERAL (
-          SELECT (ai_suggested_actions->>0) AS next_action
+          -- actions come in two shapes: plain strings or {type, reason} objects;
+          -- prefer the object's reason, else the raw string element.
+          SELECT COALESCE(
+            ai_suggested_actions->0->>'reason',
+            ai_suggested_actions->>0
+          ) AS next_action
           FROM email_messages
           WHERE thread_id = et.id
             AND ai_suggested_actions IS NOT NULL
