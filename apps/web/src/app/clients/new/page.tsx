@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { PageHeader, Card, Button } from '@antagna/ui';
+import { PageHeader, Card } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
-import { ArrowLeft, Save, Network } from 'lucide-react';
+import { ArrowLeft, Network } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/authz';
-import { createClient } from '../actions';
+import { NewClientForm } from './new-client-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,17 +25,16 @@ export default async function NewClientPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/clients/new');
 
-  // Page guard: creating a client is gated on client.create.
   await requirePermission('client.create');
 
-  // When opened from an agency ("+ عميل نهائي"), resolve its name for the banner.
-  let agencyName: string | null = null;
-  if (agencyId) {
-    const r = (await db.execute(
-      sql`SELECT name_ar FROM clients WHERE id = ${agencyId}::uuid LIMIT 1`,
-    )) as unknown as Array<{ name_ar: string | null }>;
-    agencyName = r[0]?.name_ar ?? null;
-  }
+  // Agencies for the inline "under agency" picker + the locked-agency banner.
+  const agencyRows = (await db.execute(sql`
+    SELECT id::text AS id, name_ar AS "nameAr"
+    FROM clients
+    WHERE is_agency = true AND archived_at IS NULL
+    ORDER BY name_ar LIMIT 100
+  `)) as unknown as Array<{ id: string; nameAr: string | null }>;
+  const agencyName = agencyId ? (agencyRows.find((a) => a.id === agencyId)?.nameAr ?? null) : null;
 
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/crm">
@@ -51,7 +50,7 @@ export default async function NewClientPage({
         <PageHeader
           eyebrow="عميل جديد"
           title="إضافة عميل"
-          subtitle="حدد الـ code والاسم — البقية اختياري ويمكن تعديله لاحقاً."
+          subtitle="اكتب الاسم واضغط «ابحث بالـ AI» ليملأ الباقي — أو املأ يدوياً. الأساسيات فقط مطلوبة."
         />
 
         {leadId && (
@@ -68,188 +67,14 @@ export default async function NewClientPage({
         )}
 
         <Card>
-          <form action={createClient} className="space-y-6">
-            {leadId && <input type="hidden" name="leadId" value={leadId} />}
-            {agencyId && <input type="hidden" name="agencyId" value={agencyId} />}
-
-            {/* Code is auto-generated server-side from the English/Arabic name. */}
-
-            <Field label="الاسم (عربي)" required>
-              <input
-                type="text"
-                name="nameAr"
-                required
-                defaultValue={prefillName}
-                placeholder="مينام"
-                className="form-input"
-              />
-            </Field>
-
-            <Field label="Name (English)">
-              <input
-                type="text"
-                name="nameEn"
-                placeholder="Mynm"
-                className="form-input"
-              />
-            </Field>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field
-                label="للحساب"
-                hint="Volt (إنتاج) أم محتوى أبو لوكا — يحدد التقارير ومسارات الاعتماد."
-                required
-              >
-                <select name="forBrandUnit" defaultValue="volt_production" className="form-input">
-                  <option value="volt_production">Volt — إنتاج</option>
-                  <option value="abu_luka">محتوى أبو لوكا</option>
-                </select>
-              </Field>
-              <Field
-                label="نوع العميل"
-                hint="هل تتعامل مع العلامة مباشرةً أم عبر وكالة وسيطة؟"
-              >
-                <select
-                  name="clientType"
-                  defaultValue="brand"
-                  className="form-input"
-                >
-                  <option value="brand">العلامة مباشرةً (brand)</option>
-                  <option value="agency">وكالة وسيطة (agency)</option>
-                  <option value="dealer">موزِّع (dealer)</option>
-                  <option value="other">أخرى</option>
-                </select>
-              </Field>
-            </div>
-
-            <Field label="القطاع">
-              <select name="industry" defaultValue="" className="form-input" id="industry-select">
-                <option value="">— اختر القطاع —</option>
-                <option value="real_estate">عقارات</option>
-                <option value="automotive">سيارات</option>
-                <option value="f_and_b">مطاعم وأغذية</option>
-                <option value="retail">تجزئة</option>
-                <option value="beauty_fashion">موضة وجمال</option>
-                <option value="tech">تقنية وستارت أب</option>
-                <option value="other">أخرى…</option>
-              </select>
-              <input
-                type="text"
-                name="industryOther"
-                placeholder="اكتب القطاع لو اخترت أخرى"
-                className="form-input mt-2"
-              />
-            </Field>
-
-            <Field label="الاسم القانوني">
-              <input
-                type="text"
-                name="legalName"
-                placeholder="شركة مينام للتجارة"
-                className="form-input"
-              />
-            </Field>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <Field label="الدولة">
-                <input
-                  type="text"
-                  name="country"
-                  defaultValue="SA"
-                  className="form-input font-mono uppercase"
-                />
-              </Field>
-              <Field label="المدينة">
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="الرياض"
-                  className="form-input"
-                />
-              </Field>
-              <Field label="الموقع">
-                <input
-                  type="url"
-                  name="websiteUrl"
-                  placeholder="https://…"
-                  className="form-input font-mono"
-                />
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="الرقم الضريبي">
-                <input
-                  type="text"
-                  name="vatNumber"
-                  placeholder="3xxxxxxxxxx"
-                  className="form-input font-mono"
-                />
-              </Field>
-              <Field label="رقم السجل التجاري">
-                <input
-                  type="text"
-                  name="crNumber"
-                  className="form-input font-mono"
-                />
-              </Field>
-            </div>
-
-            <div className="flex items-center gap-3 border-t border-[var(--line)] pt-6">
-              <Button variant="primary" size="lg" icon={<Save size={16} />}>
-                إنشاء
-              </Button>
-              <Link
-                href="/crm"
-                className="inline-flex h-10 items-center rounded-md px-4 text-sm text-[var(--text-muted)] hover:bg-[var(--surface)]/60 hover:text-[var(--text)]"
-              >
-                إلغاء
-              </Link>
-            </div>
-          </form>
+          <NewClientForm
+            agencies={agencyRows}
+            prefillName={prefillName}
+            leadId={leadId}
+            lockedAgencyId={agencyId}
+          />
         </Card>
       </div>
-
-      <style>{`
-        .form-input {
-          width: 100%;
-          height: 40px;
-          padding: 0 12px;
-          border-radius: 12px;
-          border: 1px solid var(--line);
-          background: var(--bg-elevated);
-          color: var(--text);
-          font-size: 14px;
-        }
-        .form-input:focus { outline: none; border-color: var(--accent); }
-      `}</style>
     </Shell>
-  );
-}
-
-function Field({
-  label,
-  required,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="block text-sm font-medium text-[var(--text)]">
-        {label}
-        {required && <span className="text-[var(--accent)]"> *</span>}
-      </span>
-      {hint && (
-        <span className="block text-[11px] leading-relaxed text-[var(--text-dim)]">
-          {hint}
-        </span>
-      )}
-      {children}
-    </label>
   );
 }

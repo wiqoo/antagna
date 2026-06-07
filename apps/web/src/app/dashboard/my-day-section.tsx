@@ -14,9 +14,9 @@ import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { Card, CardHeader, StatusPill, EmptyState } from '@antagna/ui';
 import {
-  ListChecks, CalendarDays, CheckSquare, Inbox, ClipboardCheck, Camera, Sparkles,
+  ListChecks, CalendarDays, CheckSquare, Inbox, ClipboardCheck, Camera, Sparkles, RefreshCw,
 } from 'lucide-react';
-import { ensureTodayAiRoutine, type RoutineSignals } from './my-day-actions';
+import { ensureTodayAiRoutine, clearTodayAiRoutine, type RoutineSignals } from './my-day-actions';
 import { RoutineChecklist, type RoutineRow } from './routine';
 
 const PRIORITY_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'danger'> = {
@@ -123,7 +123,7 @@ async function MyDayInner({
       FROM daily_tasks
       WHERE owner_id = ${me}::uuid
         AND status IN ('pending','in_progress','blocked')
-        AND (source_key IS NULL OR source_key NOT LIKE 'routine:%')
+        AND (source_key IS NULL OR (source_key NOT LIKE 'routine:%' AND source_key NOT LIKE 'ai_routine:%'))
         AND due_at IS NOT NULL
         AND (due_at AT TIME ZONE 'Asia/Riyadh')::date
             <= (now() AT TIME ZONE 'Asia/Riyadh')::date
@@ -212,6 +212,18 @@ async function MyDayInner({
               positionNameAr
                 ? `خطّة ${positionNameAr} — رتّبها الـ AI حسب شغلك اليوم`
                 : 'خطّتك اليوميّة — رتّبها الـ AI حسب شغلك اليوم'
+            }
+            action={
+              isImpersonating ? undefined : (
+                <form action={clearTodayAiRoutine}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--line)] px-2.5 text-[11px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  >
+                    <RefreshCw size={11} /> جدّد الخطة
+                  </button>
+                </form>
+              )
             }
           />
           <RoutineChecklist initial={routineRows} />

@@ -378,6 +378,64 @@ export async function enrichClientAction(
   return { ok: true };
 }
 
+/**
+ * AI-assist for the new-client form: research a company by name or website and
+ * return the fields we can pre-fill (industry, website, city/country). Used by
+ * the "ابحث بالـ AI" button so the user types a name and the form fills itself.
+ */
+export async function researchClientFields(query: string): Promise<{
+  ok: boolean;
+  fields?: {
+    industry: string | null;
+    websiteUrl: string | null;
+    city: string | null;
+    country: string | null;
+    summaryAr: string | null;
+  };
+  error?: string;
+}> {
+  const q = query?.trim();
+  if (!q) return { ok: false, error: 'اكتب اسم الشركة أو موقعها' };
+
+  let actorId: string;
+  try {
+    actorId = await requirePermissionAction('client.create');
+  } catch {
+    return { ok: false, error: 'لا تملك صلاحية' };
+  }
+  try {
+    await assertAiBudget({ userId: actorId, feature: 'client_enrichment' });
+  } catch {
+    return { ok: false, error: 'تم تجاوز حد ميزانية الـ AI لهذا الشهر' };
+  }
+
+  const looksLikeDomain = /\.[a-z]{2,}/i.test(q) && !/\s/.test(q);
+  const r = await enrichCompanyFromWeb({
+    name: q,
+    domain: looksLikeDomain ? q.replace(/^https?:\/\//i, '').replace(/\/.*$/, '') : null,
+    country: 'SA',
+  });
+  if (!r.ok) return { ok: false, error: r.error ?? 'تعذّر البحث' };
+
+  let city: string | null = null;
+  let country: string | null = null;
+  if (r.hqLocation) {
+    const parts = r.hqLocation.split(',').map((s) => s.trim()).filter(Boolean);
+    city = parts[0] ?? null;
+    country = parts[1] ?? null;
+  }
+  return {
+    ok: true,
+    fields: {
+      industry: r.industry ?? null,
+      websiteUrl: r.websiteUrl ?? null,
+      city,
+      country,
+      summaryAr: r.summaryAr ?? null,
+    },
+  };
+}
+
 export async function updateClient(clientId: string, formData: FormData) {
   const actorId = await requirePermissionAction('client.update');
 
