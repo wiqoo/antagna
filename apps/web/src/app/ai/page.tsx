@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { canAny } from '@/lib/authz';
+import { getOrRefreshBrief } from '@/lib/ai-center-brief';
+import { refreshAiCenterBrief } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +92,9 @@ export default async function AiCenterPage() {
   const routineCount = n((routineRes as unknown as Array<{ cnt: number }>)[0]?.cnt);
   const recent = recentRes as unknown as Array<{ feature: string; model: string; created_at: string }>;
 
+  // Narrative brief (cached in system_settings; regenerates when stale/missing).
+  const brief = await getOrRefreshBrief({});
+
   const maxFeatureCost = Math.max(0.000001, ...byFeature.map((f) => n(f.cost)));
   const maxScope = Math.max(1, ...byScope.map((s) => s.cnt));
 
@@ -107,6 +112,31 @@ export default async function AiCenterPage() {
         title={<span className="inline-flex items-center gap-2"><Sparkles size={20} className="text-[var(--accent)]" /> مركز الذكاء الاصطناعي</span>}
         subtitle="كل ما يفعله الـ AI في النظام — التكلفة، الذاكرة، الاقتراحات، والحوسبة المسبقة — في مكان واحد."
       />
+
+      {/* AI narrative brief */}
+      <Card>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--accent)]/15 text-[var(--accent)]"><Brain size={15} /></span>
+            <div>
+              <h3 className="text-[13px] font-semibold text-[var(--text)]">نظرة عامة من الـ AI</h3>
+              <p className="text-[10px] text-[var(--text-dim)]">
+                {brief.generatedAt ? `محدّث ${brief.generatedAt.slice(0, 16).replace('T', ' ')}` : 'لم يُولَّد بعد'}
+              </p>
+            </div>
+          </div>
+          <form action={refreshAiCenterBrief}>
+            <button type="submit" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] px-3 text-[11px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]">
+              <RefreshCw size={12} /> تحديث
+            </button>
+          </form>
+        </div>
+        {brief.content ? (
+          <p className="mt-3 whitespace-pre-wrap text-[13.5px] leading-[1.9] text-[var(--text)]">{brief.content}</p>
+        ) : (
+          <p className="mt-3 text-[12px] text-[var(--text-dim)]">اضغط «تحديث» ليكتب الـ AI نظرة عامة عمّا يجري في النظام وما تعلّمه.</p>
+        )}
+      </Card>
 
       {/* Overview */}
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
