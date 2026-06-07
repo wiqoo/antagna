@@ -34,11 +34,13 @@ import {
   ExternalLink,
   Sparkles,
   Globe,
+  Network,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { SubmitButton } from '@antagna/ui';
 import { addContact, enrichClientAction } from '../actions';
+import { linkBrandToAgency, unlinkBrandFromAgency } from '@/app/crm/actions';
 
 type ClientEnrichment = {
   summary_ar?: string | null;
@@ -191,6 +193,32 @@ export default async function ClientDetailPage({
   }>;
   const enrichment = enrR[0]?.enrichment ?? null;
 
+  // Agency ↔ brand relationship (agency_brand_links). Non-masked link rows.
+  const isAgency = !!client.isAgency;
+  const relRows = (await db.execute(sql`
+    SELECT abl.agency_id::text AS agency_id, abl.brand_id::text AS brand_id,
+           ag.name_ar AS agency_name, br.name_ar AS brand_name
+    FROM agency_brand_links abl
+    LEFT JOIN clients ag ON ag.id = abl.agency_id
+    LEFT JOIN clients br ON br.id = abl.brand_id
+    WHERE abl.agency_id = ${id}::uuid OR abl.brand_id = ${id}::uuid
+  `)) as unknown as Array<{
+    agency_id: string; brand_id: string; agency_name: string | null; brand_name: string | null;
+  }>;
+  const currentAgency =
+    relRows.filter((r) => r.brand_id === id).map((r) => ({ id: r.agency_id, name: r.agency_name }))[0] ?? null;
+  const myBrands = relRows
+    .filter((r) => r.agency_id === id)
+    .map((r) => ({ id: r.brand_id, name: r.brand_name }));
+  const availableAgencies =
+    !isAgency && !currentAgency
+      ? ((await db.execute(sql`
+          SELECT id::text AS id, name_ar
+          FROM clients
+          WHERE is_agency = true AND archived_at IS NULL AND id <> ${id}::uuid
+          ORDER BY name_ar LIMIT 100`)) as unknown as Array<{ id: string; name_ar: string | null }>)
+      : [];
+
   // Void-returning wrapper for the enrich button → runs the web research, then
   // redirects back (with an error param on failure, mirroring addContactAction).
   async function enrichAction(): Promise<void> {
@@ -201,6 +229,19 @@ export default async function ClientDetailPage({
         ? `/clients/${id}`
         : `/clients/${id}?enrichError=${encodeURIComponent(res.error ?? 'تعذّر الإثراء')}`,
     );
+  }
+
+  async function linkAgencyAction(formData: FormData): Promise<void> {
+    'use server';
+    const agencyId = formData.get('agencyId')?.toString();
+    if (agencyId) await linkBrandToAgency(id, agencyId);
+    redirect(`/clients/${id}`);
+  }
+  async function unlinkAgencyAction(formData: FormData): Promise<void> {
+    'use server';
+    const agencyId = formData.get('agencyId')?.toString();
+    if (agencyId) await unlinkBrandFromAgency(id, agencyId);
+    redirect(`/clients/${id}`);
   }
 
   const methodsByContact = methodRows.reduce<
@@ -435,6 +476,94 @@ export default async function ClientDetailPage({
               اضغط "ابحث وأثرِ" ليبحث الـ AI عن الشركة على الويب ويلخّص مَن هم — ويضيف ما يتعلّمه لذاكرة النظام لاقتراحات أذكى لاحقاً.
             </p>
           )
+        )}
+      </Card>
+
+      {/* Agency ↔ brand relationship */}
+      <Card>
+        <CardHeader
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Network size={14} className="text-[var(--accent)]" />
+              {isAgency ? 'العملاء النهائيون' : 'الوكالة'}
+            </span>
+          }
+          subtitle={
+            isAgency
+              ? 'العملاء (brands) تحت هذه الوكالة'
+              : 'الوكالة التي تدير هذا العميل (إن وُجدت)'
+          }
+        />
+        {isAgency ? (
+          <div className="mt-3">
+            {myBrands.length === 0 ? (
+              <p className="text-[12px] text-[var(--text-dim)]">
+                لا عملاء نهائيون مرتبطون بعد.
+              </p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {myBrands.map((b) => (
+                  <li key={b.id}>
+                    <Link
+                      href={`/clients/${b.id}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-[12px] text-[var(--text)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                    >
+                      {b.name ?? '—'}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link
+              href={`/clients/new?agencyId=${id}`}
+              className="mt-3 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline"
+            >
+              <Plus size={12} /> أضِف عميلاً نهائياً تحتها
+            </Link>
+          </div>
+        ) : currentAgency ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href={`/clients/${currentAgency.id}`}
+              className="inline-flex items-center gap-2 text-[13px] hover:text-[var(--accent)]"
+            >
+              <span className="text-[var(--text-dim)]">تُدار عبر وكالة:</span>
+              <span className="font-medium text-[var(--text)]">{currentAgency.name ?? '—'}</span>
+            </Link>
+            <form action={unlinkAgencyAction}>
+              <input type="hidden" name="agencyId" value={currentAgency.id} />
+              <SubmitButton
+                pendingText="…"
+                className="h-8 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2.5 text-[11px] text-[var(--text-muted)] hover:border-[var(--danger)] hover:text-[var(--danger)]"
+              >
+                فكّ الربط
+              </SubmitButton>
+            </form>
+          </div>
+        ) : availableAgencies.length > 0 ? (
+          <form action={linkAgencyAction} className="mt-3 flex flex-wrap items-center gap-2">
+            <select
+              name="agencyId"
+              required
+              defaultValue=""
+              className="h-9 min-w-[200px] rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-[13px] text-[var(--text)]"
+            >
+              <option value="" disabled>— اختر الوكالة —</option>
+              {availableAgencies.map((a) => (
+                <option key={a.id} value={a.id}>{a.name_ar ?? '—'}</option>
+              ))}
+            </select>
+            <SubmitButton
+              pendingText="يربط…"
+              className="h-9 rounded-md bg-[var(--accent)] px-3 text-[12px] font-semibold text-white hover:bg-[var(--accent-hover)]"
+            >
+              اربط بوكالة
+            </SubmitButton>
+          </form>
+        ) : (
+          <p className="mt-3 text-[12px] text-[var(--text-dim)]">
+            لا توجد وكالات بعد. أنشئ عميلاً من نوع «وكالة» أولاً ثم اربط هذا العميل بها.
+          </p>
         )}
       </Card>
 
