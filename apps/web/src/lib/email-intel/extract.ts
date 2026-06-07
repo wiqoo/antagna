@@ -14,8 +14,15 @@ import {
   getAttachmentTextForMessage,
 } from './attachments';
 
-const SYSTEM = `You extract structured data from a single business email for Volt Production
-(Saudi creative agency, Jeddah). Output STRICT JSON matching the schema, no prose.
+const SYSTEM = `You extract structured data from a FULL business email CONVERSATION for Volt Production
+(Saudi creative agency, Jeddah). You are given EVERY message in the thread, the attachment text, and signatures. Read ALL of it. Output STRICT JSON matching the schema, no prose.
+
+Your most important job is to identify WHO THE CLIENT IS and WHO THE CONTACT IS:
+- "sender" = the main EXTERNAL person we deal with in this thread (usually the latest inbound writer). Fill name, email, phone, and especially:
+  - sender.company = the CLIENT organization this person represents (who the work is for / who would pay). It is NEVER "Volt Production" (that's us) and NEVER a free email provider (gmail/hotmail/…). Infer it from their email signature, their domain, and how they speak.
+  - sender.role = their job title — take it from the email SIGNATURE when present.
+- Read signatures + attachments to get company, role and phone right.
+- mentioned_companies / mentioned_people = OTHER organizations/people referenced.
 
 Be conservative: fields you can't confirm should be null/empty array.
 Dates are ISO-8601 (YYYY-MM-DD or full timestamp). Money in SAR as a number.
@@ -110,28 +117,68 @@ export async function extractEmail(
     return { ok: false, messageId: messageDbId, error: 'junk_category' };
   }
 
-  // Cap the body to ~8k chars — most business emails fit easily.
-  const body = (msg.bodyText ?? msg.snippet ?? '').trim().slice(0, 8000);
-  if (body.length < 5 && (msg.attachmentCount ?? 0) === 0) {
-    return { ok: false, messageId: messageDbId, error: 'body_too_short' };
-  }
+  // Read the FULL conversation (all messages, oldest→newest) so the model can
+  // reason about who the client/contact really is — not just the latest line.
+  const threadMsgs = await db
+    .select({
+      id: emailMessages.id,
+      direction: emailMessages.direction,
+      fromName: emailMessages.fromName,
+      fromEmail: emailMessages.fromEmail,
+      bodyText: emailMessages.bodyText,
+      snippet: emailMessages.snippet,
+      sentAt: emailMessages.sentAt,
+    })
+    .from(emailMessages)
+    .where(eq(emailMessages.threadId, msg.threadId))
+    .orderBy(emailMessages.sentAt);
 
-  // Fetch + parse attachments if any, then include their text in the prompt.
-  let attachmentText: string | null = null;
+  // Parse the target message's attachments, then gather attachment text across
+  // the WHOLE thread (read-only) so contracts/briefs in any message are seen.
   if ((msg.attachmentCount ?? 0) > 0) {
     try {
       await processMessageAttachments(msg.id);
-      attachmentText = await getAttachmentTextForMessage(msg.id);
     } catch {
-      // best-effort; extraction still proceeds without attachment text
+      // best-effort
     }
   }
+  const attachmentChunks: string[] = [];
+  for (const tm of threadMsgs) {
+    try {
+      const at = await getAttachmentTextForMessage(tm.id);
+      if (at) attachmentChunks.push(at);
+    } catch {
+      // best-effort
+    }
+  }
+  const attachmentText = attachmentChunks.length
+    ? attachmentChunks.join('\n\n').slice(0, 24_000)
+    : null;
 
-  const userPrompt = `Subject: ${msg.subject ?? thread?.subject ?? '(none)'}
-From: ${msg.fromName ?? ''} <${msg.fromEmail}>
-Sent: ${new Date(msg.sentAt).toISOString()}
+  // Transcript keeps each body up to 4000 chars so SIGNATURES (at the end)
+  // survive; whole transcript capped at 16k.
+  const transcript = threadMsgs
+    .map((tm) => {
+      const who =
+        tm.direction === 'outbound' ? 'Volt (us)' : `${tm.fromName ?? ''} <${tm.fromEmail}>`;
+      const when = tm.sentAt
+        ? new Date(tm.sentAt).toISOString().slice(0, 16).replace('T', ' ')
+        : '';
+      const dir = tm.direction === 'inbound' ? '↓ IN' : '↑ OUT';
+      return `[${dir} ${when}] ${who}:\n${(tm.bodyText ?? tm.snippet ?? '').trim().slice(0, 4000)}`;
+    })
+    .join('\n\n')
+    .slice(0, 16_000);
 
-${body}${attachmentText ? `\n\n──── Attachments ────\n${attachmentText}` : ''}`;
+  if (transcript.trim().length < 5 && !attachmentText) {
+    return { ok: false, messageId: messageDbId, error: 'body_too_short' };
+  }
+
+  const userPrompt = `Subject: ${thread?.subject ?? msg.subject ?? '(none)'}
+Latest inbound from: ${msg.fromName ?? ''} <${msg.fromEmail}>
+
+──── Conversation (oldest → newest) ────
+${transcript}${attachmentText ? `\n\n──── Attachments (across the thread) ────\n${attachmentText}` : ''}`;
 
   await assertAiBudget({ userId: null, feature: 'email_intel_extract' });
 
@@ -141,8 +188,8 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
   let outputTokens = 0;
   try {
     const resp = await client.messages.create({
-      model: ANTHROPIC_MODELS.haiku,
-      max_tokens: 1500,
+      model: ANTHROPIC_MODELS.sonnet,
+      max_tokens: 2000,
       system: SYSTEM,
       messages: [{ role: 'user', content: userPrompt }],
     });
@@ -157,7 +204,7 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
     outputTokens = resp.usage.output_tokens ?? 0;
     await recordUsage({
       feature: 'email_intel_extract',
-      model: ANTHROPIC_MODELS.haiku,
+      model: ANTHROPIC_MODELS.sonnet,
       inputTokens,
       outputTokens,
       userId: null,
@@ -178,9 +225,9 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
   }
   const confidence = Math.max(0, Math.min(1, Number(data.confidence ?? 0.5)));
 
-  // Claude Haiku 4.5: $0.80/Mtok input, $4.00/Mtok output
+  // Claude Sonnet 4.6: $3/Mtok input, $15/Mtok output
   const costUsd =
-    (inputTokens * 0.8 + outputTokens * 4.0) / 1_000_000;
+    (inputTokens * 3 + outputTokens * 15) / 1_000_000;
 
   const [row] = await db
     .insert(emailExtractions)
@@ -189,7 +236,7 @@ ${body}${attachmentText ? `\n\n──── Attachments ────\n${attachme
       messageId: msg.id,
       data: data as unknown as Record<string, unknown>,
       confidence: confidence.toFixed(2),
-      model: ANTHROPIC_MODELS.haiku,
+      model: ANTHROPIC_MODELS.sonnet,
       inputTokens,
       outputTokens,
       costUsd: costUsd.toFixed(6),

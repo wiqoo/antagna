@@ -97,8 +97,28 @@ export async function generateSuggestionsForExtraction(
     domainClientId = c?.id ?? null;
   }
 
+  // Fallback: match an existing client by COMPANY NAME (ar/en) so a returning
+  // client is LINKED, not duplicated — part of "understand who the client is".
+  let matchedClientId: string | null = domainClientId;
+  if (!knownContact && !matchedClientId && senderCompany) {
+    const needle = senderCompany.trim().toLowerCase();
+    if (needle.length >= 3) {
+      const [c] = await db
+        .select({ id: clients.id })
+        .from(clients)
+        .where(
+          and(
+            isNull(clients.archivedAt),
+            sql`(lower(${clients.nameEn}) LIKE ${'%' + needle + '%'} OR lower(${clients.nameAr}) LIKE ${'%' + needle + '%'})`,
+          ),
+        )
+        .limit(1);
+      matchedClientId = c?.id ?? null;
+    }
+  }
+
   // → suggest create_client for unknown senders with a company hint
-  if (!knownContact && !domainClientId && senderCompany && data.intent !== 'introduction'
+  if (!knownContact && !matchedClientId && senderCompany && data.intent !== 'introduction'
       && data.intent !== 'other') {
     suggestions.push({
       type: 'create_client',
@@ -117,12 +137,12 @@ export async function generateSuggestionsForExtraction(
   }
 
   // → suggest create_contact when client is known but sender is new
-  if (!knownContact && (domainClientId || senderCompany) && senderName) {
+  if (!knownContact && (matchedClientId || senderCompany) && senderName) {
     suggestions.push({
       type: 'create_contact',
       data: {
         type: 'create_contact',
-        client_id: domainClientId,
+        client_id: matchedClientId,
         full_name: senderName,
         full_name_ar: null,
         job_title: data.sender?.role ?? null,
@@ -130,7 +150,7 @@ export async function generateSuggestionsForExtraction(
         phone_e164: data.sender?.phone ?? null,
         is_primary: false,
       },
-      summary: domainClientId
+      summary: matchedClientId
         ? `جهة اتصال جديدة: ${senderName} (لعميل موجود)`
         : `جهة اتصال جديدة: ${senderName}`,
       confidence: clamp(data.confidence * 0.85, 0.4, 0.95),
@@ -148,7 +168,7 @@ export async function generateSuggestionsForExtraction(
       type: 'create_project',
       data: {
         type: 'create_project',
-        client_id: domainClientId ?? knownContact?.clientId ?? null,
+        client_id: matchedClientId ?? knownContact?.clientId ?? null,
         title,
         title_ar: data.project_signals.proposed_title_ar ?? null,
         description: data.summary_ar,
