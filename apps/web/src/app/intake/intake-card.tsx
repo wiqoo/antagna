@@ -15,7 +15,6 @@ export type Candidate = {
   clientExists: boolean;
   contactName: string;
   contactEmail: string;
-  valueSar: number | null;
   deliveryDue: string | null;
   summary: string | null;
 };
@@ -36,7 +35,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
   const [contactName, setContactName] = useState(c.contactName);
   const [contactEmail, setContactEmail] = useState(c.contactEmail);
   const [stage, setStage] = useState('brief');
-  const [valueSar, setValueSar] = useState(c.valueSar?.toString() ?? '');
+  const [quoteNumber, setQuoteNumber] = useState('');
   const [deliveryDue, setDeliveryDue] = useState(c.deliveryDue ?? '');
 
   const [pending, start] = useTransition();
@@ -57,7 +56,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
         contactName,
         contactEmail,
         stage,
-        valueSar: valueSar ? Number(valueSar) : null,
+        quoteNumber: quoteNumber.trim() || null,
         deliveryDue: deliveryDue || null,
       });
       if (res.ok) setDoneId(res.projectId ?? 'ok');
@@ -133,8 +132,8 @@ export function IntakeCard({ c }: { c: Candidate }) {
             {STAGES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
           </select>
         </Field>
-        <Field label="القيمة (ر.س)" missing={!valueSar}>
-          <input value={valueSar} onChange={(e) => setValueSar(e.target.value)} type="number" className={inp(!valueSar) + ' font-mono'} placeholder="0" />
+        <Field label="رقم عرض السعر">
+          <input value={quoteNumber} onChange={(e) => setQuoteNumber(e.target.value)} className={inp(false) + ' font-mono'} dir="ltr" placeholder="من دفترة (اختياري)" />
         </Field>
         <Field label="موعد التسليم" missing={!deliveryDue}>
           <input value={deliveryDue} onChange={(e) => setDeliveryDue(e.target.value)} type="date" className={inp(!deliveryDue) + ' font-mono'} />

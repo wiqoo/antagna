@@ -69,7 +69,6 @@ export default async function IntakePage() {
     const titleEn = str(get(d, ['project_signals', 'proposed_title_en']));
     const clientName = str(get(d, ['sender', 'company']));
     const delivery = str(get(d, ['dates', 'delivery_deadline_iso']));
-    const budget = get(d, ['budget', 'amount_sar']);
     return {
       threadId: r.thread_id,
       subject: r.subject ?? '(بدون عنوان)',
@@ -80,7 +79,6 @@ export default async function IntakePage() {
       clientExists: clientExists(clientName),
       contactName: str(get(d, ['sender', 'name'])),
       contactEmail: str(get(d, ['sender', 'email'])),
-      valueSar: typeof budget === 'number' ? budget : Number(budget) || null,
       deliveryDue: /^\d{4}-\d{2}-\d{2}/.test(delivery) ? delivery.slice(0, 10) : null,
       summary: str(get(d, ['summary_ar'])) || null,
     };
