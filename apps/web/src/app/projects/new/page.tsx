@@ -10,7 +10,7 @@ import { PageHeader } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { ArrowLeft } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/authz';
+import { requirePermission, can } from '@/lib/authz';
 import { createProject } from './actions';
 import { IntakeForm } from './intake-form';
 
@@ -24,7 +24,7 @@ export default async function NewProjectPage() {
   // Page guard: creating a project is gated on project.create.
   await requirePermission('project.create');
 
-  const [clientList, profileList] = await Promise.all([
+  const [clientList, profileList, canCreateClient] = await Promise.all([
     db
       .select({
         id: clients.id,
@@ -44,6 +44,7 @@ export default async function NewProjectPage() {
       .from(profiles)
       .where(eq(profiles.status, 'active'))
       .orderBy(profiles.displayName),
+    can('client.create'),
   ]);
 
   return (
@@ -67,6 +68,7 @@ export default async function NewProjectPage() {
           clients={clientList}
           profiles={profileList}
           commitAction={createProject}
+          canCreateClient={canCreateClient}
         />
       </div>
     </Shell>

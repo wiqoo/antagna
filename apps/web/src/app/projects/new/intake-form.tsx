@@ -3,9 +3,10 @@
 import { useEffect, useState, useTransition } from 'react';
 import {
   Sparkles, Loader2, Plus, X, Building2, Film, MapPin,
-  Users, ChevronDown, ChevronUp,
+  Users, ChevronDown, ChevronUp, UserPlus,
 } from 'lucide-react';
 import { parseBriefRich, parseBriefFromFiles, type ParsedBrief } from './actions';
+import { QuickClientModal, type QuickClient } from './quick-client-modal';
 
 type Client = { id: string; code: string; nameAr: string; isAgency?: boolean };
 type Profile = { id: string; displayName: string; positionKey: string | null };
@@ -76,10 +77,12 @@ export function IntakeForm({
   clients,
   profiles,
   commitAction,
+  canCreateClient = false,
 }: {
   clients: Client[];
   profiles: Profile[];
   commitAction: (formData: FormData) => void | Promise<void>;
+  canCreateClient?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   // Rolling progress hint while the AI parses (Mohammed's audit: "8s of silence
@@ -105,6 +108,10 @@ export function IntakeForm({
   const [briefText, setBriefText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [forBrandUnit, setForBrandUnit] = useState('volt_production');
+  // Local client list so a quick-added client appears + gets selected without
+  // a page reload (the prop is the server snapshot at first render).
+  const [clientList, setClientList] = useState<Client[]>(clients);
+  const [quickClientOpen, setQuickClientOpen] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedBrief | null>(null);
   const [step, setStep] = useState(0);
@@ -130,8 +137,21 @@ export function IntakeForm({
   const [productionManagerId, setProductionManagerId] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const brands = clients.filter((c) => !c.isAgency);
-  const agencies = clients.filter((c) => c.isAgency);
+  const brands = clientList.filter((c) => !c.isAgency);
+  const agencies = clientList.filter((c) => c.isAgency);
+
+  // A client just created via the quick popup: add it to the list (sorted) and
+  // auto-select it into the right dropdown (brand vs agency) so the user keeps
+  // flowing through the project form.
+  function handleClientCreated(c: QuickClient) {
+    const created: Client = { id: c.id, code: c.code, nameAr: c.nameAr, isAgency: c.isAgency };
+    setClientList((prev) =>
+      [...prev, created].sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar')),
+    );
+    if (c.isAgency) setAgencyId(c.id);
+    else setClientId(c.id);
+    setQuickClientOpen(false);
+  }
 
   // Manager dropdowns are filtered by position. general_manager is always
   // eligible for any of the three roles; the optional crew picker stays
@@ -299,6 +319,7 @@ export function IntakeForm({
   }
 
   return (
+    <>
     <form action={commitAction} onSubmit={preSubmit} className="space-y-6">
       {/* AI hidden fields — always submitted regardless of step */}
       <input type="hidden" name="sourceText" value={briefText} />
@@ -444,6 +465,15 @@ export function IntakeForm({
                 <option key={c.id} value={c.id}>{c.code} · {c.nameAr}</option>
               ))}
             </select>
+            {canCreateClient && (
+              <button
+                type="button"
+                onClick={() => setQuickClientOpen(true)}
+                className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--accent)] hover:underline"
+              >
+                <UserPlus size={12} /> عميل جديد — إضافة سريعة
+              </button>
+            )}
           </Row>
           <Row label="الـ Agency (وسيط)" hint="اختياري — لو فيه agency بتدير المشروع">
             <select name="agencyId" value={agencyId} onChange={(e) => setAgencyId(e.target.value)} className="form-input">
@@ -785,6 +815,13 @@ export function IntakeForm({
       {/* Avoid unused-import lint */}
       <span className="hidden">{String(showAdvanced)}{String(setShowAdvanced)}{String(ChevronDown)}{String(ChevronUp)}</span>
     </form>
+    <QuickClientModal
+      open={quickClientOpen}
+      onClose={() => setQuickClientOpen(false)}
+      onCreated={handleClientCreated}
+      defaultBrandUnit={forBrandUnit}
+    />
+    </>
   );
 }
 

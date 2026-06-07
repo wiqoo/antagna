@@ -27,38 +27,35 @@ function slugFromName(name: string): string {
   return cleaned || 'CLNT';
 }
 
-export async function createClient(formData: FormData) {
-  const actorId = await requirePermissionAction('client.create');
+type NewClientFields = {
+  nameAr: string;
+  nameEn: string | null;
+  legalName: string | null;
+  clientType: string;
+  industry: string | null;
+  country: string;
+  city: string | null;
+  websiteUrl: string | null;
+  vatNumber: string | null;
+  crNumber: string | null;
+  forBrandUnit: string;
+};
 
-  const nameAr = formData.get('nameAr')?.toString().trim();
-  const nameEn = formData.get('nameEn')?.toString().trim() || null;
-  const legalName = formData.get('legalName')?.toString().trim() || null;
-  const clientType = formData.get('clientType')?.toString() || 'brand';
-  // Industry: dropdown ('other' lets a free-text industryOther override).
-  const industryPick = formData.get('industry')?.toString().trim() || null;
-  const industryOther = formData.get('industryOther')?.toString().trim() || null;
-  const industry =
-    industryPick === 'other'
-      ? industryOther || null
-      : industryPick;
-  const country = formData.get('country')?.toString().trim() || 'SA';
-  const city = formData.get('city')?.toString().trim() || null;
-  const websiteUrl = formData.get('websiteUrl')?.toString().trim() || null;
-  const vatNumber = formData.get('vatNumber')?.toString().trim() || null;
-  const crNumber = formData.get('crNumber')?.toString().trim() || null;
-  // Which Volt sub-brand owns this client (Mohammed's spec).
-  const forBrandUnit = formData.get('forBrandUnit')?.toString() || 'volt_production';
-
-  if (!nameAr) throw new Error('nameAr required');
-
-  // Auto-generate a code from the English (or Arabic) name — Mohammed's audit
-  // flagged the visible-but-useless Code field. Server keeps it for the URL
-  // segment + Dafterah ref but never asks the user. We transliterate Arabic so
-  // Arabic-only names don't all collapse to 'CLNT', pre-probe for a free slug,
-  // and (because `clients.code` is UNIQUE and another request could race us)
-  // retry the INSERT on a unique violation with a sequential CLNT-NNN fallback.
-  const slug = slugFromName(nameEn ?? nameAr);
-  const customFields = { for_brand_unit: forBrandUnit };
+/**
+ * Shared client INSERT used by both the full form action and the quick-add
+ * popup, so the two stay perfectly consistent. Auto-generates a unique `code`
+ * (transliterated slug → numeric suffix → CLNT-NNN fallback) and — unlike the
+ * old inline version — sets `is_agency` from `client_type` so an "agency"
+ * actually lands under agencies (the brand/agency dropdowns filter on it).
+ * Returns the new row's id/code/is_agency.
+ */
+async function insertClient(
+  actorId: string,
+  f: NewClientFields,
+): Promise<{ id: string; code: string; isAgency: boolean }> {
+  const slug = slugFromName(f.nameEn ?? f.nameAr);
+  const isAgency = f.clientType === 'agency';
+  const customFields = { for_brand_unit: f.forBrandUnit };
 
   // Pre-probe candidate codes: slug, slug2, slug3 … up to slug99.
   const candidates: string[] = [slug];
@@ -77,22 +74,23 @@ export async function createClient(formData: FormData) {
 
   const insert = (codeToUse: string) =>
     withActor(actorId, (tx) =>
-      tx.execute<{ id: string }>(sql`
-        INSERT INTO clients (code, name_ar, name_en, legal_name, client_type, industry,
-                             country, city, website_url, vat_number, cr_number,
+      tx.execute<{ id: string; is_agency: boolean }>(sql`
+        INSERT INTO clients (code, name_ar, name_en, legal_name, client_type, is_agency,
+                             industry, country, city, website_url, vat_number, cr_number,
                              custom_fields, created_by)
         VALUES (
-          ${codeToUse}, ${nameAr}, ${nameEn}, ${legalName},
-          ${clientType}::client_type, ${industry}, ${country}, ${city},
-          ${websiteUrl}, ${vatNumber}, ${crNumber},
+          ${codeToUse}, ${f.nameAr}, ${f.nameEn}, ${f.legalName},
+          ${f.clientType}::client_type, ${isAgency}, ${f.industry}, ${f.country}, ${f.city},
+          ${f.websiteUrl}, ${f.vatNumber}, ${f.crNumber},
           ${JSON.stringify(customFields)}::jsonb,
           ${actorId}::uuid
         )
-        RETURNING id
+        RETURNING id, is_agency
       `),
     );
 
   let newId: string | undefined;
+  let newIsAgency = isAgency;
   // First attempt with the pre-probed code, then deterministic CLNT-NNN
   // fallbacks if a concurrent insert grabbed the same code in between.
   const attempts: string[] = [code];
@@ -100,8 +98,9 @@ export async function createClient(formData: FormData) {
   let lastErr: unknown;
   for (const attempt of attempts) {
     try {
-      const res = await insert(attempt);
-      newId = (res as unknown as Array<{ id: string }>)[0]?.id;
+      const res = (await insert(attempt)) as unknown as Array<{ id: string; is_agency: boolean }>;
+      newId = res[0]?.id;
+      newIsAgency = res[0]?.is_agency ?? isAgency;
       code = attempt;
       break;
     } catch (e) {
@@ -115,6 +114,37 @@ export async function createClient(formData: FormData) {
     }
   }
   if (!newId) throw lastErr ?? new Error('insert failed');
+  return { id: newId, code, isAgency: newIsAgency };
+}
+
+export async function createClient(formData: FormData) {
+  const actorId = await requirePermissionAction('client.create');
+
+  const nameAr = formData.get('nameAr')?.toString().trim();
+  if (!nameAr) throw new Error('nameAr required');
+  const nameEn = formData.get('nameEn')?.toString().trim() || null;
+
+  // Industry: dropdown ('other' lets a free-text industryOther override).
+  const industryPick = formData.get('industry')?.toString().trim() || null;
+  const industryOther = formData.get('industryOther')?.toString().trim() || null;
+  const industry = industryPick === 'other' ? industryOther || null : industryPick;
+
+  // Code is auto-generated + is_agency derived inside insertClient (shared with
+  // the quick-add popup so both creation paths behave identically).
+  const { id: newId, code } = await insertClient(actorId, {
+    nameAr,
+    nameEn,
+    legalName: formData.get('legalName')?.toString().trim() || null,
+    clientType: formData.get('clientType')?.toString() || 'brand',
+    industry,
+    country: formData.get('country')?.toString().trim() || 'SA',
+    city: formData.get('city')?.toString().trim() || null,
+    websiteUrl: formData.get('websiteUrl')?.toString().trim() || null,
+    vatNumber: formData.get('vatNumber')?.toString().trim() || null,
+    crNumber: formData.get('crNumber')?.toString().trim() || null,
+    // Which Volt sub-brand owns this client (Mohammed's spec).
+    forBrandUnit: formData.get('forBrandUnit')?.toString() || 'volt_production',
+  });
 
   await writeActivity({
     actorId,
@@ -149,6 +179,66 @@ export async function createClient(formData: FormData) {
 
   revalidatePath('/crm');
   redirect(`/clients/${newId}`);
+}
+
+/**
+ * Quick-add a client from inside another form (e.g. the new-project intake).
+ * Unlike `createClient` it does NOT redirect — it returns the new row so the
+ * caller can append + select it in place. Only the essentials are required;
+ * the rest is editable later on the client page.
+ */
+export async function createClientQuick(input: {
+  nameAr: string;
+  nameEn?: string | null;
+  clientType?: string;
+  forBrandUnit?: string;
+  industry?: string | null;
+}): Promise<
+  | { ok: true; client: { id: string; code: string; nameAr: string; isAgency: boolean } }
+  | { ok: false; error: string }
+> {
+  const nameAr = input.nameAr?.trim();
+  if (!nameAr) return { ok: false, error: 'الاسم (عربي) مطلوب' };
+
+  let actorId: string;
+  try {
+    actorId = await requirePermissionAction('client.create');
+  } catch {
+    return { ok: false, error: 'لا تملك صلاحية إضافة عميل' };
+  }
+
+  const clientType = input.clientType || 'brand';
+  try {
+    const { id, code, isAgency } = await insertClient(actorId, {
+      nameAr,
+      nameEn: input.nameEn?.trim() || null,
+      legalName: null,
+      clientType,
+      industry: input.industry?.trim() || null,
+      country: 'SA',
+      city: null,
+      websiteUrl: null,
+      vatNumber: null,
+      crNumber: null,
+      forBrandUnit: input.forBrandUnit || 'volt_production',
+    });
+
+    await writeActivity({
+      actorId,
+      entityType: 'client',
+      entityId: id,
+      action: 'client_created',
+      summaryAr: `أُضيف عميل جديد: ${nameAr} (${code})`,
+      summaryEn: `New client added: ${input.nameEn ?? nameAr} (${code})`,
+    });
+
+    revalidatePath('/crm');
+    revalidatePath('/projects/new');
+    return { ok: true, client: { id, code, nameAr, isAgency } };
+  } catch (e) {
+    const msg = String((e as { message?: string })?.message ?? e);
+    return { ok: false, error: msg.slice(0, 180) };
+  }
 }
 
 export async function updateClient(clientId: string, formData: FormData) {
