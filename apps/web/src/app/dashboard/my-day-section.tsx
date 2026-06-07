@@ -14,10 +14,9 @@ import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { Card, CardHeader, StatusPill, EmptyState } from '@antagna/ui';
 import {
-  ListChecks, CalendarDays, CheckSquare, Inbox, ClipboardCheck, Camera,
+  ListChecks, CalendarDays, CheckSquare, Inbox, ClipboardCheck, Camera, Sparkles,
 } from 'lucide-react';
-import { loadRoutines, routineSourceKey, riyadhToday } from '@/lib/routines';
-import { ensureTodayRoutine } from './my-day-actions';
+import { ensureTodayAiRoutine, type RoutineSignals } from './my-day-actions';
 import { RoutineChecklist, type RoutineRow } from './routine';
 
 const PRIORITY_TONE: Record<string, 'neutral' | 'info' | 'warning' | 'danger'> = {
@@ -78,35 +77,13 @@ async function MyDayInner({
   const positionNameAr =
     (posRows as unknown as { name_ar: string | null }[])[0]?.name_ar ?? null;
 
-  // Materialize today's routine (idempotent). Skip when an admin is viewing-as
-  // someone else so testing never writes rows onto the impersonated profile.
-  if (!isImpersonating) {
-    await ensureTodayRoutine(me, positionKey).catch((err) => {
-      console.error('[my-day-section] ensureTodayRoutine', err);
-    });
-  }
-
-  const routineItems = loadRoutines(positionKey);
-  const day = riyadhToday();
-  const wantKeys = routineItems.map((it) => routineSourceKey(it.key, day));
-
   const [
-    routineRowsArr,
     shootsArr,
     tasksDueArr,
     dailyDueArr,
     approvalsArr,
     threadsArr,
   ] = await Promise.all([
-    wantKeys.length
-      ? db.execute<{ id: string; source_key: string; status: string }>(sql`
-          SELECT id::text, source_key, status::text AS status
-          FROM daily_tasks
-          WHERE owner_id = ${me}::uuid
-            AND source_key = ANY(ARRAY[${sql.join(wantKeys.map((k) => sql`${k}`), sql`, `)}]::text[])
-        `)
-      : Promise.resolve([] as unknown as Array<{ id: string; source_key: string; status: string }>),
-
     db.execute<{ id: string; title_ar: string | null; title: string; starts_at: Date; city: string | null }>(sql`
       SELECT DISTINCT p.id::text, p.title_ar, p.title, p.shoot_starts_at AS starts_at, c.city
       FROM projects p
@@ -178,28 +155,33 @@ async function MyDayInner({
     `),
   ]);
 
-  const statusBySourceKey = new Map<string, { id: string; status: string }>();
-  for (const r of routineRowsArr as unknown as Array<{ id: string; source_key: string; status: string }>) {
-    statusBySourceKey.set(r.source_key, { id: r.id, status: r.status });
-  }
-  const routineRows: RoutineRow[] = routineItems
-    .map((it) => {
-      const hit = statusBySourceKey.get(routineSourceKey(it.key, day));
-      if (!hit) return null;
-      return {
-        id: hit.id,
-        title: it.titleAr,
-        when: it.when,
-        done: hit.status === 'completed',
-      } satisfies RoutineRow;
-    })
-    .filter((r): r is RoutineRow => r !== null);
-
   const shoots = shootsArr as unknown as Array<{ id: string; title_ar: string | null; title: string; starts_at: Date; city: string | null }>;
   const tasksDue = tasksDueArr as unknown as Array<{ id: string; title: string; priority: string; due_at: Date | null; project_id: string; project_code: string; project_title_ar: string | null; project_title: string }>;
   const dailyDue = dailyDueArr as unknown as Array<{ id: string; title: string; priority: string; due_at: Date | null }>;
   const approvals = approvalsArr as unknown as Array<{ id: string; stage: string; deliverable_title: string | null; project_id: string | null; project_code: string | null; submitted_at: Date }>;
   const threads = threadsArr as unknown as Array<{ id: string; subject: string | null; ai_summary: string | null; status: string; last_message_at: Date | null }>;
+
+  // AI-planned routine for today — generated once/day from the person's JD +
+  // these real signals, cached in daily_tasks. Best-effort; never crashes the
+  // lane (the outer try/catch + the action's own fallback cover failures).
+  const signals: RoutineSignals = {
+    positionNameAr,
+    shoots: shoots.map((s) => ({
+      label: s.title_ar ?? s.title,
+      time: fmtTime(new Date(s.starts_at)),
+      city: s.city,
+    })),
+    tasksDue: tasksDue.map((t) => ({ title: t.title, project: t.project_code })),
+    dailyDue: dailyDue.map((t) => ({ title: t.title })),
+    approvals: approvals.length,
+    threads: threads.map((th) => ({ subject: th.subject ?? th.ai_summary })),
+  };
+  let routineRows: RoutineRow[] = [];
+  try {
+    routineRows = await ensureTodayAiRoutine(me, positionKey, isImpersonating, signals);
+  } catch (err) {
+    console.error('[my-day-section] ensureTodayAiRoutine', err);
+  }
 
   const totalItems =
     shoots.length + tasksDue.length + dailyDue.length + approvals.length + threads.length;
@@ -221,8 +203,16 @@ async function MyDayInner({
       {routineRows.length > 0 && (
         <Card>
           <CardHeader
-            title="روتين اليوم"
-            subtitle={positionNameAr ? `قائمة ${positionNameAr} اليوميّة` : 'قائمتك اليوميّة'}
+            title={
+              <span className="inline-flex items-center gap-2">
+                <Sparkles size={14} className="text-[var(--accent)]" /> روتين اليوم
+              </span>
+            }
+            subtitle={
+              positionNameAr
+                ? `خطّة ${positionNameAr} — رتّبها الـ AI حسب شغلك اليوم`
+                : 'خطّتك اليوميّة — رتّبها الـ AI حسب شغلك اليوم'
+            }
           />
           <RoutineChecklist initial={routineRows} />
         </Card>
