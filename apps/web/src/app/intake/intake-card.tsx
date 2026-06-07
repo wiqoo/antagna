@@ -1,9 +1,23 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Check, X, Loader2, ArrowLeft } from 'lucide-react';
-import { importEmailProject, dismissCandidate } from './actions';
+import {
+  Mail, Check, X, Loader2, ArrowLeft, Sparkles, RefreshCw,
+  ListChecks, HelpCircle, ArrowRight, Users, Link2,
+} from 'lucide-react';
+import { importEmailProject, dismissCandidate, reanalyzeCandidate } from './actions';
+
+/** Only http(s) URLs are safe as an href — reject javascript:/data:/etc from AI output. */
+function safeHref(u: string): string | null {
+  try {
+    const p = new URL(u);
+    return p.protocol === 'http:' || p.protocol === 'https:' ? p.href : null;
+  } catch {
+    return null;
+  }
+}
 
 export type Candidate = {
   threadId: string;
@@ -15,8 +29,17 @@ export type Candidate = {
   clientExists: boolean;
   contactName: string;
   contactEmail: string;
+  contactPhone: string | null;
   deliveryDue: string | null;
   summary: string | null;
+  // Deep intake intelligence
+  brief: string | null;
+  scopeItems: string[];
+  keyDetails: Array<{ label: string; value: string }>;
+  decisionMakers: Array<{ name: string; role: string | null }>;
+  missingInfo: string[];
+  nextStep: string | null;
+  refLinks: string[];
 };
 
 const STAGES = [
@@ -30,15 +53,18 @@ const STAGES = [
 ];
 
 export function IntakeCard({ c }: { c: Candidate }) {
+  const router = useRouter();
   const [title, setTitle] = useState(c.title);
   const [clientName, setClientName] = useState(c.clientName);
   const [contactName, setContactName] = useState(c.contactName);
   const [contactEmail, setContactEmail] = useState(c.contactEmail);
+  const [contactPhone, setContactPhone] = useState(c.contactPhone ?? '');
   const [stage, setStage] = useState('brief');
   const [quoteNumber, setQuoteNumber] = useState('');
   const [deliveryDue, setDeliveryDue] = useState(c.deliveryDue ?? '');
 
   const [pending, start] = useTransition();
+  const [reanalyzing, startReanalyze] = useTransition();
   const [doneId, setDoneId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -55,6 +81,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
         clientName,
         contactName,
         contactEmail,
+        contactPhone: contactPhone.trim() || null,
         stage,
         quoteNumber: quoteNumber.trim() || null,
         deliveryDue: deliveryDue || null,
@@ -67,6 +94,16 @@ export function IntakeCard({ c }: { c: Candidate }) {
     start(async () => {
       await dismissCandidate(c.threadId);
       setHidden(true);
+    });
+  }
+  function reanalyze() {
+    setErr(null);
+    startReanalyze(async () => {
+      const res = await reanalyzeCandidate(c.threadId);
+      if (!res.ok) setErr(res.error ?? 'فشل التحليل');
+      // Soft refresh: re-renders the server component (fresh AI panel) while
+      // preserving any edits the user already typed into the form inputs.
+      else router.refresh();
     });
   }
 
@@ -99,22 +136,110 @@ export function IntakeCard({ c }: { c: Candidate }) {
     );
   }
 
+  const hasIntel =
+    c.brief || c.scopeItems.length > 0 || c.keyDetails.length > 0 || c.decisionMakers.length > 0 || c.refLinks.length > 0;
+
   return (
     <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)]/40 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-dim)]">
           <Mail size={11} /> {c.subject.slice(0, 60)} · {c.msgs} رسالة
         </span>
-        {c.clientExists ? (
-          <span className="rounded-full border border-[var(--success)]/30 bg-[var(--success)]/10 px-2 py-0.5 text-[10px] text-[var(--success)]">عميل موجود</span>
-        ) : (
-          <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--text-dim)]">عميل جديد</span>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={reanalyze}
+            disabled={reanalyzing || pending}
+            title="إعادة تحليل أعمق بالذكاء الاصطناعي"
+            className="inline-flex h-6 items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.06] px-2 text-[10px] text-[var(--accent)] hover:bg-[var(--accent)]/[0.12] disabled:opacity-50"
+          >
+            {reanalyzing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} {reanalyzing ? 'يحلّل…' : 'تحليل أعمق'}
+          </button>
+          {c.clientExists ? (
+            <span className="rounded-full border border-[var(--success)]/30 bg-[var(--success)]/10 px-2 py-0.5 text-[10px] text-[var(--success)]">عميل موجود</span>
+          ) : (
+            <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--text-dim)]">عميل جديد</span>
+          )}
+        </div>
       </div>
 
-      {c.summary && <p className="mb-3 text-[11px] leading-relaxed text-[var(--text-muted)]">{c.summary}</p>}
+      {/* ── AI intelligence panel ── */}
+      {(hasIntel || c.summary) && (
+        <div className="mb-3 space-y-2.5 rounded-lg border border-[var(--accent)]/15 bg-[var(--accent)]/[0.03] p-3">
+          <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">
+            <Sparkles size={11} /> تحليل ذكي
+          </p>
+          {(c.brief || c.summary) && (
+            <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">{c.brief || c.summary}</p>
+          )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {c.scopeItems.length > 0 && (
+            <div>
+              <p className="mb-1 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-dim)]"><ListChecks size={11} /> نطاق العمل</p>
+              <div className="flex flex-wrap gap-1.5">
+                {c.scopeItems.map((s, i) => (
+                  <span key={i} className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 py-0.5 text-[11px] text-[var(--text)]">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {c.keyDetails.length > 0 && (
+            <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+              {c.keyDetails.map((k, i) => (
+                <div key={i} className="flex min-w-0 gap-1.5 text-[11px]">
+                  <span className="shrink-0 text-[var(--text-dim)]">{k.label}:</span>
+                  <span className="min-w-0 break-words text-[var(--text)]">{k.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {c.decisionMakers.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-dim)]"><Users size={11} /> القرار:</span>
+              <span className="text-[11px] text-[var(--text)]">
+                {c.decisionMakers.map((p) => (p.role ? `${p.name} · ${p.role}` : p.name)).join('، ')}
+              </span>
+            </div>
+          )}
+
+          {c.refLinks.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-dim)]"><Link2 size={11} /> روابط:</span>
+              {c.refLinks.map((u, i) => {
+                const href = safeHref(u);
+                return href ? (
+                  <a key={i} href={href} target="_blank" rel="noopener noreferrer" dir="ltr" className="max-w-[200px] truncate text-[11px] text-[var(--accent)] hover:underline">{u}</a>
+                ) : (
+                  <span key={i} dir="ltr" className="max-w-[200px] truncate text-[11px] text-[var(--text-dim)]">{u}</span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── What to ask the client (missing info) ── */}
+      {c.missingInfo.length > 0 && (
+        <div className="mb-3 rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/[0.05] p-3">
+          <p className="mb-1.5 inline-flex items-center gap-1.5 text-[10px] font-semibold text-[var(--warning)]"><HelpCircle size={11} /> نسأل العميل عن</p>
+          <ul className="space-y-1">
+            {c.missingInfo.map((q, i) => (
+              <li key={i} className="flex gap-1.5 text-[11px] text-[var(--text-muted)]"><span className="text-[var(--warning)]">•</span> {q}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ── Recommended next step ── */}
+      {c.nextStep && (
+        <p className="mb-3 inline-flex items-center gap-1.5 rounded-md bg-[var(--accent)]/[0.06] px-2.5 py-1 text-[11px] text-[var(--accent)]">
+          <ArrowRight size={12} className="rtl:rotate-180" /> الخطوة الجاية: <span className="font-medium text-[var(--text)]">{c.nextStep}</span>
+        </p>
+      )}
+
+      <fieldset disabled={reanalyzing} className="contents">
+      <div className={'grid grid-cols-1 gap-3 sm:grid-cols-2 ' + (reanalyzing ? 'opacity-50' : '')}>
         <Field label="اسم المشروع" missing={!title.trim()}>
           <input value={title} onChange={(e) => setTitle(e.target.value)} className={inp(!title.trim())} placeholder="اكتب اسم المشروع" />
         </Field>
@@ -126,6 +251,9 @@ export function IntakeCard({ c }: { c: Candidate }) {
         </Field>
         <Field label="بريد جهة الاتصال" missing={!contactEmail.trim()}>
           <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inp(!contactEmail.trim()) + ' font-mono'} dir="ltr" placeholder="email@..." />
+        </Field>
+        <Field label="هاتف جهة الاتصال">
+          <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={inp(false) + ' font-mono'} dir="ltr" placeholder="+9665..." />
         </Field>
         <Field label="حالة المشروع">
           <select value={stage} onChange={(e) => setStage(e.target.value)} className={inp(false)}>
@@ -139,20 +267,21 @@ export function IntakeCard({ c }: { c: Candidate }) {
           <input value={deliveryDue} onChange={(e) => setDeliveryDue(e.target.value)} type="date" className={inp(!deliveryDue) + ' font-mono'} />
         </Field>
       </div>
+      </fieldset>
 
       {err && <p className="mt-2 text-[12px] text-[var(--danger)]">⚠ {err}</p>}
 
       <div className="mt-4 flex items-center gap-2 border-t border-[var(--line)] pt-3">
         <button
           onClick={confirm}
-          disabled={pending}
+          disabled={pending || reanalyzing}
           className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {pending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} تأكيد وإدخال في السيستم
         </button>
         <button
           onClick={dismiss}
-          disabled={pending}
+          disabled={pending || reanalyzing}
           className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] px-3 text-[12px] text-[var(--text-muted)] hover:border-[var(--danger)] hover:text-[var(--danger)] disabled:opacity-50"
         >
           <X size={13} /> تجاهل

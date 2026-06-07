@@ -21,6 +21,20 @@ type Raw = {
 const str = (v: unknown): string => (v == null ? '' : String(v).trim());
 const get = (o: unknown, path: string[]): unknown =>
   path.reduce<unknown>((acc, k) => (acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[k] : undefined), o);
+const strArr = (v: unknown): string[] =>
+  Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : [];
+const kvArr = (v: unknown): Array<{ label: string; value: string }> =>
+  Array.isArray(v)
+    ? v
+        .map((x) => ({ label: str(get(x, ['label'])), value: str(get(x, ['value'])) }))
+        .filter((k) => k.label || k.value)
+    : [];
+const peopleArr = (v: unknown): Array<{ name: string; role: string | null }> =>
+  Array.isArray(v)
+    ? v
+        .map((x) => ({ name: str(get(x, ['name'])), role: str(get(x, ['role'])) || null }))
+        .filter((p) => p.name)
+    : [];
 
 export default async function IntakePage() {
   const supabase = await getSupabaseServerClient();
@@ -79,8 +93,16 @@ export default async function IntakePage() {
       clientExists: clientExists(clientName),
       contactName: str(get(d, ['sender', 'name'])),
       contactEmail: str(get(d, ['sender', 'email'])),
+      contactPhone: str(get(d, ['sender', 'phone'])) || null,
       deliveryDue: /^\d{4}-\d{2}-\d{2}/.test(delivery) ? delivery.slice(0, 10) : null,
       summary: str(get(d, ['summary_ar'])) || null,
+      brief: str(get(d, ['brief_ar'])) || null,
+      scopeItems: strArr(get(d, ['scope_items'])),
+      keyDetails: kvArr(get(d, ['key_details'])),
+      decisionMakers: peopleArr(get(d, ['decision_makers'])),
+      missingInfo: strArr(get(d, ['missing_info'])),
+      nextStep: str(get(d, ['next_step_ar'])) || null,
+      refLinks: strArr(get(d, ['reference_links'])),
     };
   });
 

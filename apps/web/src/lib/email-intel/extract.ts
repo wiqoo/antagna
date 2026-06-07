@@ -1,9 +1,13 @@
 /**
- * Deep extraction — turns one inbound email message into a structured
- * ExtractedEmail JSON via Claude Haiku (Anthropic).
+ * Deep extraction — turns one inbound email CONVERSATION into a structured
+ * ExtractedEmail JSON via Claude Sonnet (Anthropic).
  *
  * Idempotent on email_messages.id — email_extractions.message_id has a
  * UNIQUE constraint so the upsert just rewrites the row.
+ *
+ * Pass `userId` (a profiles.id) when a human triggers this (e.g. the /intake
+ * "تحليل أعمق" action) so the per-user AI budget caps engage; the background
+ * sync path leaves it null (company-budget guard only).
  */
 import { db, emailMessages, emailThreads, emailExtractions } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
@@ -14,17 +18,31 @@ import {
   getAttachmentTextForMessage,
 } from './attachments';
 
-const SYSTEM = `You extract structured data from a FULL business email CONVERSATION for Volt Production
-(Saudi creative agency, Jeddah). You are given EVERY message in the thread, the attachment text, and signatures. Read ALL of it. Output STRICT JSON matching the schema, no prose.
+const SYSTEM = `You are the senior intake analyst at Volt Production (Saudi creative/production agency, Jeddah).
+You are given a FULL business email CONVERSATION — EVERY message in the thread, attachment text, and signatures.
+Read ALL of it like an experienced account manager and produce a DEEP, structured brief. Output STRICT JSON matching the schema, no prose.
+
+GO DEEP. Don't just copy lines — reason about the engagement:
+- What does the client actually want, for whom, and why? What is the real scope behind the words?
+- Synthesize across messages + attachments; resolve contradictions to the LATEST intent.
+- Pull every concrete fact worth knowing into key_details (audience, language ar/en, shoot location/city, platforms, video durations/aspect ratios, brand/product, references, quantity, recurring vs one-off, event date).
+- Capture reference links / drive folders / decks into reference_links.
 
 Your most important job is to identify WHO THE CLIENT IS and WHO THE CONTACT IS:
 - "sender" = the main EXTERNAL person we deal with in this thread (usually the latest inbound writer). Fill name, email, phone, and especially:
   - sender.company = the CLIENT organization this person represents (who the work is for / who would pay). It is NEVER "Volt Production" (that's us) and NEVER a free email provider (gmail/hotmail/…). Infer it from their email signature, their domain, and how they speak.
   - sender.role = their job title — take it from the email SIGNATURE when present.
 - Read signatures + attachments to get company, role and phone right.
+- decision_makers = the people who APPROVE or PAY (CEO, marketing manager, procurement) — pulled from signatures/CC/how people defer to each other.
 - mentioned_companies / mentioned_people = OTHER organizations/people referenced.
 
-Be conservative: fields you can't confirm should be null/empty array.
+THINK LIKE A PM PREPARING TO START THE JOB:
+- brief_ar = a tight 3–6 line Arabic brief of the actual ask: what, for whom, deliverables, timing, any creative direction.
+- scope_items = concrete pieces of work requested (e.g. "ريلز ٣٠ ثانية ×٥", "تصوير منتج", "موشن جرافيك").
+- missing_info = ONLY genuinely-absent facts we need to START — phrased as SHORT ARABIC QUESTIONS. STRICT RULES: (a) each item must correspond to something that is null/empty in THIS extraction (e.g. ask about budget ONLY if budget.amount_sar is null; ask about the deadline ONLY if dates.delivery_deadline_iso is null; ask about deliverables ONLY if deliverables is empty). (b) NEVER ask about anything already stated anywhere in the thread or attachments. (c) If everything needed to start is present, return an EMPTY array — do NOT invent questions to fill space. Max 6 items.
+- next_step_ar = the single best next action for us, grounded in the thread (e.g. "إرسال عرض سعر", "تأكيد موعد التصوير", "طلب الأصول من العميل"). If unclear, return "".
+
+Be conservative: fields you can't confirm = null/empty array. Cap lists: scope_items ≤ 10, key_details ≤ 12. Do NOT fabricate.
 Dates are ISO-8601 (YYYY-MM-DD or full timestamp). Money in SAR as a number.
 
 Schema (TypeScript):
@@ -73,7 +91,16 @@ Schema (TypeScript):
   urgency: 'low' | 'medium' | 'high',
   reply_needed: boolean,
   summary_ar: string,    // 2-3 line Arabic summary for queue cards
-  confidence: number     // 0-1, your own confidence in the extraction
+  confidence: number,    // 0-1, your own confidence in the extraction
+
+  // Deeper intake intelligence — fill these thoughtfully:
+  brief_ar: string,                                          // 3-6 line Arabic brief of the real ask/scope
+  scope_items: string[],                                     // concrete work items requested (Arabic)
+  key_details: Array<{ label: string, value: string }>,      // any concrete fact worth knowing (label in Arabic)
+  decision_makers: Array<{ name: string, role: string | null }>,
+  missing_info: string[],                                    // critical unknowns to start — short Arabic questions
+  next_step_ar: string,                                      // single best next action (Arabic)
+  reference_links: string[]                                  // URLs / drive folders / decks found
 }`;
 
 export interface ExtractionRunResult {
@@ -86,7 +113,9 @@ export interface ExtractionRunResult {
 
 export async function extractEmail(
   messageDbId: string,
+  opts: { userId?: string | null } = {},
 ): Promise<ExtractionRunResult> {
+  const userId = opts.userId ?? null;
   const [msg] = await db
     .select()
     .from(emailMessages)
@@ -180,19 +209,31 @@ Latest inbound from: ${msg.fromName ?? ''} <${msg.fromEmail}>
 ──── Conversation (oldest → newest) ────
 ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread) ────\n${attachmentText}` : ''}`;
 
-  await assertAiBudget({ userId: null, feature: 'email_intel_extract' });
+  // userId set → per-user daily/monthly hard caps engage (manual reanalyze);
+  // null → company-monthly budget only (background sync). assertAiBudget throws
+  // AiBudgetError on cap-exceeded — callers must catch it.
+  await assertAiBudget({ userId, feature: 'email_intel_extract' });
 
   const client = getAnthropic();
   let raw: string;
   let inputTokens = 0;
   let outputTokens = 0;
+  let truncated = false;
   try {
     const resp = await client.messages.create({
       model: ANTHROPIC_MODELS.sonnet,
-      max_tokens: 2000,
-      system: SYSTEM,
+      max_tokens: 4096,
+      // Large stable system prompt behind a prompt-cache breakpoint → every
+      // call after the first in a sync loop reads it at ~10% the cost. SDK
+      // types don't expose cache_control yet, hence the `as any` (mirrors
+      // gmail-summarize.ts).
+      system: [
+        { type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any,
       messages: [{ role: 'user', content: userPrompt }],
     });
+    truncated = resp.stop_reason === 'max_tokens';
     const txt = resp.content.find((b) => b.type === 'text');
     raw = (txt && txt.type === 'text' ? txt.text : '')
       .trim()
@@ -207,7 +248,11 @@ ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread
       model: ANTHROPIC_MODELS.sonnet,
       inputTokens,
       outputTokens,
-      userId: null,
+      cacheReadTokens:
+        (resp.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0,
+      cacheWriteTokens:
+        (resp.usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens ?? 0,
+      userId,
     });
   } catch (err) {
     return {
@@ -217,15 +262,36 @@ ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread
     };
   }
 
+  // Tolerant parse: strip any prose around the JSON object (the model may
+  // prepend reasoning), then parse. If the response was truncated at the token
+  // cap the object is unterminated → JSON.parse fails; surface that explicitly.
   let data: ExtractedEmail;
   try {
     data = JSON.parse(raw) as ExtractedEmail;
-  } catch (err) {
-    return { ok: false, messageId: messageDbId, error: 'json_parse_failed' };
+  } catch {
+    const braced = raw.match(/\{[\s\S]*\}/);
+    if (braced) {
+      try {
+        data = JSON.parse(braced[0]) as ExtractedEmail;
+      } catch {
+        return {
+          ok: false,
+          messageId: messageDbId,
+          error: truncated ? 'truncated_response' : 'json_parse_failed',
+        };
+      }
+    } else {
+      return {
+        ok: false,
+        messageId: messageDbId,
+        error: truncated ? 'truncated_response' : 'json_parse_failed',
+      };
+    }
   }
   const confidence = Math.max(0, Math.min(1, Number(data.confidence ?? 0.5)));
 
-  // Claude Sonnet 4.6: $3/Mtok input, $15/Mtok output
+  // Claude Sonnet 4.6: $3/Mtok input, $15/Mtok output (display only — the
+  // budget ledger uses recordUsage's MODEL_PRICING table).
   const costUsd =
     (inputTokens * 3 + outputTokens * 15) / 1_000_000;
 
@@ -246,7 +312,7 @@ ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread
       set: {
         data: data as unknown as Record<string, unknown>,
         confidence: confidence.toFixed(2),
-        model: ANTHROPIC_MODELS.haiku,
+        model: ANTHROPIC_MODELS.sonnet,
         inputTokens,
         outputTokens,
         costUsd: costUsd.toFixed(6),

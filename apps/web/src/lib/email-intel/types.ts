@@ -67,6 +67,22 @@ export interface ExtractedEmail {
   summary_ar: string;
   /** Overall extraction confidence — 0-1. */
   confidence: number;
+
+  // ── Deeper intake intelligence (optional; populated by the richer extractor) ──
+  /** Richer 3–6 line Arabic brief of the actual ask / scope (beyond summary_ar). */
+  brief_ar?: string;
+  /** Concrete requested work / scope items — each a short Arabic line. */
+  scope_items?: string[];
+  /** Flexible key facts the model found: audience, language, location, brand, platforms, references… */
+  key_details?: Array<{ label: string; value: string }>;
+  /** Decision makers / approvers identified across the thread. */
+  decision_makers?: Array<{ name: string; role: string | null }>;
+  /** What we still need to confirm to START the project — short Arabic questions to ask. */
+  missing_info?: string[];
+  /** The single best recommended next action (Arabic). */
+  next_step_ar?: string;
+  /** Reference links / URLs found (briefs, drives, sites, decks). */
+  reference_links?: string[];
 }
 
 export type SuggestionType =

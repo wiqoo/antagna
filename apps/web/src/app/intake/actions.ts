@@ -1,11 +1,26 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { sql } from 'drizzle-orm';
-import { db, withActor } from '@antagna/db';
+import { sql, and, eq, desc } from 'drizzle-orm';
+import { db, withActor, emailMessages } from '@antagna/db';
+import { AiBudgetError } from '@antagna/ai';
 import { requirePermissionAction } from '@/lib/authz';
 import { writeActivity } from '@/lib/activity';
 import { createClientQuick } from '@/app/clients/actions';
+import { extractEmail } from '@/lib/email-intel/extract';
+
+/** Map extractEmail's internal English codes to user-facing Arabic. */
+function reanalyzeErrorAr(code?: string): string {
+  switch (code) {
+    case 'junk_category': return 'المحادثة مصنّفة كغير تجارية (تسويق/إشعار)';
+    case 'body_too_short': return 'لا يوجد نص كافٍ للتحليل';
+    case 'not_inbound': return 'آخر رسالة ليست واردة';
+    case 'not_found': return 'الرسالة غير موجودة';
+    case 'truncated_response': return 'النتيجة طويلة وتم اقتطاعها — حاول مجددًا';
+    case 'json_parse_failed': return 'تعذّر قراءة نتيجة التحليل، حاول مجددًا';
+    default: return 'فشل التحليل';
+  }
+}
 
 const STAGES = new Set([
   'lead', 'brief', 'quoted', 'approved', 'planning', 'shooting', 'editing', 'review', 'delivered',
@@ -18,6 +33,7 @@ export type ImportInput = {
   clientName: string;
   contactName?: string | null;
   contactEmail?: string | null;
+  contactPhone?: string | null;
   stage: string;
   quoteNumber?: string | null;
   deliveryDue?: string | null;
@@ -89,6 +105,13 @@ export async function importEmailProject(
             VALUES (${contactId}::uuid, 'email'::contact_method_type, ${input.contactEmail.trim()}, lower(${input.contactEmail.trim()}), true)
             ON CONFLICT DO NOTHING`);
         }
+        if (contactId && input.contactPhone?.trim()) {
+          const phone = input.contactPhone.trim();
+          await tx.execute(sql`
+            INSERT INTO contact_methods (contact_id, method_type, value, normalized_value, is_primary)
+            VALUES (${contactId}::uuid, 'phone'::contact_method_type, ${phone}, regexp_replace(${phone}, '[^0-9+]', '', 'g'), false)
+            ON CONFLICT DO NOTHING`);
+        }
       });
     } catch (e) {
       console.error('[intake contact]', e);
@@ -116,6 +139,46 @@ export async function importEmailProject(
   revalidatePath('/projects');
   revalidatePath('/crm');
   return { ok: true, projectId: projId };
+}
+
+/**
+ * Re-run deep extraction on a thread's latest inbound message with the current
+ * (richer) extractor — populates brief/scope/key-details/missing-info/next-step.
+ */
+export async function reanalyzeCandidate(
+  threadId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const actorId = await requirePermissionAction('project.create');
+  const [latest] = await db
+    .select({ id: emailMessages.id })
+    .from(emailMessages)
+    .where(and(eq(emailMessages.threadId, threadId), eq(emailMessages.direction, 'inbound')))
+    .orderBy(desc(emailMessages.sentAt))
+    .limit(1);
+  if (!latest) return { ok: false, error: 'لا توجد رسالة واردة في هذه المحادثة' };
+
+  // Cheap anti-spam: don't re-burn Sonnet tokens if this exact message was
+  // analyzed in the last 60s.
+  const recent = (await db.execute(sql`
+    SELECT 1 FROM email_extractions
+    WHERE message_id = ${latest.id}::uuid AND extracted_at > now() - interval '60 seconds'
+    LIMIT 1`)) as unknown as Array<unknown>;
+  if (recent.length) {
+    return { ok: false, error: 'تم التحليل للتوّ — انتظر دقيقة قبل إعادة المحاولة' };
+  }
+
+  // Pass the actor so per-user AI budget caps engage; map a budget/error throw
+  // to an Arabic message instead of letting the server action reject (which
+  // would hang the button).
+  let res: Awaited<ReturnType<typeof extractEmail>>;
+  try {
+    res = await extractEmail(latest.id, { userId: actorId });
+  } catch (e) {
+    return { ok: false, error: e instanceof AiBudgetError ? e.message : 'فشل التحليل' };
+  }
+  if (!res.ok) return { ok: false, error: reanalyzeErrorAr(res.error) };
+  revalidatePath('/intake');
+  return { ok: true };
 }
 
 /** Hide a candidate from the intake list (stored in system_settings). */
