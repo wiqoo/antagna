@@ -14,7 +14,7 @@
  * anything to outsiders).
  */
 import { db, whatsappMessages, profiles, projects, projectTasks, dailyTasks } from '@antagna/db';
-import { eq, and, or, desc, sql, isNull, gte } from 'drizzle-orm';
+import { eq, and, or, desc, sql, isNull, gte, gt } from 'drizzle-orm';
 import {
   getAnthropic,
   getOpenAI,
@@ -268,6 +268,26 @@ export async function handleInboundForBot(
 
   if (!senderProfile) {
     return { ok: true, skipped: 'no_profile' };
+  }
+
+  // Dedupe rapid-fire: if a NEWER inbound already exists in this thread, skip —
+  // the newest message's own invocation answers the whole batch as ONE reply.
+  // Without this, sending 2-3 quick messages triggers 2-3 separate bot replies.
+  if (msg.threadKey) {
+    const newer = await db
+      .select({ id: whatsappMessages.id })
+      .from(whatsappMessages)
+      .where(
+        and(
+          eq(whatsappMessages.threadKey, msg.threadKey),
+          eq(whatsappMessages.direction, 'inbound'),
+          gt(whatsappMessages.receivedAt, msg.receivedAt),
+        ),
+      )
+      .limit(1);
+    if (newer.length > 0) {
+      return { ok: true, skipped: 'superseded' };
+    }
   }
 
   // Gather ALL unanswered inbound messages since the last outbound — the

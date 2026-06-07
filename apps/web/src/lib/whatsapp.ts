@@ -145,14 +145,36 @@ export async function sendText(
     method: 'POST',
     body: JSON.stringify({ phone, message: body, isGroup: false }),
   });
-  const raw = (await res.json().catch(() => ({}))) as {
-    response?: { id?: { _serialized?: string } };
-  };
+  const raw = (await res.json().catch(() => ({}))) as { response?: unknown };
   return {
     ok: res.ok,
-    messageId: raw.response?.id?._serialized,
+    messageId: extractSentMessageId(raw.response),
     raw,
   };
+}
+
+/**
+ * WPPConnect's send-message `response` shape varies by version: newer builds
+ * return an ARRAY of sent-message objects whose `id` is a plain string; older
+ * ones an object with `id._serialized`. Handle both.
+ *
+ * Getting this wrong returns `undefined`, which leaves the bot's OUTBOUND reply
+ * UNLOGGED — and the bot batches "all inbound since the last outbound", so with
+ * no logged outbound it re-answers the whole history on every new message
+ * ("وعليكم السلام" to a fresh "في ايه النهاردة"). This is that fix.
+ */
+export function extractSentMessageId(response: unknown): string | undefined {
+  const pick = (o: unknown): string | undefined => {
+    if (!o || typeof o !== 'object') return undefined;
+    const id = (o as { id?: unknown }).id;
+    if (typeof id === 'string') return id;
+    if (id && typeof id === 'object') {
+      const s = (id as { _serialized?: unknown })._serialized;
+      return typeof s === 'string' ? s : undefined;
+    }
+    return undefined;
+  };
+  return Array.isArray(response) ? pick(response[0]) : pick(response);
 }
 
 /**
