@@ -46,6 +46,9 @@ type Thread = {
   aiTopicTags: string[] | null;
   category: string | null;
   importance: string | null;
+  replyStatus: string | null;
+  isUrgent: boolean | null;
+  urgentReason: string | null;
   clientId: string | null;
   clientCode: string | null;
   clientNameAr: string | null;
@@ -114,6 +117,19 @@ const IMPORTANCE_TONE: Record<string, 'neutral' | 'warning' | 'danger'> = {
   high: 'danger',
   medium: 'warning',
   low: 'neutral',
+};
+
+const REPLY_LABEL: Record<string, string> = {
+  needs_reply: 'محتاج رد',
+  no_reply_needed: 'لا يحتاج رد',
+  awaiting_them: 'بانتظارهم',
+  handled_off_channel: 'عولج بقناة أخرى',
+};
+const REPLY_TONE: Record<string, 'info' | 'neutral' | 'warning' | 'success'> = {
+  needs_reply: 'warning',
+  no_reply_needed: 'neutral',
+  awaiting_them: 'info',
+  handled_off_channel: 'success',
 };
 
 // Suggested actions are stored in two shapes: plain strings (from the manual
@@ -188,6 +204,9 @@ export default async function InboxThreadPage({
              et.ai_topic_tags AS "aiTopicTags",
              tri.category AS "category",
              tri.importance AS "importance",
+             tri.reply_status AS "replyStatus",
+             tri.is_urgent AS "isUrgent",
+             tri.urgent_reason AS "urgentReason",
              c.id::text AS "clientId", c.code AS "clientCode", c.name_ar AS "clientNameAr",
              ct.full_name AS "primaryContactName",
              p.id::text AS "projectId", p.code AS "projectCode",
@@ -273,6 +292,16 @@ export default async function InboxThreadPage({
         subtitle={`${thread.messageCount} رسالة${thread.clientNameAr ? ` · ${thread.clientNameAr}` : ''}${thread.projectCode && thread.projectId ? ` · مشروع ${thread.projectCode}` : ''}`}
         action={
           <div className="flex flex-wrap items-center gap-2">
+            {thread.isUrgent && (
+              <StatusPill tone="danger">
+                ⚡ عاجل{thread.urgentReason ? ` · ${thread.urgentReason}` : ''}
+              </StatusPill>
+            )}
+            {thread.replyStatus && REPLY_LABEL[thread.replyStatus] && (
+              <StatusPill tone={REPLY_TONE[thread.replyStatus] ?? 'neutral'}>
+                {REPLY_LABEL[thread.replyStatus]}
+              </StatusPill>
+            )}
             {thread.category && (
               <StatusPill tone={CATEGORY_TONE[thread.category] ?? 'neutral'}>
                 {CATEGORY_AR[thread.category] ?? thread.category}

@@ -34,6 +34,8 @@ type ThreadQueryRow = {
   status: string;
   category: string | null;
   importance: string | null;
+  isUrgent: boolean | null;
+  replyStatus: string | null;
   messageCount: number | null;
   lastMessageAt: string | null;
   aiSummary: string | null;
@@ -98,6 +100,8 @@ export default async function InboxPage() {
           et.status::text AS "status",
           tri.category AS "category",
           tri.importance AS "importance",
+          tri.is_urgent AS "isUrgent",
+          tri.reply_status AS "replyStatus",
           et.message_count AS "messageCount",
           et.last_message_at AS "lastMessageAt",
           et.ai_summary AS "aiSummary",
@@ -212,6 +216,7 @@ export default async function InboxPage() {
   const noiseCount = threads.length - cleanThreads.length;
   const unclassified = threads.filter((t) => t.category == null).length;
   const highImportance = cleanThreads.filter((t) => t.importance === 'high').length;
+  const urgentCount = cleanThreads.filter((t) => t.isUrgent).length;
 
   const awaitingReview =
     queueDepth.find((q) => q.status === 'awaiting_review')?.count ?? 0;
@@ -225,6 +230,15 @@ export default async function InboxPage() {
   });
 
   const hints: AIHint[] = [];
+  if (urgentCount > 0) {
+    hints.push({
+      index: String(hints.length + 1).padStart(2, '0'),
+      text: `${urgentCount} محادثة عاجلة — تحتاج إنجازاً خلال ساعة`,
+      insight: 'صنّفها الـ AI كعاجلة (عميل غاضب / موعد قريب). افتحها فوراً.',
+      urgent: true,
+      actions: [{ label: 'افتح العاجلة', href: '#threads', primary: true }],
+    });
+  }
   if (awaitingReview > 0) {
     hints.push({
       index: String(hints.length + 1).padStart(2, '0'),

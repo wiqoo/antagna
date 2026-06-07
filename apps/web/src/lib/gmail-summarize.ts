@@ -47,18 +47,29 @@ export interface SummarizeOptions {
 
 const SYSTEM_PROMPT = `You are Antagna's email thread classifier for Volt Production, a Saudi creative agency.
 
-Given a thread (subject + messages), output STRICT JSON only — no prose:
+Given a thread (subject + the FULL message history, inbound ↓ and outbound ↑) output STRICT JSON only — no prose:
 {
   "summary_ar": "<2-3 sentences in Arabic, plain text. Lead with who + what + decision needed>",
   "category": "business" | "marketing" | "spam" | "internal" | "notification" | "automated",
   "urgency": "low" | "medium" | "high",
   "needs_reply": true | false,
+  "reply_status": "needs_reply" | "no_reply_needed" | "awaiting_them" | "handled_off_channel",
+  "urgent": true | false,
+  "urgent_reason": "<short Arabic phrase, ONLY when urgent>",
   "topic_tags": ["..."],
   "suggested_actions": [
     { "type": "reply" | "create_lead" | "link_to_project" | "archive" | "follow_up" | "ignore",
       "reason": "<short Arabic>" }
   ]
 }
+
+reply_status — compare the LAST inbound (↓) vs the LAST outbound (↑):
+- needs_reply: the last message is inbound, expects something from us, and we have NOT answered it.
+- awaiting_them: we already replied (↑ is last, or our reply answered them); the ball is in their court.
+- no_reply_needed: nothing to answer — auto-confirmation, newsletter, thank-you, or a "no-reply" / out-of-office / automated SIGNATURE.
+- handled_off_channel: a note below says there was recent WhatsApp/phone contact with this client that likely handled the matter.
+Read the SIGNATURE of the latest message: a "no-reply"/automated/out-of-office signature ⇒ usually no_reply_needed.
+urgent: true ONLY when it must be handled within ~1 hour (angry client, a deadline within the hour, an operational emergency). Otherwise false. urgent_reason: one short Arabic phrase, only when urgent.
 
 Categories:
 - business: real client/partner conversations, RFPs, project work
@@ -78,9 +89,14 @@ interface ClaudeResponse {
   category: string;
   urgency: string;
   needs_reply: boolean;
+  reply_status?: string;
+  urgent?: boolean;
+  urgent_reason?: string;
   topic_tags: string[];
   suggested_actions: { type: string; reason: string }[];
 }
+
+const REPLY_STATUSES = new Set(['needs_reply', 'no_reply_needed', 'awaiting_them', 'handled_off_channel']);
 
 // Map the summarizer's category/urgency onto the inbox TRIAGE columns
 // (category/importance, migration 058) so classification is AUTOMATIC on every
@@ -142,6 +158,8 @@ export async function summarizeThreads(
       id: emailThreads.id,
       subject: emailThreads.subject,
       lastMessageAt: emailThreads.lastMessageAt,
+      clientId: emailThreads.clientId,
+      projectId: emailThreads.projectId,
     })
     .from(emailThreads)
     .where(
@@ -213,6 +231,31 @@ export async function summarizeThreads(
       }
       const transcript = lines.join('\n');
 
+      // Cross-channel awareness: was there recent WhatsApp contact with this
+      // client/project? If so, the matter may have been handled off-email —
+      // tell the model so it can mark handled_off_channel instead of needs_reply.
+      let crossChannelNote = '';
+      if (thread.clientId || thread.projectId) {
+        try {
+          const wa = await db.execute(sql`
+            SELECT max(received_at) AS last_at, count(*)::int AS n
+            FROM whatsapp_messages wm
+            WHERE wm.received_at >= now() - interval '3 days'
+              AND (
+                ${thread.projectId ? sql`wm.project_id = ${thread.projectId}::uuid` : sql`false`}
+                OR (${thread.clientId ? sql`wm.matched_contact_id IN (SELECT id FROM contacts WHERE client_id = ${thread.clientId}::uuid)` : sql`false`})
+              )
+          `);
+          const row = (wa as unknown as Array<{ last_at: string | null; n: number }>)[0];
+          if (row && Number(row.n) > 0 && row.last_at) {
+            crossChannelNote =
+              `\n\n[ملاحظة قناة أخرى] يوجد ${row.n} رسالة واتساب حديثة مع هذا العميل/المشروع (آخرها ${new Date(row.last_at).toISOString().slice(0, 16).replace('T', ' ')}). قد يكون الأمر عولج عبر الواتساب.`;
+          }
+        } catch {
+          // best-effort
+        }
+      }
+
       const resp = await anthropic.messages.create({
         model: ANTHROPIC_MODELS.haiku,
         max_tokens: 500,
@@ -229,7 +272,7 @@ export async function summarizeThreads(
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ] as any,
-        messages: [{ role: 'user', content: transcript }],
+        messages: [{ role: 'user', content: transcript + crossChannelNote }],
       });
 
       report.totalInputTokens += resp.usage.input_tokens;
@@ -280,6 +323,15 @@ export async function summarizeThreads(
         hasOutbound,
       );
 
+      // Smart reply-need + urgency (migration 069). Default reply_status from
+      // needs_reply when the model omits it.
+      const replyStatus = REPLY_STATUSES.has(String(parsed.reply_status))
+        ? (parsed.reply_status as string)
+        : parsed.needs_reply
+          ? 'needs_reply'
+          : 'no_reply_needed';
+      const isUrgent = parsed.urgent === true && triageCategory === 'actionable';
+
       await db
         .update(emailThreads)
         .set({
@@ -287,6 +339,9 @@ export async function summarizeThreads(
           aiTopicTags: allTags,
           category: triageCategory,
           importance,
+          replyStatus,
+          isUrgent,
+          urgentReason: isUrgent ? (parsed.urgent_reason ?? null) : null,
           aiClassifiedAt: sql`now()`,
           aiSummaryUpdatedAt: sql`now()`,
           updatedAt: sql`now()`,

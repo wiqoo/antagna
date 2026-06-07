@@ -70,6 +70,12 @@ export const emailThreads = pgTable('email_threads', {
   importance: text('importance'), // 'low' | 'medium' | 'high'
   aiClassifiedAt: timestamp('ai_classified_at', { withTimezone: true }),
 
+  // Smart reply-need + urgency (migration 00000000000069).
+  replyStatus: text('reply_status'), // needs_reply | no_reply_needed | awaiting_them | handled_off_channel
+  isUrgent: boolean('is_urgent').notNull().default(false),
+  urgentReason: text('urgent_reason'),
+  escalatedAt: timestamp('escalated_at', { withTimezone: true }),
+
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 });
