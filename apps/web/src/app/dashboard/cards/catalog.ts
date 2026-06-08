@@ -49,7 +49,7 @@ export const CARD_CATALOG = [
   { id: 'shoots', title: "This Week's Shoots", titleAr: 'تصوير هذا الأسبوع', group: 'AI Light', ai: 'light', component: CardTodayShoots, defaultSize: 'md', desc: 'لقطات الأسبوع مع conflict detection', live: true },
   { id: 'equip_conflicts', title: 'Equipment Conflicts', titleAr: 'تعارضات المعدات', group: 'AI Light', ai: 'light', component: CardEquipmentConflicts, defaultSize: 'sm', desc: 'AI كشف overlaps في الحجوزات', live: true },
   { id: 'mtd_revenue', title: 'MTD Revenue', titleAr: 'إيراد الشهر', group: 'AI Light', ai: 'light', component: CardMTDRevenue, defaultSize: 'sm', desc: 'إيراد الشهر مع sparkline', live: true },
-  { id: 'at_risk', title: 'At-Risk Projects', titleAr: 'مشاريع في خطر', group: 'AI Heavy', ai: 'heavy', component: CardAtRisk, defaultSize: 'md', desc: 'مشاريع AI شايف إنها هتفوت deadline', live: true },
+  { id: 'at_risk', title: 'Projects Needing Attention', titleAr: 'مشاريع تحتاج انتباه', group: 'AI Heavy', ai: 'heavy', component: CardAtRisk, defaultSize: 'md', desc: 'مشاريع AI شايف إنها هتفوت deadline', live: true },
 
   // Available in the library but not yet wired to real data (render sample).
   { id: 'ai_brief', title: 'AI Daily Brief', titleAr: 'ملخّص اليوم', group: 'AI Heavy', ai: 'heavy', component: CardAIBrief, defaultSize: 'lg', desc: 'أهم ٣-٥ أولويات اليوم (الهيرو فوق يغطيها)' },

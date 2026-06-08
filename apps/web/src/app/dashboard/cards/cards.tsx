@@ -91,7 +91,7 @@ export function CardAtRisk({ size = 'md', editable, data }: CardProps & { data?:
     <Card title="// at_risk · ai prediction" ai="heavy" size={size} editable={editable}
       footer={<><Brain size={9} /><span>AI confidence: {d.confidence != null ? `${toAr(d.confidence)}٪` : '—'}</span></>}>
       {d.items.length === 0 ? (
-        <p className="py-2 text-[11px] text-white/45">لا مشاريع في خطر الآن ✓</p>
+        <p className="py-2 text-[11px] text-white/45">لا مشاريع تحتاج انتباه الآن ✓</p>
       ) : (
         <ul className="space-y-2.5">
           {d.items.map((it) => (

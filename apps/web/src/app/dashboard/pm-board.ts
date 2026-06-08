@@ -203,7 +203,7 @@ export async function gatherPmCards(profileId: string): Promise<PmBoardData> {
     .map((p) => ({ p, score: riskScore(p) })).filter((x) => x.score >= 45)
     .sort((a, b) => b.score - a.score).slice(0, 6);
   const atRisk: PmListData = {
-    title: '// at_risk_delivery', ai: 'heavy', empty: 'لا مشاريع في خطر ✓',
+    title: '// at_risk_delivery', ai: 'heavy', empty: 'لا مشاريع تحتاج انتباه ✓',
     footer: atRiskItems.length ? `${atRiskItems.length} يحتاجوا تدخّلك` : undefined,
     items: atRiskItems.map(({ p, score }): PmRow => {
       const dd = p.days_until_due ?? 99;

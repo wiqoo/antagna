@@ -597,7 +597,7 @@ export default async function ProjectDetailPage({
                           : 'success'
                     }
                   >
-                    خطر: {project.aiRiskLevel}
+                    انتباه: {project.aiRiskLevel === 'red' ? 'عالٍ' : project.aiRiskLevel === 'amber' ? 'متوسط' : 'منخفض'}
                   </StatusPill>
                 )}
               </div>

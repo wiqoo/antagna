@@ -448,7 +448,7 @@ export default async function ProjectsListPage({
                   <th className="px-5 py-3 font-medium text-start">المدير</th>
                   <th className="px-5 py-3 font-medium text-start">التسليم</th>
                   <th className="px-5 py-3 font-medium text-start">القيمة</th>
-                  <th className="px-5 py-3 font-medium text-start">الخطر</th>
+                  <th className="px-5 py-3 font-medium text-start">انتباه</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
