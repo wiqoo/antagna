@@ -16,7 +16,7 @@
  */
 import { db, emailThreads, emailMessages } from '@antagna/db';
 import { eq, isNull, or, sql, desc, and } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage, retrieveMemory } from '@antagna/ai';
 import { applyRoutingAndLinking } from './gmail-routing';
 import { extractMeetingNotes } from './meeting-notes';
 import { extractEmail } from './email-intel/extract';
@@ -256,6 +256,24 @@ export async function summarizeThreads(
         }
       }
 
+      // Brain: prepend what we already know about this client so the summary +
+      // classification reflect the relationship, not just this thread.
+      let memNote = '';
+      if (thread.clientId) {
+        try {
+          const hits = await retrieveMemory({
+            query: thread.subject ?? '',
+            scope: 'client',
+            scopeId: thread.clientId,
+            limit: 3,
+            minSimilarity: 0.2,
+          });
+          if (hits.length) memNote = `\n\n[ذاكرة العميل]\n${hits.map((h) => `• ${h.content.slice(0, 200)}`).join('\n')}`;
+        } catch {
+          // brain optional
+        }
+      }
+
       const resp = await anthropic.messages.create({
         model: ANTHROPIC_MODELS.haiku,
         max_tokens: 500,
@@ -272,7 +290,7 @@ export async function summarizeThreads(
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ] as any,
-        messages: [{ role: 'user', content: transcript + crossChannelNote }],
+        messages: [{ role: 'user', content: transcript + crossChannelNote + memNote }],
       });
 
       report.totalInputTokens += resp.usage.input_tokens;
