@@ -45,3 +45,5 @@ shell-*.png
 /*.png
 /*-snap.txt
 .playwright-mcp/
+/*.jpeg
+/*.png
