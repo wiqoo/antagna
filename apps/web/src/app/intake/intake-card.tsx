@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Mail, Check, X, Loader2, ArrowLeft, Sparkles, RefreshCw,
-  ListChecks, HelpCircle, ArrowRight, Users, Link2,
+  ListChecks, HelpCircle, ArrowRight, Users, Link2, Building2,
 } from 'lucide-react';
 import { importEmailProject, dismissCandidate, reanalyzeCandidate } from './actions';
 
@@ -40,6 +40,8 @@ export type Candidate = {
   missingInfo: string[];
   nextStep: string | null;
   refLinks: string[];
+  isAbuLuka: boolean;
+  businessLineReason: string | null;
 };
 
 const STAGES = [
@@ -62,6 +64,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
   const [stage, setStage] = useState('brief');
   const [quoteNumber, setQuoteNumber] = useState('');
   const [deliveryDue, setDeliveryDue] = useState(c.deliveryDue ?? '');
+  const [isAbuLuka, setIsAbuLuka] = useState(c.isAbuLuka);
 
   const [pending, start] = useTransition();
   const [reanalyzing, startReanalyze] = useTransition();
@@ -85,6 +88,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
         stage,
         quoteNumber: quoteNumber.trim() || null,
         deliveryDue: deliveryDue || null,
+        isAbuLukaContent: isAbuLuka,
       });
       if (res.ok) setDoneId(res.projectId ?? 'ok');
       else setErr(res.error ?? 'فشل الإدخال');
@@ -239,12 +243,40 @@ export function IntakeCard({ c }: { c: Candidate }) {
       )}
 
       <fieldset disabled={reanalyzing} className="contents">
+      {/* ── Business-line classification (Volt client vs Abu Luka content) ── */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/50 px-3 py-2">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text)]">
+          <Building2 size={13} className="text-[var(--text-dim)]" /> التصنيف
+          {c.businessLineReason && c.isAbuLuka === isAbuLuka && (
+            <span className="rounded bg-[var(--accent)]/10 px-1 text-[9px] text-[var(--accent)]">حسب التحليل</span>
+          )}
+        </span>
+        <div className="inline-flex rounded-md border border-[var(--line)] p-0.5">
+          <button
+            type="button"
+            onClick={() => setIsAbuLuka(false)}
+            className={'h-7 rounded px-3 text-[11px] font-medium transition ' + (!isAbuLuka ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]')}
+          >
+            فولت · عميل
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsAbuLuka(true); if (!clientName.trim()) setClientName('أبو لوكا'); }}
+            className={'h-7 rounded px-3 text-[11px] font-medium transition ' + (isAbuLuka ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text)]')}
+          >
+            محتوى أبو لوكا
+          </button>
+        </div>
+        {c.businessLineReason && (
+          <p className="w-full text-[10px] leading-relaxed text-[var(--text-dim)]">{c.businessLineReason}</p>
+        )}
+      </div>
       <div className={'grid grid-cols-1 gap-3 sm:grid-cols-2 ' + (reanalyzing ? 'opacity-50' : '')}>
         <Field label="اسم المشروع" missing={!title.trim()}>
           <input value={title} onChange={(e) => setTitle(e.target.value)} className={inp(!title.trim())} placeholder="اكتب اسم المشروع" />
         </Field>
-        <Field label="العميل" missing={!clientName.trim()}>
-          <input value={clientName} onChange={(e) => setClientName(e.target.value)} className={inp(!clientName.trim())} placeholder="اسم العميل" />
+        <Field label={isAbuLuka ? 'الجهة' : 'العميل'} missing={!clientName.trim()}>
+          <input value={clientName} onChange={(e) => setClientName(e.target.value)} className={inp(!clientName.trim())} placeholder={isAbuLuka ? 'أبو لوكا' : 'اسم العميل'} />
         </Field>
         <Field label="جهة الاتصال" missing={!contactName.trim()}>
           <input value={contactName} onChange={(e) => setContactName(e.target.value)} className={inp(!contactName.trim())} placeholder="الاسم" />

@@ -38,6 +38,7 @@ export type ImportInput = {
   quoteNumber?: string | null;
   deliveryDue?: string | null;
   shootStart?: string | null;
+  isAbuLukaContent?: boolean;
 };
 
 /**
@@ -50,9 +51,12 @@ export async function importEmailProject(
 ): Promise<{ ok: boolean; projectId?: string; error?: string }> {
   const actorId = await requirePermissionAction('project.create');
   const title = input.title?.trim();
-  const clientName = input.clientName?.trim();
+  const isAbuLuka = input.isAbuLukaContent === true;
+  // Abu Luka content still needs a client (client_id is NOT NULL) — default the
+  // entity to "أبو لوكا" when none was given.
+  const clientName = input.clientName?.trim() || (isAbuLuka ? 'أبو لوكا' : '');
   if (!title) return { ok: false, error: 'اسم المشروع مطلوب' };
-  if (!clientName) return { ok: false, error: 'اسم العميل مطلوب' };
+  if (!clientName) return { ok: false, error: isAbuLuka ? 'الجهة مطلوبة' : 'اسم العميل مطلوب' };
   const stage = STAGES.has(input.stage) ? input.stage : 'brief';
 
   // Find-or-create the client by name.
@@ -77,11 +81,12 @@ export async function importEmailProject(
     const res = await tx.execute<{ id: string }>(sql`
       INSERT INTO projects (
         title, title_ar, client_id, project_type, stage, brief_received_at,
-        dafterah_quote_number, delivery_due_at, shoot_starts_at, created_by
+        dafterah_quote_number, is_abu_luka_content,
+        delivery_due_at, shoot_starts_at, created_by
       ) VALUES (
         ${title}, ${input.titleAr ?? null}, ${clientId}::uuid,
         'content_creation'::project_type, ${stage}::project_stage, now(),
-        ${input.quoteNumber?.trim() || null},
+        ${input.quoteNumber?.trim() || null}, ${isAbuLuka},
         ${input.deliveryDue ? sql`${input.deliveryDue}::timestamptz` : sql`NULL`},
         ${input.shootStart ? sql`${input.shootStart}::timestamptz` : sql`NULL`},
         ${actorId}::uuid

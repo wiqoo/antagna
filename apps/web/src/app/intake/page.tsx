@@ -103,6 +103,8 @@ export default async function IntakePage() {
       missingInfo: strArr(get(d, ['missing_info'])),
       nextStep: str(get(d, ['next_step_ar'])) || null,
       refLinks: strArr(get(d, ['reference_links'])),
+      isAbuLuka: get(d, ['is_abu_luka_content']) === true,
+      businessLineReason: str(get(d, ['business_line_reason'])) || null,
     };
   });
 

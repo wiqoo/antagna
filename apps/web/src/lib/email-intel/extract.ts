@@ -42,6 +42,11 @@ THINK LIKE A PM PREPARING TO START THE JOB:
 - missing_info = ONLY genuinely-absent facts we need to START — phrased as SHORT ARABIC QUESTIONS. STRICT RULES: (a) each item must correspond to something that is null/empty in THIS extraction (e.g. ask about budget ONLY if budget.amount_sar is null; ask about the deadline ONLY if dates.delivery_deadline_iso is null; ask about deliverables ONLY if deliverables is empty). (b) NEVER ask about anything already stated anywhere in the thread or attachments. (c) If everything needed to start is present, return an EMPTY array — do NOT invent questions to fill space. Max 6 items.
 - next_step_ar = the single best next action for us, grounded in the thread (e.g. "إرسال عرض سعر", "تأكيد موعد التصوير", "طلب الأصول من العميل"). If unclear, return "".
 
+BUSINESS LINE — who owns this work? Volt produces two streams:
+  (1) EXTERNAL CLIENT work — a paying brand/agency (BMW, CEER, لكزس, an agency…). This is the DEFAULT.
+  (2) "محتوى أبو لوكا" — Abu Luka (أبو لوكا) is a creator/personality whose OWN personal brand & channels Volt also produces. This is content FOR HIM, not for an external paying client.
+Set is_abu_luka_content = true ONLY when the thread is clearly about producing Abu Luka's own personal/brand content (his channels, his persona, his personal projects), or the counterpart IS Abu Luka coordinating his own content. Otherwise false. Put a one-line Arabic justification in business_line_reason.
+
 Be conservative: fields you can't confirm = null/empty array. Cap lists: scope_items ≤ 10, key_details ≤ 12. Do NOT fabricate.
 Dates are ISO-8601 (YYYY-MM-DD or full timestamp). Money in SAR as a number.
 
@@ -100,7 +105,9 @@ Schema (TypeScript):
   decision_makers: Array<{ name: string, role: string | null }>,
   missing_info: string[],                                    // critical unknowns to start — short Arabic questions
   next_step_ar: string,                                      // single best next action (Arabic)
-  reference_links: string[]                                  // URLs / drive folders / decks found
+  reference_links: string[],                                 // URLs / drive folders / decks found
+  is_abu_luka_content: boolean,                              // true ONLY for Abu Luka's own personal/brand content (default false)
+  business_line_reason: string                               // one short Arabic line justifying the business-line call
 }`;
 
 export interface ExtractionRunResult {

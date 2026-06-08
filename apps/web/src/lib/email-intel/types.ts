@@ -83,6 +83,10 @@ export interface ExtractedEmail {
   next_step_ar?: string;
   /** Reference links / URLs found (briefs, drives, sites, decks). */
   reference_links?: string[];
+  /** AI guess: true → Abu Luka's own personal/brand content, not an external client (default false). */
+  is_abu_luka_content?: boolean;
+  /** One short Arabic line justifying the business-line classification. */
+  business_line_reason?: string;
 }
 
 export type SuggestionType =
