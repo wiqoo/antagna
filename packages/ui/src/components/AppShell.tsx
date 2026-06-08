@@ -66,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
     headingKey: 'groupWork', heading: 'العمل',
     items: [
       { href: '/crm', key: 'clients', label: 'العملاء', icon: Users },
+      { href: '/quotations', key: 'quotations', label: 'عروض الأسعار', icon: FileText },
       { href: '/contacts', key: 'contacts', label: 'جهات الاتصال', icon: Contact },
       { href: '/equipment', key: 'equipment', label: 'المعدات', icon: Camera },
       { href: '/orders', key: 'orders', label: 'أوامر الشراء', icon: ShoppingCart },
@@ -117,6 +118,7 @@ const NAV_PERM: Record<string, string[]> = {
   inbox: ['email_threads.read.all', 'email_threads.read.assigned'],
   whatsapp: ['whatsapp.send', 'email_threads.read.all', 'email_threads.read.assigned'],
   clients: ['client.read', 'clients.read.all', 'clients.read.own'],
+  quotations: ['project.read', 'projects.read.all'],
   contacts: ['client.read', 'clients.read.contacts'],
   equipment: ['equipment.read'],
   repairs: ['equipment.read'],

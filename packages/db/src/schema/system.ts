@@ -41,3 +41,20 @@ export const translationCache = pgTable(
 
 export type TranslationCacheRow = typeof translationCache.$inferSelect;
 export type NewTranslationCacheRow = typeof translationCache.$inferInsert;
+
+/**
+ * Per-quotation smart-analysis cache. Recomputed only when the input hash
+ * (quote/email state) changes or the row goes stale — the analysis reads the
+ * AI brain (client memory + learnings + conversation summary) so it's not cheap.
+ */
+export const quotationAnalysisCache = pgTable('quotation_analysis_cache', {
+  projectId: text('project_id').primaryKey(),
+  inputHash: text('input_hash').notNull(),
+  payload: jsonb('payload').notNull(),
+  model: text('model'),
+  computedAt: timestamp('computed_at', { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type QuotationAnalysisRow = typeof quotationAnalysisCache.$inferSelect;
