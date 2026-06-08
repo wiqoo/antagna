@@ -36,6 +36,7 @@ export type ImportInput = {
   contactPhone?: string | null;
   stage: string;
   quoteNumber?: string | null;
+  invoiceNumber?: string | null;
   deliveryDue?: string | null;
   shootStart?: string | null;
   isAbuLukaContent?: boolean;
@@ -81,12 +82,12 @@ export async function importEmailProject(
     const res = await tx.execute<{ id: string }>(sql`
       INSERT INTO projects (
         title, title_ar, client_id, project_type, stage, brief_received_at,
-        dafterah_quote_number, is_abu_luka_content,
+        dafterah_quote_number, dafterah_invoice_number, is_abu_luka_content,
         delivery_due_at, shoot_starts_at, created_by
       ) VALUES (
         ${title}, ${input.titleAr ?? null}, ${clientId}::uuid,
         'content_creation'::project_type, ${stage}::project_stage, now(),
-        ${input.quoteNumber?.trim() || null}, ${isAbuLuka},
+        ${input.quoteNumber?.trim() || null}, ${input.invoiceNumber?.trim() || null}, ${isAbuLuka},
         ${input.deliveryDue ? sql`${input.deliveryDue}::timestamptz` : sql`NULL`},
         ${input.shootStart ? sql`${input.shootStart}::timestamptz` : sql`NULL`},
         ${actorId}::uuid

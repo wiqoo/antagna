@@ -64,6 +64,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
   const [contactPhone, setContactPhone] = useState(c.contactPhone ?? '');
   const [stage, setStage] = useState('brief');
   const [quoteNumber, setQuoteNumber] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [deliveryDue, setDeliveryDue] = useState(c.deliveryDue ?? '');
   const [isAbuLuka, setIsAbuLuka] = useState(c.isAbuLuka);
 
@@ -88,6 +89,7 @@ export function IntakeCard({ c }: { c: Candidate }) {
         contactPhone: contactPhone.trim() || null,
         stage,
         quoteNumber: quoteNumber.trim() || null,
+        invoiceNumber: invoiceNumber.trim() || null,
         deliveryDue: deliveryDue || null,
         isAbuLukaContent: isAbuLuka,
       });
@@ -295,6 +297,9 @@ export function IntakeCard({ c }: { c: Candidate }) {
         </Field>
         <Field label="رقم عرض السعر">
           <input value={quoteNumber} onChange={(e) => setQuoteNumber(e.target.value)} className={inp(false) + ' font-mono'} dir="ltr" placeholder="من دفترة (اختياري)" />
+        </Field>
+        <Field label="رقم الفاتورة">
+          <input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className={inp(false) + ' font-mono'} dir="ltr" placeholder="بعد قبول العميل (اختياري)" />
         </Field>
         <Field label="موعد التسليم" missing={!deliveryDue}>
           <input value={deliveryDue} onChange={(e) => setDeliveryDue(e.target.value)} type="date" className={inp(!deliveryDue) + ' font-mono'} />
