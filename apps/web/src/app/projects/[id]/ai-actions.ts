@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { sql } from 'drizzle-orm';
 import { db, withActor } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage, assertAiBudget } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, assertAiBudget, retrieveMemory, indexMemory } from '@antagna/ai';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermissionAction } from '@/lib/authz';
 
@@ -39,6 +39,7 @@ export async function reanalyzeProject(projectId: string, force = false) {
     stage: string;
     pm_name: string | null;
     client_name: string | null;
+    client_id: string | null;
     delivery_due_at: Date | null;
     shoot_starts_at: Date | null;
     contracted_value_sar: string | null;
@@ -53,7 +54,7 @@ export async function reanalyzeProject(projectId: string, force = false) {
     SELECT
       p.id::text, p.code, p.title, p.title_ar, p.stage::text AS stage,
       prof.display_name AS pm_name,
-      c.name_ar AS client_name,
+      c.name_ar AS client_name, c.id::text AS client_id,
       p.delivery_due_at, p.shoot_starts_at,
       p.contracted_value_sar::text,
       p.ai_analyzed_at,
@@ -90,6 +91,7 @@ export async function reanalyzeProject(projectId: string, force = false) {
     stage: string;
     pm_name: string | null;
     client_name: string | null;
+    client_id: string | null;
     delivery_due_at: Date | null;
     shoot_starts_at: Date | null;
     contracted_value_sar: string | null;
@@ -131,13 +133,31 @@ Output JSON only.`;
 
   await assertAiBudget({ userId: actorId, feature: 'inline_reanalyze' });
 
+  // Brain: pull this client's history (past briefs, email signals, learnings) so
+  // the risk read reflects what we already know — retrieved after the budget gate.
+  let memContext = '';
+  if (proj.client_id) {
+    try {
+      const hits = await retrieveMemory({
+        query: `${proj.title_ar ?? proj.title} ${proj.client_name ?? ''} risk status follow-up`,
+        scope: 'client',
+        scopeId: proj.client_id,
+        limit: 4,
+        minSimilarity: 0.15,
+      });
+      if (hits.length) memContext = `\n\nWhat we already know about this client (memory):\n${hits.map((h) => `• ${h.content.slice(0, 220)}`).join('\n')}`;
+    } catch {
+      /* brain optional */
+    }
+  }
+
   try {
     const anthropic = getAnthropic();
     const resp = await anthropic.messages.create({
       model: ANTHROPIC_MODELS.sonnet,
       max_tokens: 400,
       system: SYSTEM,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: prompt + memContext }],
     });
 
     const text = resp.content.find((b) => b.type === 'text');
@@ -171,6 +191,19 @@ Output JSON only.`;
         WHERE id = ${projectId}::uuid
       `),
     );
+
+    // Brain write-back: store the risk conclusion scoped to the client.
+    if (proj.client_id) {
+      indexMemory({
+        scope: 'client',
+        scopeId: proj.client_id,
+        source: 'project_risk_analysis',
+        sourceId: projectId,
+        content: `مشروع ${proj.code} (${proj.title_ar ?? proj.title}) — المخاطر: ${parsed.risk} · ${parsed.status_paragraph}`,
+        contentLang: 'ar',
+        metadata: { risk: parsed.risk },
+      }).catch(() => {});
+    }
 
     revalidatePath(`/projects/${projectId}`);
     revalidatePath('/projects');

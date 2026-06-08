@@ -11,7 +11,7 @@
  */
 import { db, emailMessages, emailThreads, emailExtractions } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage, retrieveMemory, indexMemory } from '@antagna/ai';
 import type { ExtractedEmail } from './types';
 import {
   processMessageAttachments,
@@ -137,7 +137,7 @@ export async function extractEmail(
   }
 
   const [thread] = await db
-    .select({ subject: emailThreads.subject, topicTags: emailThreads.aiTopicTags })
+    .select({ subject: emailThreads.subject, topicTags: emailThreads.aiTopicTags, clientId: emailThreads.clientId })
     .from(emailThreads)
     .where(eq(emailThreads.id, msg.threadId))
     .limit(1);
@@ -221,6 +221,26 @@ ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread
   // AiBudgetError on cap-exceeded — callers must catch it.
   await assertAiBudget({ userId, feature: 'email_intel_extract' });
 
+  // Brain: after the budget gate (so the embedding never precedes it), pull what
+  // we already know about this client to sharpen the extraction.
+  let memContext = '';
+  if (thread?.clientId) {
+    try {
+      const hits = await retrieveMemory({
+        query: `${thread.subject ?? msg.subject ?? ''} ${msg.fromName ?? ''} ${msg.fromEmail}`,
+        scope: 'client',
+        scopeId: thread.clientId,
+        limit: 4,
+        minSimilarity: 0.15,
+      });
+      if (hits.length) {
+        memContext = `\n\n──── What we already know about this client (memory) ────\n${hits.map((h) => `• ${h.content.slice(0, 240)}`).join('\n')}`;
+      }
+    } catch {
+      /* brain is optional context */
+    }
+  }
+
   const client = getAnthropic();
   let raw: string;
   let inputTokens = 0;
@@ -238,7 +258,7 @@ ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread
         { type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [{ role: 'user', content: userPrompt + memContext }],
     });
     truncated = resp.stop_reason === 'max_tokens';
     const txt = resp.content.find((b) => b.type === 'text');
@@ -327,6 +347,22 @@ ${transcript}${attachmentText ? `\n\n──── Attachments (across the thread
       },
     })
     .returning({ id: emailExtractions.id });
+
+  // Brain write-back: store the structured conclusion so future analysis of this
+  // client (and the quotation/dashboard surfaces) reuses it. Best-effort.
+  if (thread?.clientId) {
+    const company = data.sender?.company ?? data.sender?.name ?? '—';
+    const proj = data.project_signals?.proposed_title_ar ? ` — مشروع محتمل: ${data.project_signals.proposed_title_ar}` : '';
+    indexMemory({
+      scope: 'client',
+      scopeId: thread.clientId,
+      source: 'email_extraction',
+      sourceId: msg.id,
+      content: `بريد من ${company}: ${data.summary_ar ?? ''}${proj}`,
+      contentLang: 'ar',
+      metadata: { intent: data.intent, urgency: data.urgency },
+    }).catch(() => {});
+  }
 
   return {
     ok: true,
