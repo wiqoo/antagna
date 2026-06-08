@@ -78,6 +78,15 @@ function isSkipped(el: Element | null): boolean {
   return false;
 }
 
+/** True while a form field / editable element is focused — never touch the DOM
+ * then, or mobile browsers dismiss the keyboard mid-typing. */
+function isEditableActive(): boolean {
+  const a = document.activeElement as HTMLElement | null;
+  if (!a) return false;
+  const tag = a.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || a.isContentEditable;
+}
+
 function wsWrap(original: string, translated: string): string {
   const lead = original.match(/^\s*/)?.[0] ?? '';
   const trail = original.match(/\s*$/)?.[0] ?? '';
@@ -115,6 +124,7 @@ function collect(root: ParentNode): Target[] {
     rootEl.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((el) => {
       const v = el.getAttribute(attr) ?? '';
       if (v.trim().length < 2 || !AR_LETTER.test(v) || isSkipped(el)) return;
+      if (el === document.activeElement) return; // never touch the focused field
       targets.push({
         key: v.trim(),
         read: () => el.getAttribute(attr) ?? '',
@@ -192,7 +202,9 @@ export function TranslateLayer({ enabled }: { enabled: boolean }) {
     let running = false;
 
     const run = async () => {
-      if (running) return;
+      // Never mutate the DOM while the user is typing — it blurs mobile inputs
+      // and closes the keyboard. We resume on focusout (see listener below).
+      if (running || isEditableActive()) return;
       running = true;
       try {
         // Pass 0: normalize Arabic digits/punctuation everywhere (cheap, no AI).
@@ -239,8 +251,13 @@ export function TranslateLayer({ enabled }: { enabled: boolean }) {
       window.addEventListener('load', () => window.setTimeout(startLayer, 500), { once: true });
     }
 
+    // Resume translating once the user leaves a field (runs deferred while typing).
+    const onFocusOut = () => schedule();
+    document.addEventListener('focusout', onFocusOut);
+
     return () => {
       observer.disconnect();
+      document.removeEventListener('focusout', onFocusOut);
       cancelAnimationFrame(raf);
     };
   }, [enabled]);
