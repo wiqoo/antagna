@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget } from '@antagna/ai';
 import { sendText } from '@/lib/whatsapp';
 import { sendEmail } from '@/lib/email';
 
@@ -102,6 +102,14 @@ export async function POST(request: Request) {
     const last = sentMap[r.id];
     return !last || Date.now() - new Date(last).getTime() > COOLDOWN_HOURS * 3600_000;
   });
+
+  // Budget gate BEFORE the per-quote suggestion loop (each fires a Haiku call).
+  if (!dry && fresh.length > 0) {
+    const budget = await checkAiBudget({ userId: null });
+    if (!budget.ok) {
+      return NextResponse.json({ ok: false, skipped: 'over_budget', reason: budget.reason, scanned: rows.length });
+    }
+  }
 
   const report: Array<Record<string, unknown>> = [];
   for (const r of fresh) {

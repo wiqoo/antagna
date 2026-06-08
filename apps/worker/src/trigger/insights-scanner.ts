@@ -9,7 +9,7 @@
 import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget } from '@antagna/ai';
 import { memoryIndexer } from './memory-indexer';
 import { learningAggregator } from './learning-aggregator';
 
@@ -78,6 +78,14 @@ export const insightsScanner = schedules.task({
     const anthropic = getAnthropic();
     let analyzed = 0;
     let totalCostUsd = 0;
+
+    // Hard budget gate — this loop fires Sonnet per project; bail the whole run
+    // if the company monthly cap is hit (no unbounded spend).
+    const budget = await checkAiBudget({ userId: null });
+    if (!budget.ok) {
+      console.warn('[insights-scanner] over AI budget — skipping run:', budget.reason);
+      return { ok: false, skipped: 'over_budget' as const, analyzed: 0 };
+    }
 
     for (const proj of projectsArr) {
       const userPrompt = `Project ${proj.code} — ${proj.title}

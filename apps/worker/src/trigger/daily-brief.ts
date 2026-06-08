@@ -8,7 +8,7 @@
 import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget } from '@antagna/ai';
 import { smartSuggestionsScanner } from './smart-suggestions-scanner';
 
 const SYSTEM_PROMPT = `You are Antagna's daily brief generator for a Saudi production agency.
@@ -63,6 +63,14 @@ export const dailyBrief = schedules.task({
 
     let briefsCount = 0;
     let totalCostUsd = 0;
+
+    // Hard budget gate — this loop fires Sonnet once per active project; if the
+    // company monthly cap is hit, skip the whole run (no unbounded spend).
+    const budget = await checkAiBudget({ userId: null });
+    if (!budget.ok) {
+      console.warn('[daily-brief] over AI budget — skipping run:', budget.reason);
+      return { ok: false, skipped: 'over_budget' as const, briefsCount: 0 };
+    }
 
     for (const proj of projectsArr) {
       if (!proj.activity_summary) continue;

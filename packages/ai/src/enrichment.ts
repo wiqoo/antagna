@@ -9,6 +9,7 @@
 import { getAnthropic } from './anthropic';
 import { ANTHROPIC_MODELS } from './models';
 import { recordUsage } from './cost';
+import { assertAiBudget } from './guard';
 
 export type CompanyEnrichment = {
   ok: boolean;
@@ -56,6 +57,8 @@ export async function enrichCompanyFromWeb(input: {
     `\nResearch them with web search and output the JSON only.`;
 
   try {
+    // Sonnet + web_search is billable — gate it on the AI budget before firing.
+    await assertAiBudget({ feature: 'client_enrichment' });
     const client = getAnthropic();
     const resp = await client.messages.create(
       {
