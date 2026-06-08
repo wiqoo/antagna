@@ -15,9 +15,10 @@ export function LocaleSwitch() {
       disabled={pending}
       title="Language · اللغة"
       aria-label="Switch language"
+      data-i18n-skip
       className="grid h-8 w-8 place-items-center rounded-md border border-[var(--line)] text-[11px] font-semibold text-[var(--text-muted)] transition-colors hover:border-[var(--line-strong)] hover:text-[var(--text)] disabled:opacity-50"
     >
-      {locale === 'ar' ? 'EN' : 'ع'}
+      {locale === 'ar' ? 'EN' : 'AR'}
     </button>
   );
 }

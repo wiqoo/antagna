@@ -12,8 +12,30 @@
  */
 import { useEffect } from 'react';
 
-const AR = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+// Arabic LETTERS (excludes Arabic-Indic digits + punctuation, which are handled
+// deterministically below) → these are what we send to the AI translator.
+const AR_LETTER = /[ؠ-يٮ-ۓۺ-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+// Arabic-Indic digits + punctuation → mapped to Latin synchronously (no AI).
+const AR_NORM = /[٠-٩۰-۹،؛؟٪-٬٫]/;
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE', 'TEXTAREA', 'NOSCRIPT', 'OPTION']);
+
+/** Map Arabic-Indic digits + punctuation to their Latin equivalents. */
+function normalizeArabicChars(s: string): string {
+  return s.replace(/[٠-٩۰-۹،؛؟٪٫٬]/g, (ch) => {
+    const c = ch.codePointAt(0)!;
+    if (c >= 0x0660 && c <= 0x0669) return String(c - 0x0660); // ٠-٩
+    if (c >= 0x06f0 && c <= 0x06f9) return String(c - 0x06f0); // ۰-۹
+    switch (ch) {
+      case '،': return ','; // ، Arabic comma
+      case '؛': return ';'; // ؛
+      case '؟': return '?'; // ؟
+      case '٪': return '%'; // ٪
+      case '٫': return '.'; // decimal sep
+      case '٬': return ','; // thousands sep
+      default: return ch;
+    }
+  });
+}
 const LS_KEY = 'i18nLayer:en';
 const LS_MAX_LEN = 300; // only persist short strings to keep localStorage bounded
 
@@ -69,7 +91,7 @@ function collect(root: ParentNode): Target[] {
   const walker = document.createTreeWalker(root as Node, NodeFilter.SHOW_TEXT, {
     acceptNode(n) {
       const v = n.nodeValue ?? '';
-      if (v.trim().length < 2 || !AR.test(v)) return NodeFilter.FILTER_REJECT;
+      if (v.trim().length < 2 || !AR_LETTER.test(v)) return NodeFilter.FILTER_REJECT;
       if (isSkipped((n as Text).parentElement)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
@@ -92,7 +114,7 @@ function collect(root: ParentNode): Target[] {
   for (const attr of ['placeholder', 'aria-label', 'title']) {
     rootEl.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((el) => {
       const v = el.getAttribute(attr) ?? '';
-      if (v.trim().length < 2 || !AR.test(v) || isSkipped(el)) return;
+      if (v.trim().length < 2 || !AR_LETTER.test(v) || isSkipped(el)) return;
       targets.push({
         key: v.trim(),
         read: () => el.getAttribute(attr) ?? '',
@@ -101,6 +123,24 @@ function collect(root: ParentNode): Target[] {
     });
   }
   return targets;
+}
+
+/** Synchronous, AI-free pass: map Arabic-Indic digits + punctuation to Latin. */
+function normalizeTree(root: ParentNode) {
+  const walker = document.createTreeWalker(root as Node, NodeFilter.SHOW_TEXT, {
+    acceptNode(n) {
+      const v = n.nodeValue ?? '';
+      if (!AR_NORM.test(v)) return NodeFilter.FILTER_REJECT;
+      if (isSkipped((n as Text).parentElement)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  let n: Node | null;
+  while ((n = walker.nextNode())) {
+    const node = n as Text;
+    const next = normalizeArabicChars(node.nodeValue ?? '');
+    if (next !== node.nodeValue) node.nodeValue = next;
+  }
 }
 
 function applyHits(targets: Target[]): string[] {
@@ -128,11 +168,12 @@ async function fetchTranslations(texts: string[]): Promise<boolean> {
       const j = (await r.json()) as { translations?: Record<string, string> };
       for (const [k, v] of Object.entries(j.translations ?? {})) {
         if (typeof v !== 'string') continue;
-        // Cache every returned key (even identity results for brand/proper
-        // names) so we don't re-request it on the next mutation; only count a
-        // real change for the re-apply + persist passes.
-        if (!mem.has(k)) mem.set(k, v);
-        if (v !== k) changed = true;
+        // Normalize any Arabic punctuation/digits the model left in, then cache
+        // every returned key (even identity results for brand/proper names) so
+        // we don't re-request it; only count a real change for re-apply/persist.
+        const nv = normalizeArabicChars(v);
+        if (!mem.has(k)) mem.set(k, nv);
+        if (nv !== k) changed = true;
       }
     } catch {
       /* ignore */
@@ -154,6 +195,8 @@ export function TranslateLayer({ enabled }: { enabled: boolean }) {
       if (running) return;
       running = true;
       try {
+        // Pass 0: normalize Arabic digits/punctuation everywhere (cheap, no AI).
+        normalizeTree(document.body);
         // Pass 1: apply cache hits across the whole document.
         let targets = collect(document.body);
         const missing = applyHits(targets);
