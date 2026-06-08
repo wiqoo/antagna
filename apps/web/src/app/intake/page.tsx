@@ -16,6 +16,7 @@ type Raw = {
   subject: string | null;
   data: Record<string, unknown>;
   msgs: number;
+  extracted_at: string | Date | null;
 };
 
 const str = (v: unknown): string => (v == null ? '' : String(v).trim());
@@ -60,7 +61,7 @@ export default async function IntakePage() {
           AND NOT (et.id::text IN (SELECT jsonb_array_elements_text((SELECT list FROM dismissed))))
         ORDER BY et.id, ex.extracted_at DESC
       )
-      SELECT thread_id, subject, data, msgs FROM cand ORDER BY extracted_at DESC LIMIT 10
+      SELECT thread_id, subject, data, msgs, extracted_at FROM cand ORDER BY extracted_at DESC LIMIT 10
     `),
     db.execute(sql`SELECT lower(name_ar) AS a, lower(name_en) AS e FROM clients WHERE archived_at IS NULL`),
   ]);
@@ -85,6 +86,7 @@ export default async function IntakePage() {
     const delivery = str(get(d, ['dates', 'delivery_deadline_iso']));
     return {
       threadId: r.thread_id,
+      extractedAt: r.extracted_at ? String(r.extracted_at) : '',
       subject: r.subject ?? '(بدون عنوان)',
       msgs: r.msgs,
       title: titleEn || titleAr || (r.subject ?? ''),
@@ -132,7 +134,7 @@ export default async function IntakePage() {
         <div className="space-y-3">
           <p className="text-[11px] text-[var(--text-dim)]">{candidates.length} مرشّح · الحقول الناقصة مظلّلة — عدّلها قبل التأكيد.</p>
           {candidates.map((c) => (
-            <IntakeCard key={c.threadId} c={c} />
+            <IntakeCard key={c.threadId + '|' + c.extractedAt} c={c} />
           ))}
         </div>
       )}

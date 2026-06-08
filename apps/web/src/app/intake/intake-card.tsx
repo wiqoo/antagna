@@ -21,6 +21,7 @@ function safeHref(u: string): string | null {
 
 export type Candidate = {
   threadId: string;
+  extractedAt: string;
   subject: string;
   msgs: number;
   title: string;
