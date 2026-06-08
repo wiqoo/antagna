@@ -32,7 +32,7 @@ const DOMAIN_GUIDANCE: Record<TranslateDomain, string> = {
 };
 
 const GLOSSARY =
-  'Glossary (use consistently): عميل=Client, مشروع=Project, بريف=Brief, مخرجات=Deliverables, مهمة=Task, اعتماد=Approval, معدات=Equipment, تصوير=Shoot, مونتاج=Editing, فريق=Team, جهة الاتصال=Contact, مرشّح=Candidate.';
+  'Glossary (use consistently): عميل=Client, مشروع=Project, بريف=Brief, مخرجات=Deliverables, مهمة=Task, اعتماد=Approval, معدات=Equipment, تصوير=Shoot, مونتاج=Editing, فريق=Team, جهة الاتصال=Contact, مرشّح=Candidate, دفترة=Dafterah (a product name — keep as-is), عرض السعر=Quote, أبو لوكا=Abu Luka, فولت=Volt.';
 
 const MAX_ITEMS_PER_CALL = 40;
 const MAX_CHARS_PER_CALL = 8000;
