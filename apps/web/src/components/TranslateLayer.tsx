@@ -221,14 +221,23 @@ export function TranslateLayer({ enabled }: { enabled: boolean }) {
       });
     };
 
-    schedule(); // initial pass
-
+    // Start ONLY after React has finished hydrating — mutating server-rendered
+    // text nodes during hydration triggers React error #418 (text mismatch).
+    // Post-hydration mutations are safe; if React later re-renders a node back
+    // to Arabic, the observer simply re-translates it.
     const observer = new MutationObserver(() => schedule());
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    let started = false;
+    const startLayer = () => {
+      if (started) return;
+      started = true;
+      schedule();
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    };
+    if (document.readyState === 'complete') {
+      window.setTimeout(startLayer, 500);
+    } else {
+      window.addEventListener('load', () => window.setTimeout(startLayer, 500), { once: true });
+    }
 
     return () => {
       observer.disconnect();
