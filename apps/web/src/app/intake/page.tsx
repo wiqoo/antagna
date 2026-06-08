@@ -57,11 +57,18 @@ export default async function IntakePage() {
         FROM email_extractions ex
         JOIN email_threads et ON et.id = ex.thread_id
         WHERE et.project_id IS NULL
-          AND EXISTS (SELECT 1 FROM email_messages m WHERE m.thread_id = et.id AND m.direction = 'outbound')
+          -- Foundational across ALL inbound: a thread we replied to OR any inbound
+          -- where the deep extraction detected real project intent (new project /
+          -- proposed title). The extractor already skips junk, so these are real.
+          AND (
+            EXISTS (SELECT 1 FROM email_messages m WHERE m.thread_id = et.id AND m.direction = 'outbound')
+            OR (ex.data->'project_signals'->>'is_new_project') = 'true'
+            OR COALESCE(ex.data->'project_signals'->>'proposed_title_en', ex.data->'project_signals'->>'proposed_title_ar') IS NOT NULL
+          )
           AND NOT (et.id::text IN (SELECT jsonb_array_elements_text((SELECT list FROM dismissed))))
         ORDER BY et.id, ex.extracted_at DESC
       )
-      SELECT thread_id, subject, data, msgs, extracted_at FROM cand ORDER BY extracted_at DESC LIMIT 10
+      SELECT thread_id, subject, data, msgs, extracted_at FROM cand ORDER BY extracted_at DESC LIMIT 15
     `),
     db.execute(sql`SELECT lower(name_ar) AS a, lower(name_en) AS e FROM clients WHERE archived_at IS NULL`),
   ]);
@@ -119,7 +126,7 @@ export default async function IntakePage() {
       <PageHeader
         eyebrow="Intake · مؤقت"
         title={<span className="inline-flex items-center gap-2"><Sparkles size={18} className="text-[var(--accent)]" /> مشاريع من البريد</span>}
-        subtitle="آخر المشاريع اللي بدأنا فيها شغل فعلي (ردّينا عليها) — راجِع البيانات، اكمل الناقص، وأكّد لتدخل في المشاريع والعملاء وجهات الاتصال."
+        subtitle="كل بريد وارد فيه مشروع حقيقي — سواء ردّينا عليه أو لسه — الـ AI حلّله بعمق. راجِع البيانات، اكمل الناقص، وأكّد لتدخل في المشاريع والعملاء وجهات الاتصال."
       />
 
       {candidates.length === 0 ? (

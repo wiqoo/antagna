@@ -494,12 +494,12 @@ export default async function InboxThreadPage({
                               <Sparkles size={9} className="inline" /> {m.aiSummary}
                             </p>
                           )}
-                          <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-muted)]">
-                            {m.bodyText?.slice(0, 1200) || m.snippet || '(فارغة)'}
-                            {(m.bodyText?.length ?? 0) > 1200 && (
-                              <span className="text-[var(--text-dim)]">… (مقتطعة)</span>
-                            )}
-                          </p>
+                          <div
+                            dir="auto"
+                            className="mt-2 max-h-[440px] overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/40 px-3.5 py-3 text-[13.5px] leading-[1.85] text-[var(--text)]"
+                          >
+                            {m.bodyText?.trim() || m.snippet || '(فارغة)'}
+                          </div>
                           {m.attachmentCount > 0 && (
                             <p className="mt-2 inline-flex items-center gap-1 text-[10px] text-[var(--text-dim)]">
                               <Paperclip size={10} /> {m.attachmentCount} مرفق
