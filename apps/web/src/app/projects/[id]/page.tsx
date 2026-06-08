@@ -56,7 +56,8 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
-import { transitionStage, postComment } from './actions';
+import { postComment } from './actions';
+import { StagePanel } from './stage-panel';
 import {
   addAssignment,
   addProjectTask,
@@ -486,6 +487,28 @@ export default async function ProjectDetailPage({
 
   const nextStages = project.stage ? STAGE_TRANSITIONS[project.stage] ?? [] : [];
 
+  // Stage-panel data (relative dates computed server-side → hydration-safe).
+  const arRel = (d: Date | string | null | undefined): string => {
+    if (!d) return '';
+    const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+    if (days <= 0) return 'اليوم';
+    if (days === 1) return 'أمس';
+    if (days < 7) return `منذ ${days} أيام`;
+    const w = Math.floor(days / 7);
+    if (w < 5) return `منذ ${w} ${w === 1 ? 'أسبوع' : 'أسابيع'}`;
+    const m = Math.floor(days / 30);
+    return `منذ ${m} ${m === 1 ? 'شهر' : 'أشهر'}`;
+  };
+  const stageEnteredAt = stageLog.find((l) => l.toStage === project.stage)?.changedAt ?? null;
+  const inStageLabel = stageEnteredAt ? arRel(stageEnteredAt) : null;
+  const stageHistory = stageLog.slice(0, 5).map((l) => ({
+    fromLabel: l.fromStage ? stageLabelAr(l.fromStage) : null,
+    toLabel: stageLabelAr(l.toStage),
+    byName: l.changedByName ?? null,
+    whenLabel: arRel(l.changedAt),
+    reason: l.reason ?? null,
+  }));
+
   // ── Page-level AI hints (derived from data already loaded) ────────────────
   const now = new Date();
   const overdueDays = project.deliveryDueAt
@@ -709,49 +732,20 @@ export default async function ProjectDetailPage({
         </div>
       </Card>
 
-      {/* Stage transitions */}
-      {nextStages.length > 0 && (
+      {/* Project pipeline + stage control + history */}
+      {project.stage && (
         <Card>
           <CardHeader
-            title="نقل المرحلة"
-            subtitle="انتقل بالمشروع إلى المرحلة التالية في المسار"
+            title="مسار المشروع"
+            subtitle="موضع المشروع في المسار، التحكّم في المرحلة، وسجل التغييرات"
           />
-          <div className="flex flex-wrap items-center gap-2">
-            {nextStages.map((s) => (
-              <form
-                key={s}
-                action={async (formData: FormData) => {
-                  'use server';
-                  const reason = formData.get('reason')?.toString() ?? null;
-                  await transitionStage(
-                    id,
-                    s as Parameters<typeof transitionStage>[1],
-                    reason,
-                  );
-                }}
-                className="flex items-center gap-1.5"
-              >
-                {(s === 'lost' || s === 'cancelled') && (
-                  <input
-                    type="text"
-                    name="reason"
-                    required
-                    placeholder="السبب…"
-                    className="h-9 w-36 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 text-xs"
-                  />
-                )}
-                <Button
-                  variant={
-                    s === 'lost' || s === 'cancelled' ? 'danger' : 'secondary'
-                  }
-                  size="sm"
-                  type="submit"
-                >
-                  → {stageLabelAr(s)}
-                </Button>
-              </form>
-            ))}
-          </div>
+          <StagePanel
+            projectId={id}
+            currentStage={project.stage}
+            nextStages={nextStages}
+            inStageLabel={inStageLabel}
+            history={stageHistory}
+          />
         </Card>
       )}
 
