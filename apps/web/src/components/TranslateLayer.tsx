@@ -17,7 +17,7 @@ import { useEffect } from 'react';
 const AR_LETTER = /[ؠ-يٮ-ۓۺ-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
 // Arabic-Indic digits + punctuation → mapped to Latin synchronously (no AI).
 const AR_NORM = /[٠-٩۰-۹،؛؟٪-٬٫]/;
-const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE', 'TEXTAREA', 'NOSCRIPT', 'OPTION']);
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE', 'TEXTAREA', 'NOSCRIPT']);
 
 /** Map Arabic-Indic digits + punctuation to their Latin equivalents. */
 function normalizeArabicChars(s: string): string {

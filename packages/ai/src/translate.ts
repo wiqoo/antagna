@@ -167,7 +167,9 @@ async function runModelTranslate(
   await assertAiBudget({ userId, feature: 'translate' });
   const client = getAnthropic();
   const system = `You are a professional ${from}->${to} translator for Antagna, a premium Saudi creative-production agency SaaS. ${DOMAIN_GUIDANCE[domain]} ${GLOSSARY}
-Rules: translate ONLY (no notes); preserve placeholders like {count}, {name}, %s and any HTML/markdown tags and emoji; keep brand/proper Latin names as-is; keep numbers/dates. Output a STRICT JSON array of strings — same length and order as the input — and nothing else.`;
+Rules: translate ONLY (no notes); preserve placeholders like {count}, {name}, %s and any HTML/markdown tags and emoji; keep brand/proper Latin names as-is; keep numbers/dates.
+CRITICAL: the output must contain ZERO Arabic-script characters. TRANSLITERATE any embedded Arabic personal, company, or place names to their natural Latin spelling (محمد جستانيه -> "Mohammed Jastaniah", نيسان السعودية -> "Nissan Saudi Arabia"). Never leave Arabic letters in the result.
+Output a STRICT JSON array of strings — same length and order as the input — and nothing else.`;
   const user = `Translate these ${items.length} item(s) to ${to}. Input JSON array:\n${JSON.stringify(items)}`;
 
   let resp;
