@@ -96,6 +96,11 @@ function isFresh(inputHash: string, computedAt: string, state: QuoteState): bool
   return ageH < CACHE_TTL_HOURS;
 }
 
+/** True when a cached row is still valid for `state` (same hash + within TTL). */
+export function isAnalysisFresh(pre: { inputHash: string; computedAt: string }, state: QuoteState): boolean {
+  return isFresh(pre.inputHash, pre.computedAt, state);
+}
+
 /** Get the analysis for one quote — cache-first; computes (and caches) on miss/stale. */
 export async function analyzeQuotation(
   state: QuoteState,

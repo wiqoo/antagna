@@ -10,6 +10,7 @@ import { requirePermission } from '@/lib/authz';
 import {
   readCachedAnalyses,
   analyzeQuotation,
+  isAnalysisFresh,
   QUOTE_STATUS_LABEL_AR,
   type QuoteState,
   type QuoteStatus,
@@ -93,28 +94,38 @@ export default async function QuotationsPage() {
   const open = raw.filter((r) => (!r.invoice_no || r.invoice_no.trim() === '') && ACTIVE.has(r.stage));
 
   // Smart analysis — cache-first; only stale/missing quotes hit the brain + model.
-  const cache = await readCachedAnalyses(open.map((r) => r.id));
   const toState = (r: Row): QuoteState => ({
     projectId: r.id, clientId: r.client_id, title: r.title, clientName: r.client_name, stage: r.stage,
     quoteNo: r.quote_no, invoiceNo: r.invoice_no, valueSar: r.value_sar, quotedAt: r.quoted_at,
     lastEmailAt: r.last_email_at, lastInboundAt: r.last_inbound_at, lastOutboundAt: r.last_outbound_at,
   });
-  let computed = 0;
+  const cache = await readCachedAnalyses(open.map((r) => r.id));
+  const states = new Map(open.map((r) => [r.id, toState(r)]));
+  // Only stale/missing rows need a (possibly expensive) compute — cap how many
+  // fresh computes one page load triggers; the rest render from cache.
+  const stale = open.filter((r) => {
+    const pre = cache.get(r.id);
+    return !pre || !isAnalysisFresh(pre, states.get(r.id)!);
+  });
+  const computeIds = new Set(stale.slice(0, ANALYZE_CAP).map((r) => r.id));
+
   const analyses = new Map<string, Awaited<ReturnType<typeof analyzeQuotation>>>();
   await Promise.all(
     open.map(async (r) => {
       const pre = cache.get(r.id);
-      // Cap fresh computes; uncapped quotes still render with their cached (or none).
-      const allowCompute = computed < ANALYZE_CAP;
-      if (allowCompute && !(pre && pre.inputHash && isFreshish(pre, toState(r)))) computed++;
-      try {
-        const res = await analyzeQuotation(toState(r), {
-          cached: pre ? { inputHash: pre.inputHash, computedAt: pre.computedAt, analysis: pre.analysis } : undefined,
-          force: false,
-        });
-        analyses.set(r.id, res);
-      } catch {
-        if (pre) analyses.set(r.id, { ...pre.analysis, cached: true });
+      if (computeIds.has(r.id)) {
+        try {
+          analyses.set(
+            r.id,
+            await analyzeQuotation(states.get(r.id)!, {
+              cached: pre ? { inputHash: pre.inputHash, computedAt: pre.computedAt, analysis: pre.analysis } : undefined,
+            }),
+          );
+        } catch {
+          if (pre) analyses.set(r.id, { ...pre.analysis, cached: true });
+        }
+      } else if (pre) {
+        analyses.set(r.id, { ...pre.analysis, cached: true });
       }
     }),
   );
@@ -241,12 +252,6 @@ export default async function QuotationsPage() {
       )}
     </Shell>
   );
-}
-
-function isFreshish(pre: { inputHash: string; computedAt: string }, _state: QuoteState): boolean {
-  // Lightweight gate for the cap counter only; analyzeQuotation does the real check.
-  const ageH = (Date.now() - new Date(pre.computedAt).getTime()) / 3_600_000;
-  return ageH < 24;
 }
 
 function Stat({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone?: 'warning' | 'success' }) {
