@@ -38,7 +38,10 @@ function todayStr(): string {
 
 export async function POST(request: Request) {
   if (!authed(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
-  const dry = new URL(request.url).searchParams.get('dry') === '1';
+  const url = new URL(request.url);
+  const dry = url.searchParams.get('dry') === '1';
+  // Test mode: send the full digest to ONE profile only (e.g. Mohammed), no dedup.
+  const testProfile = url.searchParams.get('testProfile');
 
   // At-risk + overdue: high-importance threads we owe a reply on, gone quiet.
   const threads = (await db.execute<Thread>(sql`
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
   }
 
   // Daily dedup — one escalation per calendar day (the cron runs once at 08:00).
-  if (!dry) {
+  if (!dry && !testProfile) {
     const sentRows = (await db.execute(sql`SELECT value FROM system_settings WHERE key = ${SENT_KEY} LIMIT 1`)) as unknown as Array<{ value: { date?: string } }>;
     if (sentRows[0]?.value?.date === todayStr()) {
       return NextResponse.json({ ok: true, dry, atRisk: threads.length, notified: 0, skipped: 'already_sent_today' });
@@ -76,13 +79,17 @@ export async function POST(request: Request) {
 
   // Group: ALWAYS recipients get every thread; each thread's AM gets its own threads.
   const byRecipient = new Map<string, Thread[]>();
-  for (const rid of ALWAYS.map((a) => a.id)) byRecipient.set(rid, [...threads]);
-  for (const t of threads) {
-    if (t.am_id && !byRecipient.has(t.am_id)) byRecipient.set(t.am_id, []);
-    if (t.am_id) {
-      const list = byRecipient.get(t.am_id)!;
-      // ALWAYS recipients already have all threads; avoid dup-listing for them.
-      if (!ALWAYS.some((a) => a.id === t.am_id)) list.push(t);
+  if (testProfile) {
+    byRecipient.set(testProfile, [...threads]); // test → only this profile
+  } else {
+    for (const rid of ALWAYS.map((a) => a.id)) byRecipient.set(rid, [...threads]);
+    for (const t of threads) {
+      if (t.am_id && !byRecipient.has(t.am_id)) byRecipient.set(t.am_id, []);
+      if (t.am_id) {
+        const list = byRecipient.get(t.am_id)!;
+        // ALWAYS recipients already have all threads; avoid dup-listing for them.
+        if (!ALWAYS.some((a) => a.id === t.am_id)) list.push(t);
+      }
     }
   }
 
@@ -139,7 +146,7 @@ export async function POST(request: Request) {
     report.push({ recipient: p.name, threads: list.length, channels: dry ? ['(dry)'] : channels });
   }
 
-  if (!dry) {
+  if (!dry && !testProfile) {
     await db.execute(sql`
       INSERT INTO system_settings (key, value, updated_at)
       VALUES (${SENT_KEY}, ${JSON.stringify({ date: todayStr() })}::jsonb, now())
