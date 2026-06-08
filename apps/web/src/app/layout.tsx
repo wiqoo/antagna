@@ -11,6 +11,7 @@ import NextTopLoader from 'nextjs-toploader';
 import './globals.css';
 import { PWARegister } from '@/components/PWARegister';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { TranslateLayer } from '@/components/TranslateLayer';
 
 // Geist — Latin product UI sans. NOTE: non-colliding variable names
 // (--font-geist / --font-geist-mono) so they don't clash with the Tailwind
@@ -97,6 +98,7 @@ export default async function RootLayout({
         />
         <NextIntlClientProvider>
           {children}
+          <TranslateLayer enabled={locale === 'en'} />
           <PWARegister />
           <InstallPrompt />
         </NextIntlClientProvider>
