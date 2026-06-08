@@ -32,6 +32,10 @@ type Row = {
   pm_name: string | null;
   pm_email: string | null;
   pm_wa: string | null;
+  cb_id: string | null;
+  cb_name: string | null;
+  cb_email: string | null;
+  cb_wa: string | null;
 };
 
 function authed(req: Request): boolean {
@@ -72,12 +76,14 @@ export async function POST(request: Request) {
       COALESCE(c.name_ar, c.name_en) AS client_name,
       ea.last_email_at::text, ea.last_inbound_at::text, ea.last_outbound_at::text,
       am.id::text AS am_id, am.display_name AS am_name, am.email AS am_email, am.whatsapp_e164 AS am_wa,
-      pm.id::text AS pm_id, pm.display_name AS pm_name, pm.email AS pm_email, pm.whatsapp_e164 AS pm_wa
+      pm.id::text AS pm_id, pm.display_name AS pm_name, pm.email AS pm_email, pm.whatsapp_e164 AS pm_wa,
+      cb.id::text AS cb_id, cb.display_name AS cb_name, cb.email AS cb_email, cb.whatsapp_e164 AS cb_wa
     FROM projects p
     JOIN clients c ON c.id = p.client_id
     LEFT JOIN email_act ea ON ea.project_id = p.id
     LEFT JOIN profiles am ON am.id = p.account_manager_id
     LEFT JOIN profiles pm ON pm.id = p.project_manager_id
+    LEFT JOIN profiles cb ON cb.id = p.created_by
     WHERE p.archived_at IS NULL
       AND p.dafterah_quote_number IS NOT NULL AND btrim(p.dafterah_quote_number) <> ''
       AND (p.dafterah_invoice_number IS NULL OR btrim(p.dafterah_invoice_number) = '')
@@ -121,11 +127,17 @@ export async function POST(request: Request) {
       <p>الإجراء: تابِع العميل، أو حوّل المشروع لـ «مُلغى» إن لم يكن هناك تجاوب — من <a href="${link}">صفحة المشروع</a>.</p>
     </div>`;
 
-    // Recipients: PM + AM (dedupe by profile id).
-    const recipients = dedupeRecipients([
+    // Recipients: PM + AM (dedupe by profile id). Fallback to the project's
+    // creator so a stalled quote never silently reaches no one.
+    let recipients = dedupeRecipients([
       { id: r.pm_id, name: r.pm_name, email: r.pm_email, wa: r.pm_wa, role: 'مدير المشروع' },
       { id: r.am_id, name: r.am_name, email: r.am_email, wa: r.am_wa, role: 'مدير الحساب' },
     ]);
+    if (recipients.length === 0) {
+      recipients = dedupeRecipients([
+        { id: r.cb_id, name: r.cb_name, email: r.cb_email, wa: r.cb_wa, role: 'منشئ المشروع' },
+      ]);
+    }
 
     const delivered: Record<string, unknown>[] = [];
     if (!dry) {
