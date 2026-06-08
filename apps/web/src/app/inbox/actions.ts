@@ -5,7 +5,7 @@ import { isNull, sql } from 'drizzle-orm';
 import { db, withActor, googleIntegrations } from '@antagna/db';
 import { requirePermissionAction, canMany, getEffectiveProfileId } from '@/lib/authz';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage, retrieveMemory, assertAiBudget } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, retrieveMemory, indexMemory, assertAiBudget } from '@antagna/ai';
 import { ingestGmail, SYSTEM_MAILBOX } from '@/lib/gmail-ingest';
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
@@ -142,6 +142,17 @@ export async function summarizeThreadAction(threadId: string): Promise<void> {
   const actorId = await getEffectiveProfileId();
   await assertAiBudget({ userId: actorId, feature: 'email_thread_summary' });
 
+  // Brain: pull client history so the summary reflects the relationship.
+  let memNote = '';
+  if (thread.clientId) {
+    try {
+      const hits = await retrieveMemory({ query: thread.subject ?? '', scope: 'client', scopeId: thread.clientId, limit: 3, minSimilarity: 0.2 });
+      if (hits.length) memNote = `\n\n[ذاكرة العميل]\n${hits.map((h) => `• ${h.content.slice(0, 200)}`).join('\n')}`;
+    } catch {
+      /* brain optional */
+    }
+  }
+
   let parsed: { summary_ar?: string; topic_tags?: string[]; urgency?: string } = {};
   try {
     const client = getAnthropic();
@@ -161,7 +172,7 @@ export async function summarizeThreadAction(threadId: string): Promise<void> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any,
       messages: [
-        { role: 'user', content: `هذه المحادثة:\n\n${convo}\n\nأخرج الـ JSON فقط.` },
+        { role: 'user', content: `هذه المحادثة:\n\n${convo}${memNote}\n\nأخرج الـ JSON فقط.` },
       ],
     });
     await recordUsage({ feature: 'email_thread_summary', model: ANTHROPIC_MODELS.sonnet, inputTokens: resp.usage.input_tokens ?? 0, outputTokens: resp.usage.output_tokens ?? 0, cacheReadTokens: (resp.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0, cacheWriteTokens: (resp.usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens ?? 0 });
@@ -192,6 +203,17 @@ export async function summarizeThreadAction(threadId: string): Promise<void> {
         ai_topic_tags = ${tags}::text[]
     WHERE id = ${threadId}::uuid
   `);
+  // Brain write-back: store the thread summary scoped to the client.
+  if (thread.clientId) {
+    indexMemory({
+      scope: 'client',
+      scopeId: thread.clientId,
+      source: 'email_thread_summary',
+      sourceId: threadId,
+      content: `${thread.subject ? thread.subject + ': ' : ''}${summary}`,
+      contentLang: 'ar',
+    }).catch(() => {});
+  }
   revalidatePath(`/inbox/${threadId}`);
   revalidatePath('/inbox');
 }
