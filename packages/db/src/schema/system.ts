@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, jsonb, timestamp, primaryKey, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const systemSettings = pgTable('system_settings', {
@@ -48,7 +48,7 @@ export type NewTranslationCacheRow = typeof translationCache.$inferInsert;
  * AI brain (client memory + learnings + conversation summary) so it's not cheap.
  */
 export const quotationAnalysisCache = pgTable('quotation_analysis_cache', {
-  projectId: text('project_id').primaryKey(),
+  projectId: uuid('project_id').primaryKey(),
   inputHash: text('input_hash').notNull(),
   payload: jsonb('payload').notNull(),
   model: text('model'),

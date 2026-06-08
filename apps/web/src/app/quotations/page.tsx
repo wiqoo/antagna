@@ -10,10 +10,12 @@ import { requirePermission } from '@/lib/authz';
 import {
   readCachedAnalyses,
   analyzeQuotation,
+  deterministicAnalysis,
   isAnalysisFresh,
   QUOTE_STATUS_LABEL_AR,
   type QuoteState,
   type QuoteStatus,
+  type QuotationAnalysis,
 } from '@/lib/quotation-analysis';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +39,21 @@ type Row = {
 };
 
 const ACTIVE = new Set(['lead', 'brief', 'quoted', 'approved', 'planning', 'shooting', 'editing', 'review']);
-const ANALYZE_CAP = 25; // cap fresh AI computes per page load (rest stay cached / next load)
+const ANALYZE_CAP = 12; // cap fresh AI computes per page load (rest deterministic / next load)
+
+const LIKELIHOOD_AR: Record<'high' | 'medium' | 'low', string> = { high: 'عالٍ', medium: 'متوسط', low: 'منخفض' };
+
+/** Run async fn over items with bounded concurrency. */
+async function mapLimit<T>(items: T[], limit: number, fn: (t: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      await fn(items[idx]!);
+    }
+  });
+  await Promise.all(workers);
+}
 
 const STATUS_TONE: Record<QuoteStatus, 'info' | 'warning' | 'danger' | 'success'> = {
   on_track: 'info',
@@ -60,7 +76,7 @@ export default async function QuotationsPage() {
   const supabase = await getSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/quotations');
-  await requirePermission('project.read');
+  const { profileId } = await requirePermission('project.read');
 
   const raw = (await db.execute(sql`
     WITH email_act AS (
@@ -109,26 +125,29 @@ export default async function QuotationsPage() {
   });
   const computeIds = new Set(stale.slice(0, ANALYZE_CAP).map((r) => r.id));
 
-  const analyses = new Map<string, Awaited<ReturnType<typeof analyzeQuotation>>>();
-  await Promise.all(
-    open.map(async (r) => {
-      const pre = cache.get(r.id);
-      if (computeIds.has(r.id)) {
-        try {
-          analyses.set(
-            r.id,
-            await analyzeQuotation(states.get(r.id)!, {
-              cached: pre ? { inputHash: pre.inputHash, computedAt: pre.computedAt, analysis: pre.analysis } : undefined,
-            }),
-          );
-        } catch {
-          if (pre) analyses.set(r.id, { ...pre.analysis, cached: true });
-        }
-      } else if (pre) {
-        analyses.set(r.id, { ...pre.analysis, cached: true });
-      }
-    }),
-  );
+  const analyses = new Map<string, QuotationAnalysis & { cached: boolean }>();
+  // Non-compute rows resolve synchronously: fresh cache → cached; over-cap or
+  // never-cached → cheap deterministic so EVERY open row always has a status.
+  for (const r of open) {
+    if (computeIds.has(r.id)) continue;
+    const pre = cache.get(r.id);
+    analyses.set(r.id, pre ? { ...pre.analysis, cached: true } : { ...deterministicAnalysis(states.get(r.id)!), cached: false });
+  }
+  // Compute the capped stale set with bounded concurrency (≤5 at a time).
+  await mapLimit([...computeIds], 5, async (id) => {
+    const pre = cache.get(id);
+    try {
+      analyses.set(
+        id,
+        await analyzeQuotation(states.get(id)!, {
+          userId: profileId,
+          cached: pre ? { inputHash: pre.inputHash, computedAt: pre.computedAt, analysis: pre.analysis } : undefined,
+        }),
+      );
+    } catch {
+      analyses.set(id, pre ? { ...pre.analysis, cached: true } : { ...deterministicAnalysis(states.get(id)!), cached: false });
+    }
+  });
 
   const openValue = open.reduce((s, r) => s + (r.value_sar ? Number(r.value_sar) : 0), 0);
   const needAction = open.filter((r) => {
@@ -184,15 +203,23 @@ export default async function QuotationsPage() {
                         {r.client_name ?? '—'} <span className="font-mono">· {r.code} · عرض {r.quote_no}</span>
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
                       <span className="font-mono text-[12px] text-[var(--text)]">{fmtSar(r.value_sar)}</span>
                       {a && <StatusPill tone={STATUS_TONE[a.status]}>{QUOTE_STATUS_LABEL_AR[a.status]}</StatusPill>}
+                      {a && (
+                        <span className="text-[10px] text-[var(--text-dim)]">
+                          احتمال التحويل:{' '}
+                          <span className={a.likelihood === 'high' ? 'font-medium text-[var(--accent)]' : 'text-[var(--text-muted)]'}>
+                            {LIKELIHOOD_AR[a.likelihood]}
+                          </span>
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {a && (
                     <div className="mt-2 space-y-1.5 rounded-md border border-[var(--accent)]/15 bg-[var(--accent)]/[0.03] p-2.5">
-                      <p className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text)]">
+                      <p className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text)]" title={a.reasoningAr}>
                         {a.brainUsed && <Brain size={11} className="text-[var(--accent)]" />}
                         {a.headlineAr}
                       </p>

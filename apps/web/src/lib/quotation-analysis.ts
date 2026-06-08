@@ -14,7 +14,7 @@ import {
   getAnthropic,
   ANTHROPIC_MODELS,
   recordUsage,
-  assertAiBudget,
+  checkAiBudget,
   retrieveMemory,
   indexMemory,
 } from '@antagna/ai';
@@ -111,11 +111,38 @@ export async function analyzeQuotation(
     return { ...pre.analysis, cached: true };
   }
 
-  const brain = await gatherBrainContext(state);
-  const analysis = await runAnalysis(state, brain.text, opts.userId ?? null);
-  analysis.brainUsed = brain.used;
+  // Budget gate FIRST — if over budget, degrade to the deterministic analysis
+  // WITHOUT firing any embedding (brain) or model call. Governs the full cost.
+  const budget = await checkAiBudget({ userId: opts.userId ?? null });
+  if (!budget.ok) {
+    const det = deterministicAnalysis(state);
+    await cacheAnalysis(state, det);
+    return { ...det, cached: false };
+  }
 
-  // Persist cache (best-effort).
+  const brain = await gatherBrainContext(state);
+  const { analysis, aiUsed } = await runAnalysis(state, brain.text, opts.userId ?? null);
+  analysis.brainUsed = aiUsed && brain.used;
+  await cacheAnalysis(state, analysis);
+
+  // Close the loop — index back into the brain ONLY when this was a real model
+  // conclusion (never pollute the brain with the rule-based fallback).
+  if (aiUsed) {
+    indexMemory({
+      scope: 'project',
+      scopeId: state.projectId,
+      source: 'quotation_analysis',
+      sourceId: state.projectId,
+      content: `عرض سعر ${state.quoteNo ?? ''} للعميل ${state.clientName ?? ''}: ${analysis.headlineAr} — الإجراء: ${analysis.actionAr}`,
+      contentLang: 'ar',
+      metadata: { status: analysis.status, likelihood: analysis.likelihood },
+    }).catch(() => {});
+  }
+
+  return { ...analysis, cached: false };
+}
+
+async function cacheAnalysis(state: QuoteState, analysis: QuotationAnalysis): Promise<void> {
   try {
     await db.execute(sql`
       INSERT INTO quotation_analysis_cache (project_id, input_hash, payload, model, computed_at)
@@ -126,19 +153,6 @@ export async function analyzeQuotation(
   } catch (e) {
     console.error('[quotation-analysis cache]', e);
   }
-
-  // Close the loop — index the conclusion back into the brain (best-effort).
-  indexMemory({
-    scope: 'project',
-    scopeId: state.projectId,
-    source: 'quotation_analysis',
-    sourceId: state.projectId,
-    content: `عرض سعر ${state.quoteNo ?? ''} للعميل ${state.clientName ?? ''}: ${analysis.headlineAr} — الإجراء: ${analysis.actionAr}`,
-    contentLang: 'ar',
-    metadata: { status: analysis.status, likelihood: analysis.likelihood },
-  }).catch(() => {});
-
-  return { ...analysis, cached: false };
 }
 
 async function gatherBrainContext(s: QuoteState): Promise<{ text: string; used: boolean }> {
@@ -187,10 +201,13 @@ async function gatherBrainContext(s: QuoteState): Promise<{ text: string; used: 
   return { text: parts.join('\n'), used: parts.length > 0 };
 }
 
-async function runAnalysis(s: QuoteState, brainText: string, userId: string | null): Promise<QuotationAnalysis> {
+async function runAnalysis(
+  s: QuoteState,
+  brainText: string,
+  userId: string | null,
+): Promise<{ analysis: QuotationAnalysis; aiUsed: boolean }> {
   const fallback: QuotationAnalysis = deterministicAnalysis(s);
   try {
-    await assertAiBudget({ userId, feature: 'quotation_analysis' });
     const client = getAnthropic();
     const facts = [
       `العميل: ${s.clientName ?? '—'}`,
@@ -228,20 +245,23 @@ status=ready_to_invoice لو المرحلة موافَق عليه/approved. stat
       ? (parsed.likelihood as 'high' | 'medium' | 'low')
       : fallback.likelihood;
     return {
-      status,
-      likelihood,
-      headlineAr: (parsed.headlineAr || fallback.headlineAr).toString().slice(0, 160),
-      actionAr: (parsed.actionAr || fallback.actionAr).toString().slice(0, 200),
-      reasoningAr: (parsed.reasoningAr || fallback.reasoningAr).toString().slice(0, 200),
-      brainUsed: false,
+      analysis: {
+        status,
+        likelihood,
+        headlineAr: (parsed.headlineAr || fallback.headlineAr).toString().slice(0, 160),
+        actionAr: (parsed.actionAr || fallback.actionAr).toString().slice(0, 200),
+        reasoningAr: (parsed.reasoningAr || fallback.reasoningAr).toString().slice(0, 200),
+        brainUsed: false,
+      },
+      aiUsed: true,
     };
   } catch {
-    return fallback;
+    return { analysis: fallback, aiUsed: false };
   }
 }
 
 /** Deterministic fallback when AI is unavailable / over-budget — still useful. */
-function deterministicAnalysis(s: QuoteState): QuotationAnalysis {
+export function deterministicAnalysis(s: QuoteState): QuotationAnalysis {
   const stalledD = daysSince(s.lastEmailAt);
   const noInbound = daysSince(s.lastInboundAt);
   if (s.stage === 'approved') {
