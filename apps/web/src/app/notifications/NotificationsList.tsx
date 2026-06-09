@@ -18,6 +18,7 @@ import {
   type ColumnDef,
 } from '@antagna/ui';
 import { markRead, markUnread, markAllRead } from './actions';
+import { useFormat } from '@/lib/format';
 
 export interface NotifRow {
   id: string;
@@ -30,19 +31,6 @@ export interface NotifRow {
   categoryLabel: string | null;
   read: boolean;
   createdAt: string; // ISO
-}
-
-/** Relative "time ago" in Arabic, mirrors NotificationsBell.timeAgo. */
-function timeAgo(iso: string): string {
-  const t = new Date(iso).getTime();
-  const mins = Math.floor((Date.now() - t) / 60000);
-  if (mins < 1) return 'الآن';
-  if (mins < 60) return `${mins} د`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} س`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} ي`;
-  return iso.slice(0, 10);
 }
 
 const CATEGORY_TONE: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
@@ -98,6 +86,7 @@ function RowActions({ n }: { n: NotifRow }) {
 }
 
 function NotifCard({ n }: { n: NotifRow }) {
+  const f = useFormat();
   const tone = (n.category && CATEGORY_TONE[n.category]) || 'neutral';
   return (
     <div
@@ -134,8 +123,8 @@ function NotifCard({ n }: { n: NotifRow }) {
               {n.categoryLabel && (
                 <StatusPill tone={tone}>{n.categoryLabel}</StatusPill>
               )}
-              <span className="font-mono text-[11px] text-[var(--text-dim)]">
-                {timeAgo(n.createdAt)}
+              <span className="text-[11px] text-[var(--text-dim)]">
+                {f.relative(n.createdAt)}
               </span>
             </div>
           </div>
@@ -147,6 +136,7 @@ function NotifCard({ n }: { n: NotifRow }) {
 }
 
 export function NotificationsList({ rows }: { rows: NotifRow[] }) {
+  const f = useFormat();
   const [tab, setTab] = useState<'unread' | 'all'>(
     rows.some((r) => !r.read) ? 'unread' : 'all',
   );
@@ -205,7 +195,7 @@ export function NotificationsList({ rows }: { rows: NotifRow[] }) {
       key: 'createdAt',
       header: 'التاريخ',
       cell: (r) => (
-        <span className="font-mono text-[12px] text-[var(--text-muted)]">{timeAgo(r.createdAt)}</span>
+        <span className="text-[12px] text-[var(--text-muted)]">{f.relative(r.createdAt)}</span>
       ),
       sortable: true,
       sortValue: (r) => r.createdAt,

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getEffectiveProfileId, canAny } from '@/lib/authz';
+import { getFormat } from '@/lib/format';
 import {
   summarizeThreadAction,
   generateNextActionsAction,
@@ -243,6 +244,7 @@ export default async function InboxThreadPage({
     ORDER BY sent_at ASC LIMIT 200`);
 
   const messages = rows<Msg>(mR);
+  const f = await getFormat();
 
   // "Needs reply" = last message was inbound and hasn't been answered.
   const needsReply =
@@ -353,7 +355,7 @@ export default async function InboxThreadPage({
                 }
                 subtitle={
                   thread.aiSummaryUpdatedAt
-                    ? `محدَّث ${new Date(thread.aiSummaryUpdatedAt).toISOString().slice(0, 16).replace('T', ' ')}`
+                    ? `محدَّث ${f.dateTime(thread.aiSummaryUpdatedAt)}`
                     : 'لم يُلخَّص بعد'
                 }
               />
@@ -489,8 +491,8 @@ export default async function InboxThreadPage({
                             <span className="font-mono text-[10px] text-[var(--text-dim)]" dir="ltr">
                               {m.fromEmail}
                             </span>
-                            <span className="ms-auto font-mono text-[10px] text-[var(--text-dim)]" dir="ltr">
-                              {new Date(m.sentAt).toISOString().slice(0, 16).replace('T', ' ')}
+                            <span className="ms-auto text-[10px] text-[var(--text-dim)]" dir="ltr">
+                              {f.dateTime(m.sentAt)}
                             </span>
                           </div>
                           {m.aiSummary && (
@@ -543,24 +545,8 @@ export default async function InboxThreadPage({
           <Card>
             <CardHeader title="حالة المتابعة" />
             <dl className="mt-3 space-y-2 text-[12px]">
-              <Row
-                k="آخر وارد"
-                v={
-                  thread.lastInboundAt
-                    ? new Date(thread.lastInboundAt).toISOString().slice(0, 16).replace('T', ' ')
-                    : '—'
-                }
-                mono
-              />
-              <Row
-                k="آخر صادر"
-                v={
-                  thread.lastOutboundAt
-                    ? new Date(thread.lastOutboundAt).toISOString().slice(0, 16).replace('T', ' ')
-                    : '—'
-                }
-                mono
-              />
+              <Row k="آخر وارد" v={f.dateTime(thread.lastInboundAt)} mono />
+              <Row k="آخر صادر" v={f.dateTime(thread.lastOutboundAt)} mono />
             </dl>
             <p
               className={
