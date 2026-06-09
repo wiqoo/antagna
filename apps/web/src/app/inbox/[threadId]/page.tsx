@@ -278,6 +278,24 @@ export default async function InboxThreadPage({
     ).values(),
   ).reverse();
 
+  // ── Triage signals ──
+  // One primary state for the header (urgent → needs-reply → lifecycle status),
+  // and a tidy secondary row (reply-status · importance · category) so the
+  // header stops stacking 5-6 cramped pills. Restrained tones, dot + label.
+  type Sig = { label: string; tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger' };
+  const primaryState: Sig = thread.isUrgent
+    ? { label: `عاجل${thread.urgentReason ? ` · ${thread.urgentReason}` : ''}`, tone: 'danger' }
+    : needsReply
+      ? { label: 'بانتظار ردّك', tone: 'warning' }
+      : { label: STATUS_AR[thread.status] ?? thread.status, tone: STATUS_TONE[thread.status] ?? 'neutral' };
+  const signals: Sig[] = [];
+  if (!needsReply && thread.replyStatus && REPLY_LABEL[thread.replyStatus])
+    signals.push({ label: REPLY_LABEL[thread.replyStatus]!, tone: REPLY_TONE[thread.replyStatus] ?? 'neutral' });
+  if (thread.importance)
+    signals.push({ label: `أهمية ${IMPORTANCE_AR[thread.importance] ?? thread.importance}`, tone: IMPORTANCE_TONE[thread.importance] ?? 'neutral' });
+  if (thread.category)
+    signals.push({ label: CATEGORY_AR[thread.category] ?? thread.category, tone: CATEGORY_TONE[thread.category] ?? 'neutral' });
+
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/inbox">
       <Link
@@ -292,37 +310,10 @@ export default async function InboxThreadPage({
         title={thread.subject ?? '(بدون عنوان)'}
         subtitle={`${thread.messageCount} رسالة${thread.clientNameAr ? ` · ${thread.clientNameAr}` : ''}${thread.projectCode && thread.projectId ? ` · مشروع ${thread.projectCode}` : ''}`}
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            {thread.isUrgent && (
-              <StatusPill tone="danger">
-                ⚡ عاجل{thread.urgentReason ? ` · ${thread.urgentReason}` : ''}
-              </StatusPill>
-            )}
-            {thread.replyStatus && REPLY_LABEL[thread.replyStatus] &&
-              !(needsReply && thread.replyStatus === 'needs_reply') && (
-              <StatusPill tone={REPLY_TONE[thread.replyStatus] ?? 'neutral'}>
-                {REPLY_LABEL[thread.replyStatus]}
-              </StatusPill>
-            )}
-            {thread.category && (
-              <StatusPill tone={CATEGORY_TONE[thread.category] ?? 'neutral'}>
-                {CATEGORY_AR[thread.category] ?? thread.category}
-              </StatusPill>
-            )}
-            {thread.importance && (
-              <StatusPill tone={IMPORTANCE_TONE[thread.importance] ?? 'neutral'}>
-                أهمية {IMPORTANCE_AR[thread.importance] ?? thread.importance}
-              </StatusPill>
-            )}
-            <StatusPill tone={STATUS_TONE[thread.status] ?? 'neutral'}>
-              {STATUS_AR[thread.status] ?? thread.status}
-            </StatusPill>
-            {needsReply && (
-              <StatusPill tone="warning">
-                <Clock size={11} /> بانتظار الردّ منك
-              </StatusPill>
-            )}
-          </div>
+          <StatusPill tone={primaryState.tone}>
+            {thread.isUrgent ? '⚡ ' : needsReply ? <Clock size={11} /> : null}
+            {primaryState.label}
+          </StatusPill>
         }
       />
 
@@ -345,6 +336,8 @@ export default async function InboxThreadPage({
           ))}
         </div>
       )}
+
+      <SignalBar signals={signals} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Left/main: AI brain + messages */}
@@ -463,7 +456,15 @@ export default async function InboxThreadPage({
                   const outbound = m.direction === 'outbound';
                   const fromLabel = m.fromName || m.fromEmail.split('@')[0];
                   return (
-                    <li key={m.id} className="px-6 py-4">
+                    <li
+                      key={m.id}
+                      className={
+                        'border-s-2 px-6 py-4 transition-colors ' +
+                        (outbound
+                          ? 'border-[var(--success)]/40 bg-[var(--success)]/[0.02]'
+                          : 'border-transparent')
+                      }
+                    >
                       <div className="flex items-start gap-3">
                         <Avatar name={fromLabel ?? '?'} size="sm" />
                         <div className="min-w-0 flex-1">
@@ -582,6 +583,35 @@ export default async function InboxThreadPage({
         </div>
       </div>
     </Shell>
+  );
+}
+
+const SIGNAL_DOT: Record<string, string> = {
+  neutral: 'var(--text-dim)',
+  info: 'var(--accent)',
+  warning: 'var(--warning)',
+  success: 'var(--success)',
+  danger: 'var(--danger)',
+};
+
+function SignalBar({
+  signals,
+}: {
+  signals: { label: string; tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }[];
+}) {
+  if (signals.length === 0) return null;
+  return (
+    <div className="-mt-1 mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-[var(--text-muted)]">
+      {signals.map((s, i) => (
+        <span key={i} className="inline-flex items-center gap-1.5">
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ background: SIGNAL_DOT[s.tone] ?? 'var(--text-dim)' }}
+          />
+          {s.label}
+        </span>
+      ))}
+    </div>
   );
 }
 

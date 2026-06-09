@@ -8,14 +8,46 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-// Always-notified escalation recipients (Mohammed's request: Abu Luka + Khalid).
-const ALWAYS = [
-  { id: '593cd6cb-6a62-4500-bd2a-00d535a053c1', label: 'أبو لوكا' },
-  { id: '116d52f9-0be5-4ae0-ab4b-a727185accf6', label: 'خالد الغامدي' },
-];
-const STALE_HOURS = 24; // reply overdue by a day+
+// Escalation config lives in system_settings('overdue_reply_config') so the
+// recipients + thresholds are tunable without a redeploy. Defaults below
+// reproduce the originally-shipped behavior exactly (Abu Luka + Khalid always,
+// 24h stale, AM on every overdue thread) — nothing changes until the row is set.
+type Recipient = { id: string; label: string };
+type EscalationConfig = {
+  alwaysRecipients: Recipient[]; // notified for ALL overdue threads
+  staleHours: number; // a reply is "overdue" after this many hours of silence
+  amExtraDays: number; // notify the account manager only after staleHours + N*24h
+};
+const DEFAULT_CONFIG: EscalationConfig = {
+  alwaysRecipients: [
+    { id: '593cd6cb-6a62-4500-bd2a-00d535a053c1', label: 'أبو لوكا' },
+    { id: '116d52f9-0be5-4ae0-ab4b-a727185accf6', label: 'خالد الغامدي' },
+  ],
+  staleHours: 24,
+  amExtraDays: 0,
+};
+const CONFIG_KEY = 'overdue_reply_config';
 const SENT_KEY = 'overdue_reply_sent_date';
 const BASE = process.env.ANTAGNA_BASE_URL ?? 'https://antagna.me';
+
+async function loadConfig(): Promise<EscalationConfig> {
+  try {
+    const rows = (await db.execute(
+      sql`SELECT value FROM system_settings WHERE key = ${CONFIG_KEY} LIMIT 1`,
+    )) as unknown as Array<{ value: Partial<EscalationConfig> | null }>;
+    const v = rows[0]?.value ?? {};
+    return {
+      alwaysRecipients:
+        Array.isArray(v.alwaysRecipients) && v.alwaysRecipients.length > 0
+          ? v.alwaysRecipients
+          : DEFAULT_CONFIG.alwaysRecipients,
+      staleHours: Number.isFinite(v.staleHours) ? Number(v.staleHours) : DEFAULT_CONFIG.staleHours,
+      amExtraDays: Number.isFinite(v.amExtraDays) ? Number(v.amExtraDays) : DEFAULT_CONFIG.amExtraDays,
+    };
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
 
 type Thread = {
   id: string;
@@ -43,6 +75,10 @@ export async function POST(request: Request) {
   // Test mode: send the full digest to ONE profile only (e.g. Mohammed), no dedup.
   const testProfile = url.searchParams.get('testProfile');
 
+  const config = await loadConfig();
+  const ALWAYS = config.alwaysRecipients;
+  const amStaleHours = config.staleHours + config.amExtraDays * 24;
+
   // At-risk + overdue: high-importance threads we owe a reply on, gone quiet.
   const threads = (await db.execute<Thread>(sql`
     SELECT et.id::text AS id, et.subject, et.ai_summary,
@@ -60,7 +96,7 @@ export async function POST(request: Request) {
       AND et.importance = 'high'
       AND et.status NOT IN ('spam', 'closed')
       AND et.last_inbound_at IS NOT NULL
-      AND et.last_inbound_at < now() - (${STALE_HOURS} || ' hours')::interval
+      AND et.last_inbound_at < now() - (${config.staleHours} || ' hours')::interval
     ORDER BY et.last_inbound_at ASC
     LIMIT 100
   `)) as unknown as Thread[];
@@ -84,12 +120,13 @@ export async function POST(request: Request) {
   } else {
     for (const rid of ALWAYS.map((a) => a.id)) byRecipient.set(rid, [...threads]);
     for (const t of threads) {
-      if (t.am_id && !byRecipient.has(t.am_id)) byRecipient.set(t.am_id, []);
-      if (t.am_id) {
-        const list = byRecipient.get(t.am_id)!;
-        // ALWAYS recipients already have all threads; avoid dup-listing for them.
-        if (!ALWAYS.some((a) => a.id === t.am_id)) list.push(t);
-      }
+      // AM gate: only ping the account manager once a thread is overdue beyond
+      // staleHours + amExtraDays — keeps AMs off every freshly-stale thread.
+      if (!t.am_id || t.hrs < amStaleHours) continue;
+      if (!byRecipient.has(t.am_id)) byRecipient.set(t.am_id, []);
+      const list = byRecipient.get(t.am_id)!;
+      // ALWAYS recipients already have all threads; avoid dup-listing for them.
+      if (!ALWAYS.some((a) => a.id === t.am_id)) list.push(t);
     }
   }
 
