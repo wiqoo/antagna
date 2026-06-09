@@ -57,6 +57,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { stageTone, stageLabel } from '@/lib/project-stage';
+import { riskTone, riskLabel } from '@/lib/risk-level';
 import { postComment } from './actions';
 import { StagePanel } from './stage-panel';
 import {
@@ -613,16 +614,8 @@ export default async function ProjectDetailPage({
                   {stageLabel(project.stage, locale)}
                 </StatusPill>
                 {project.aiRiskLevel && (
-                  <StatusPill
-                    tone={
-                      project.aiRiskLevel === 'red'
-                        ? 'danger'
-                        : project.aiRiskLevel === 'amber'
-                          ? 'warning'
-                          : 'success'
-                    }
-                  >
-                    انتباه: {project.aiRiskLevel === 'red' ? 'عالٍ' : project.aiRiskLevel === 'amber' ? 'متوسط' : 'منخفض'}
+                  <StatusPill tone={riskTone(project.aiRiskLevel)}>
+                    {riskLabel(project.aiRiskLevel, locale)}
                   </StatusPill>
                 )}
               </div>

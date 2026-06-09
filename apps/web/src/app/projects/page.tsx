@@ -30,6 +30,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getTranslations, getLocale } from 'next-intl/server';
 import { getFormat } from '@/lib/format';
 import { stageTone, stageLabel } from '@/lib/project-stage';
+import { riskTone, riskLabel } from '@/lib/risk-level';
 import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import { ProjectsBoard, type BoardRow } from './projects-board';
 
@@ -510,16 +511,8 @@ export default async function ProjectsListPage({
                     </td>
                     <td className="px-5 py-3.5">
                       {r.aiRiskLevel ? (
-                        <StatusPill
-                          tone={
-                            r.aiRiskLevel === 'red'
-                              ? 'danger'
-                              : r.aiRiskLevel === 'amber'
-                                ? 'warning'
-                                : 'success'
-                          }
-                        >
-                          {r.aiRiskLevel}
+                        <StatusPill tone={riskTone(r.aiRiskLevel)}>
+                          {riskLabel(r.aiRiskLevel, locale)}
                         </StatusPill>
                       ) : (
                         <span className="text-xs text-[var(--text-dim)]">—</span>

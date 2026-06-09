@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Avatar, StatusPill } from '@antagna/ui';
 import { PROJECT_STAGE_ORDER, stageLabel, stageTone } from '@/lib/project-stage';
+import { riskLabel } from '@/lib/risk-level';
 
 export type BoardRow = {
   id: string;
@@ -59,7 +60,7 @@ export function ProjectsBoard({ rows, locale }: { rows: BoardRow[]; locale: stri
                     </p>
                     {r.aiRiskLevel && (
                       <span
-                        title={`risk: ${r.aiRiskLevel}`}
+                        title={riskLabel(r.aiRiskLevel, locale)}
                         className={
                           'mt-1 h-2 w-2 shrink-0 rounded-full ' +
                           (riskDot[r.aiRiskLevel] ?? 'bg-[var(--text-dim)]')
