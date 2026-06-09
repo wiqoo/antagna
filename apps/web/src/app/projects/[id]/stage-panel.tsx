@@ -48,8 +48,8 @@ export function StagePanel({
   const forward = nextStages.filter((s) => order.indexOf(s) > curIdx && order.indexOf(s) !== -1);
   const lateral = nextStages.filter((s) => order.indexOf(s) !== -1 && order.indexOf(s) <= curIdx);
   const primary = forward[0] ?? null;
-  // The dropdown holds every valid stage move (forward + back), minus the primary.
-  const menuStages = [...forward.slice(1), ...lateral];
+  // The dropdown is a full stage picker — every valid move (forward + back).
+  const menuStages = [...forward, ...lateral];
   const canCancel = nextStages.includes('cancelled'); // "فاشل" removed per request — only "ملغى"
   const canArchive = nextStages.includes('archived');
 
