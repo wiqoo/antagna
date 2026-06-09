@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { can, requirePermission } from '@/lib/authz';
+import { getFormat } from '@/lib/format';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 
 export const dynamic = 'force-dynamic';
@@ -73,6 +74,7 @@ export default async function ContactDetailPage({
   // /login and lacking-permission → /dashboard, and returns the effective
   // profile id we hand to the masking transaction (resolved once).
   const { profileId } = await requirePermission('client.read');
+  const f = await getFormat();
 
   // ONE transaction wraps EVERY masked read for this page: the contact + its
   // client (v_contacts_safe ⨝ v_clients_safe) and the client's projects
@@ -346,7 +348,7 @@ export default async function ContactDetailPage({
                   </span>
                   {p.contractedValueSar && (
                     <span className="font-mono text-xs text-[var(--text-muted)]">
-                      {Number(p.contractedValueSar).toLocaleString('en-US')} ر.س
+                      {f.currency(Number(p.contractedValueSar))}
                     </span>
                   )}
                   <StatusPill tone={stageTone(p.stage)}>{stageLabelAr(p.stage)}</StatusPill>
