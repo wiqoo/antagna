@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ArrowLeft, X, Loader2, Archive, History, Clock } from 'lucide-react';
+import { Check, ArrowLeft, X, Loader2, Archive, History, Clock, ChevronDown, GitBranch } from 'lucide-react';
 import { StatusPill } from '@antagna/ui';
 import {
   PROJECT_STAGE_ORDER,
@@ -20,8 +20,6 @@ export type StageHistoryItem = {
   reason: string | null;
 };
 
-const NEGATIVE = new Set(['lost', 'cancelled']);
-
 export function StagePanel({
   projectId,
   currentStage,
@@ -38,24 +36,29 @@ export function StagePanel({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busyStage, setBusyStage] = useState<string | null>(null);
-  const [reasonFor, setReasonFor] = useState<string | null>(null);
+  const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const order = PROJECT_STAGE_ORDER as readonly string[];
   const curIdx = order.indexOf(currentStage);
   const isTerminal = curIdx === -1; // lost / cancelled / archived
 
-  const forward = nextStages.filter((s) => order.indexOf(s) > curIdx && !NEGATIVE.has(s) && s !== 'archived');
+  const forward = nextStages.filter((s) => order.indexOf(s) > curIdx && order.indexOf(s) !== -1);
   const lateral = nextStages.filter((s) => order.indexOf(s) !== -1 && order.indexOf(s) <= curIdx);
-  const negative = nextStages.filter((s) => NEGATIVE.has(s));
-  const canArchive = nextStages.includes('archived');
   const primary = forward[0] ?? null;
-  const secondaryForward = forward.slice(1);
+  // The dropdown holds every valid stage move (forward + back), minus the primary.
+  const menuStages = [...forward.slice(1), ...lateral];
+  const canCancel = nextStages.includes('cancelled'); // "فاشل" removed per request — only "ملغى"
+  const canArchive = nextStages.includes('archived');
+
+  const progress = isTerminal ? 100 : Math.round((curIdx / (order.length - 1)) * 100);
 
   function move(stage: string, withReason?: string) {
     setErr(null);
     setBusyStage(stage);
+    setMenuOpen(false);
     start(async () => {
       try {
         const res = await transitionStage(projectId, stage as Parameters<typeof transitionStage>[1], withReason ?? null);
@@ -63,7 +66,7 @@ export function StagePanel({
           setErr(res.error ?? 'تعذّر تغيير المرحلة');
           return;
         }
-        setReasonFor(null);
+        setReasonOpen(false);
         setReason('');
         router.refresh();
       } catch {
@@ -74,163 +77,169 @@ export function StagePanel({
     });
   }
 
-  function submitReason(stage: string) {
-    if (!reason.trim()) {
-      setErr('اكتب السبب');
-      return;
-    }
-    move(stage, reason.trim());
-  }
-
   const spin = (stage: string) => pending && busyStage === stage;
 
   return (
     <div className="space-y-4">
-      {/* ── Pipeline stepper ── */}
-      <div className="flex items-center gap-0 overflow-x-auto pb-1">
-        {order.map((s, i) => {
-          const done = !isTerminal && i < curIdx;
-          const current = !isTerminal && i === curIdx;
-          return (
-            <div key={s} className="flex shrink-0 items-center">
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={
-                    'grid h-6 w-6 place-items-center rounded-full border text-[10px] font-semibold transition-colors ' +
-                    (current
-                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-[0_0_0_3px_var(--accent-tint)]'
-                      : done
-                        ? 'border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)]'
-                        : 'border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text-dim)]')
-                  }
-                >
-                  {done ? <Check size={12} /> : i + 1}
+      {/* ── Pipeline timeline ── */}
+      <div className="overflow-x-auto pb-1">
+        <div className="flex min-w-max items-start">
+          {order.map((s, i) => {
+            const done = !isTerminal && i < curIdx;
+            const current = !isTerminal && i === curIdx;
+            const connectorDone = !isTerminal && i < curIdx; // the link AFTER dot i (toward i+1)
+            return (
+              <div key={s} className="flex shrink-0 items-start">
+                <div className="flex w-[58px] flex-col items-center gap-1.5">
+                  <div className="relative grid h-9 place-items-center">
+                    <div
+                      className={
+                        'grid place-items-center rounded-full text-[11px] font-bold transition-all duration-300 ' +
+                        (current
+                          ? 'h-8 w-8 bg-[var(--accent)] text-white shadow-[0_0_0_4px_var(--accent-tint),0_2px_10px_rgba(255,107,26,0.45)]'
+                          : done
+                            ? 'h-7 w-7 bg-[var(--accent)] text-white'
+                            : 'h-7 w-7 border border-[var(--line-strong)] bg-[var(--bg-elevated)] text-[var(--text-dim)]')
+                      }
+                    >
+                      {done ? <Check size={14} strokeWidth={3} /> : i + 1}
+                    </div>
+                  </div>
+                  <span
+                    className={
+                      'whitespace-nowrap text-[10px] leading-tight transition-colors ' +
+                      (current ? 'font-bold text-[var(--text)]' : done ? 'text-[var(--text-muted)]' : 'text-[var(--text-dim)]')
+                    }
+                  >
+                    {PROJECT_STAGE_LABELS_AR[s] ?? s}
+                  </span>
                 </div>
-                <span
-                  className={
-                    'whitespace-nowrap text-[9px] ' +
-                    (current ? 'font-semibold text-[var(--text)]' : done ? 'text-[var(--text-muted)]' : 'text-[var(--text-dim)]')
-                  }
-                >
-                  {PROJECT_STAGE_LABELS_AR[s] ?? s}
-                </span>
+                {i < order.length - 1 && (
+                  <div className="mt-[14px] h-[3px] w-7 overflow-hidden rounded-full bg-[var(--line)]">
+                    <div
+                      className={'h-full rounded-full transition-all duration-500 ' + (connectorDone ? 'w-full bg-gradient-to-l from-[var(--accent)] to-[var(--accent)]/70' : 'w-0')}
+                    />
+                  </div>
+                )}
               </div>
-              {i < order.length - 1 && (
-                <div className={'mx-1 mb-4 h-px w-6 ' + (done ? 'bg-[var(--accent)]/40' : 'bg-[var(--line)]')} />
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* ── Current stage + time-in-stage ── */}
+      {/* ── Current stage + progress ── */}
       <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3 text-[12px]">
         <span className="text-[var(--text-dim)]">المرحلة الحالية</span>
         <StatusPill tone={stageTone(currentStage)}>{stageLabelAr(currentStage)}</StatusPill>
+        {!isTerminal && (
+          <span className="text-[11px] text-[var(--text-dim)]">
+            · {curIdx + 1} من {order.length} ({progress}%)
+          </span>
+        )}
         {inStageLabel && (
           <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-dim)]">
-            <Clock size={11} /> في هذه المرحلة {inStageLabel}
+            <Clock size={11} /> منذ {inStageLabel}
           </span>
         )}
       </div>
 
       {/* ── Actions ── */}
-      {(primary || secondaryForward.length > 0 || lateral.length > 0 || negative.length > 0 || canArchive) && (
-        <div className="space-y-2.5">
-          {/* Forward */}
-          {(primary || secondaryForward.length > 0) && (
-            <div className="flex flex-wrap items-center gap-2">
-              {primary && (
-                <button
-                  onClick={() => move(primary)}
-                  disabled={pending}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
-                >
-                  {spin(primary) ? <Loader2 size={13} className="animate-spin" /> : <ArrowLeft size={13} className="rtl:rotate-180" />}
-                  التالي: {stageLabelAr(primary)}
-                </button>
-              )}
-              {secondaryForward.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => move(s)}
-                  disabled={pending}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] px-3 text-[12px] text-[var(--text)] hover:border-[var(--line-strong)] disabled:opacity-50"
-                >
-                  {spin(s) ? <Loader2 size={13} className="animate-spin" /> : <ArrowLeft size={12} className="rtl:rotate-180" />}
-                  {stageLabelAr(s)}
-                </button>
-              ))}
-            </div>
-          )}
+      <div className="flex flex-wrap items-center gap-2">
+        {primary && (
+          <button
+            onClick={() => move(primary)}
+            disabled={pending}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
+          >
+            {spin(primary) ? <Loader2 size={13} className="animate-spin" /> : <ArrowLeft size={13} className="rtl:rotate-180" />}
+            التالي: {stageLabelAr(primary)}
+          </button>
+        )}
 
-          {/* Lateral / back */}
-          {lateral.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-[var(--text-dim)]">رجوع:</span>
-              {lateral.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => move(s)}
-                  disabled={pending}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] px-2.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-50"
-                >
-                  {spin(s) ? <Loader2 size={12} className="animate-spin" /> : '↩'} {stageLabelAr(s)}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Stage picker dropdown */}
+        {menuStages.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              disabled={pending}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] px-3 text-[12px] text-[var(--text)] transition-colors hover:border-[var(--line-strong)] disabled:opacity-50"
+            >
+              <GitBranch size={13} className="text-[var(--text-dim)]" /> نقل إلى مرحلة
+              <ChevronDown size={13} className={'text-[var(--text-dim)] transition-transform ' + (menuOpen ? 'rotate-180' : '')} />
+            </button>
+            {menuOpen && (
+              <>
+                <button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} aria-hidden tabIndex={-1} />
+                <div className="absolute z-20 mt-1 w-52 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] p-1 shadow-xl">
+                  {menuStages.map((s) => {
+                    const isForward = order.indexOf(s) > curIdx;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => move(s)}
+                        disabled={pending}
+                        className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-[12px] text-[var(--text)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {spin(s) ? <Loader2 size={12} className="animate-spin" /> : isForward ? <ArrowLeft size={12} className="text-[var(--accent)] rtl:rotate-180" /> : <span className="text-[var(--text-dim)]">↩</span>}
+                          {stageLabelAr(s)}
+                        </span>
+                        <span className="text-[9px] text-[var(--text-dim)]">{isForward ? 'تقدّم' : 'رجوع'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
-          {/* Negative outcomes — reason revealed on click */}
-          {(negative.length > 0 || canArchive) && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-2.5">
-              {negative.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => { setReasonFor(reasonFor === s ? null : s); setReason(''); setErr(null); }}
-                  disabled={pending}
-                  className={
-                    'inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] disabled:opacity-50 ' +
-                    (reasonFor === s
-                      ? 'border-[var(--danger)] text-[var(--danger)]'
-                      : 'border-[var(--line)] text-[var(--text-muted)] hover:border-[var(--danger)]/60 hover:text-[var(--danger)]')
-                  }
-                >
-                  <X size={12} /> تعليم كـ {stageLabelAr(s)}
-                </button>
-              ))}
-              {canArchive && (
-                <button
-                  onClick={() => move('archived')}
-                  disabled={pending}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] px-2.5 text-[11px] text-[var(--text-dim)] hover:text-[var(--text)] disabled:opacity-50"
-                >
-                  {spin('archived') ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />} أرشفة
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Reason input for the selected negative outcome */}
-          {reasonFor && (
-            <div className="flex items-center gap-2 rounded-md border border-[var(--danger)]/30 bg-[var(--danger)]/[0.05] p-2">
-              <input
-                autoFocus
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && submitReason(reasonFor)}
-                placeholder={`سبب التعليم كـ ${stageLabelAr(reasonFor)}…`}
-                className="h-8 flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2.5 text-[12px] text-[var(--text)] focus:border-[var(--danger)] focus:outline-none"
-              />
+        {/* Cancel (only) + archive — pushed to the end */}
+        {(canCancel || canArchive) && (
+          <div className="ms-auto flex items-center gap-2">
+            {canCancel && (
               <button
-                onClick={() => submitReason(reasonFor)}
+                onClick={() => { setReasonOpen((v) => !v); setReason(''); setErr(null); }}
                 disabled={pending}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--danger)] px-3 text-[11px] font-semibold text-white disabled:opacity-50"
+                className={
+                  'inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-[12px] transition-colors disabled:opacity-50 ' +
+                  (reasonOpen ? 'border-[var(--danger)] text-[var(--danger)]' : 'border-[var(--line)] text-[var(--text-muted)] hover:border-[var(--danger)]/60 hover:text-[var(--danger)]')
+                }
               >
-                {spin(reasonFor) ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} تأكيد
+                <X size={13} /> تعليم كمُلغى
               </button>
-            </div>
-          )}
+            )}
+            {canArchive && (
+              <button
+                onClick={() => move('archived')}
+                disabled={pending}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--line)] px-3 text-[12px] text-[var(--text-dim)] transition-colors hover:text-[var(--text)] disabled:opacity-50"
+              >
+                {spin('archived') ? <Loader2 size={13} className="animate-spin" /> : <Archive size={13} />} أرشفة
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Reason input for cancellation */}
+      {reasonOpen && canCancel && (
+        <div className="flex items-center gap-2 rounded-md border border-[var(--danger)]/30 bg-[var(--danger)]/[0.05] p-2">
+          <input
+            autoFocus
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && reason.trim() && move('cancelled', reason.trim())}
+            placeholder="سبب الإلغاء…"
+            className="h-8 flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2.5 text-[12px] text-[var(--text)] focus:border-[var(--danger)] focus:outline-none"
+          />
+          <button
+            onClick={() => (reason.trim() ? move('cancelled', reason.trim()) : setErr('اكتب السبب'))}
+            disabled={pending}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--danger)] px-3 text-[11px] font-semibold text-white disabled:opacity-50"
+          >
+            {spin('cancelled') ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} تأكيد الإلغاء
+          </button>
         </div>
       )}
 
