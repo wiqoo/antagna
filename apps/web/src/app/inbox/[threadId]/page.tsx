@@ -11,6 +11,7 @@ import {
   Avatar,
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
+import { EmailBody } from './EmailBody';
 import {
   ArrowLeft,
   Mail,
@@ -297,7 +298,8 @@ export default async function InboxThreadPage({
                 ⚡ عاجل{thread.urgentReason ? ` · ${thread.urgentReason}` : ''}
               </StatusPill>
             )}
-            {thread.replyStatus && REPLY_LABEL[thread.replyStatus] && (
+            {thread.replyStatus && REPLY_LABEL[thread.replyStatus] &&
+              !(needsReply && thread.replyStatus === 'needs_reply') && (
               <StatusPill tone={REPLY_TONE[thread.replyStatus] ?? 'neutral'}>
                 {REPLY_LABEL[thread.replyStatus]}
               </StatusPill>
@@ -494,12 +496,7 @@ export default async function InboxThreadPage({
                               <Sparkles size={9} className="inline" /> {m.aiSummary}
                             </p>
                           )}
-                          <div
-                            dir="auto"
-                            className="mt-2 max-h-[440px] overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--line)] bg-[var(--bg-elevated)]/40 px-3.5 py-3 text-[13.5px] leading-[1.85] text-[var(--text)]"
-                          >
-                            {m.bodyText?.trim() || m.snippet || '(فارغة)'}
-                          </div>
+                          <EmailBody text={m.bodyText?.trim() || m.snippet || '(فارغة)'} />
                           {m.attachmentCount > 0 && (
                             <p className="mt-2 inline-flex items-center gap-1 text-[10px] text-[var(--text-dim)]">
                               <Paperclip size={10} /> {m.attachmentCount} مرفق
