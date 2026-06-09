@@ -136,7 +136,7 @@ export async function analyzeQuotation(
       content: `عرض سعر ${state.quoteNo ?? ''} للعميل ${state.clientName ?? ''}: ${analysis.headlineAr} — الإجراء: ${analysis.actionAr}`,
       contentLang: 'ar',
       metadata: { status: analysis.status, likelihood: analysis.likelihood },
-    }).catch(() => {});
+    }).catch((e) => console.error('[quotation-analysis index]', e));
   }
 
   return { ...analysis, cached: false };

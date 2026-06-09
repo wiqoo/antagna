@@ -8,7 +8,7 @@
 import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget, retrieveMemory } from '@antagna/ai';
 import { smartSuggestionsScanner } from './smart-suggestions-scanner';
 
 const SYSTEM_PROMPT = `You are Antagna's daily brief generator for a Saudi production agency.
@@ -75,12 +75,28 @@ export const dailyBrief = schedules.task({
     for (const proj of projectsArr) {
       if (!proj.activity_summary) continue;
 
+      // Brain: pull this project's accumulated memory (conversation arcs, risk
+      // reads, quotation signals) so the brief reflects history, not just 24h.
+      let memNote = '';
+      try {
+        const hits = await retrieveMemory({
+          query: `${proj.title} ${proj.stage} risk status follow-up`,
+          scope: 'project',
+          scopeId: proj.id,
+          limit: 3,
+          minSimilarity: 0.15,
+        });
+        if (hits.length) memNote = `\n\nKnown context (memory):\n${hits.map((h) => `• ${h.content.slice(0, 200)}`).join('\n')}`;
+      } catch {
+        /* brain optional */
+      }
+
       const userPrompt = `Project: ${proj.code} — ${proj.title}
 Stage: ${proj.stage}
 PM: ${proj.pm_name ?? 'unassigned'}
 
 Activity last 24h:
-${proj.activity_summary}`;
+${proj.activity_summary}${memNote}`;
 
       try {
         const resp = await anthropic.messages.create({

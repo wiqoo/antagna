@@ -657,10 +657,13 @@ async function runAnthropicTurn(
   const anthropic = getAnthropic();
   const messages = [...initialMessages];
   const maxTurns = 3;
+  // Use the configured model for BOTH the call and the cost ledger (was hardcoded
+  // to haiku in recordUsage → undercounted cost when the bot ran on sonnet/opus).
+  const model = cfg.model.startsWith('claude') ? cfg.model : ANTHROPIC_MODELS.haiku;
 
   for (let turn = 0; turn < maxTurns; turn++) {
     const resp = await anthropic.messages.create({
-      model: cfg.model.startsWith('claude') ? cfg.model : ANTHROPIC_MODELS.haiku,
+      model,
       max_tokens: cfg.maxTokens,
       system,
       tools: TOOLS.filter((t) => cfg.toolNames.includes(t.name)),
@@ -671,7 +674,7 @@ async function runAnthropicTurn(
     try {
       await recordUsage({
         feature: 'whatsapp_bot',
-        model: ANTHROPIC_MODELS.haiku,
+        model,
         inputTokens: resp.usage?.input_tokens ?? 0,
         outputTokens: resp.usage?.output_tokens ?? 0,
         cacheReadTokens: (resp.usage as { cache_read_input_tokens?: number })?.cache_read_input_tokens ?? 0,

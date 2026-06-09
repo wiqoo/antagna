@@ -16,7 +16,7 @@
  */
 import { db, conversationSummaries, emailThreads, emailMessages } from '@antagna/db';
 import { eq, asc } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage, indexMemory } from '@antagna/ai';
 
 const SYSTEM = `You analyze a full email thread (multiple messages) between Volt Production
 (a Saudi creative agency) and a client / partner.
@@ -115,7 +115,9 @@ export async function summarizeConversation(
     const resp = await client.messages.create({
       model: ANTHROPIC_MODELS.haiku,
       max_tokens: 800,
-      system: SYSTEM,
+      // Stable system prompt behind a cache breakpoint → ~10% cost on repeats.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }] as any,
       messages: [{ role: 'user', content: transcript }],
     });
     const txt = resp.content.find((b) => b.type === 'text');
@@ -159,6 +161,22 @@ export async function summarizeConversation(
     0,
     Math.min(1, Number(parsed.confidence ?? 0.6)),
   );
+
+  // Brain write-back: index the conversation arc scoped to its project (or client)
+  // so risk/quotation/dashboard analysis reuses the relationship trajectory.
+  const brainScope = thread.projectId ? 'project' : thread.clientId ? 'client' : null;
+  const brainId = thread.projectId ?? thread.clientId ?? null;
+  if (brainScope && brainId && parsed.summary_ar) {
+    indexMemory({
+      scope: brainScope,
+      scopeId: brainId,
+      source: 'conversation_summary',
+      sourceId: threadId,
+      content: `${parsed.summary_ar}${parsed.outcome_status ? ` (الحالة: ${parsed.outcome_status})` : ''}`,
+      contentLang: 'ar',
+      metadata: { outcome: parsed.outcome_status ?? null, intent: parsed.intent_arc ?? null },
+    }).catch(() => {});
+  }
 
   if (existing) {
     await db

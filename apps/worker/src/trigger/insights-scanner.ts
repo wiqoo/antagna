@@ -9,7 +9,7 @@
 import { schedules } from '@trigger.dev/sdk';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
-import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, recordUsage, checkAiBudget, retrieveMemory } from '@antagna/ai';
 import { memoryIndexer } from './memory-indexer';
 import { learningAggregator } from './learning-aggregator';
 
@@ -88,13 +88,28 @@ export const insightsScanner = schedules.task({
     }
 
     for (const proj of projectsArr) {
+      // Brain: read accumulated project memory so risk flags reflect history.
+      let memNote = '';
+      try {
+        const hits = await retrieveMemory({
+          query: `${proj.title} ${proj.stage} risk delay client`,
+          scope: 'project',
+          scopeId: proj.id,
+          limit: 3,
+          minSimilarity: 0.15,
+        });
+        if (hits.length) memNote = `\nKnown context (memory):\n${hits.map((h) => `• ${h.content.slice(0, 200)}`).join('\n')}`;
+      } catch {
+        /* brain optional */
+      }
+
       const userPrompt = `Project ${proj.code} — ${proj.title}
 Stage: ${proj.stage}
 PM: ${proj.pm_name ?? 'unassigned'}
 Delivery due: ${proj.delivery_due_at ? new Date(proj.delivery_due_at).toISOString().slice(0, 10) : 'not set'}
 Open tasks: ${proj.open_tasks} (${proj.blocked_tasks} blocked)
 Recent activity:
-${proj.activity_summary ?? '(none in last events)'}
+${proj.activity_summary ?? '(none in last events)'}${memNote}
 
 Output JSON only.`;
 
