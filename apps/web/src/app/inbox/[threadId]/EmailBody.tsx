@@ -15,7 +15,7 @@ const QUOTE_RE =
   /\n[ \t]*(?:>|On .+ wrote:|في .+ كتب[:]?|-{2,}\s*Original Message|-{2,}\s*الرسالة الأصلية|_{5,}|From:[ \t].+\r?\n(?:Sent|To|Date|Subject|إلى|التاريخ):|من:[ \t].+\r?\n(?:إلى|التاريخ|الموضوع):)/;
 const HAS_ARABIC = /[؀-ۿ]/;
 
-export function EmailBody({ text }: { text: string }) {
+export function EmailBody({ text, lang }: { text: string; lang?: string | null }) {
   const locale = useLocale();
   const [showQuoted, setShowQuoted] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -26,7 +26,11 @@ export function EmailBody({ text }: { text: string }) {
   const idx = m?.index ?? -1;
   const main = (idx >= 0 ? text.slice(0, idx) : text).trimEnd();
   const quoted = idx >= 0 ? text.slice(idx).trim() : '';
-  const needsTranslation = locale === 'en' && HAS_ARABIC.test(main);
+  // Prefer the ingest-time detected language (authoritative: skips translating a
+  // mostly-English body that has one stray Arabic word); fall back to a body
+  // scan for older rows that predate the detected_language column.
+  const needsTranslation =
+    locale === 'en' && (lang ? lang === 'ar' || lang === 'mixed' : HAS_ARABIC.test(main));
 
   useEffect(() => {
     if (!needsTranslation) return;

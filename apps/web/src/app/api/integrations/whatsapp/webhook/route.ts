@@ -15,6 +15,7 @@ import { db, whatsappMessages } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
 import { handleInboundForBot } from '@/lib/whatsapp-bot';
 import { resolveLidToPhone } from '@/lib/whatsapp';
+import { detectLang } from '@/lib/detect-lang';
 
 export const dynamic = 'force-dynamic';
 // Bot tool-calling can take 5-20s on the first turn. Default function
@@ -265,6 +266,7 @@ export async function POST(req: Request) {
       senderName,
       messageType,
       bodyText,
+      detectedLanguage: detectLang(bodyText),
       mediaUrl,
       rawPayload: body as unknown as Record<string, unknown>,
       threadKey,

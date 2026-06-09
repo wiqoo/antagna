@@ -11,6 +11,7 @@ import { db, emailThreads, emailMessages } from '@antagna/db';
 import { eq, desc, sql } from 'drizzle-orm';
 import type { gmail_v1 } from 'googleapis';
 import { getGmailClient } from './google';
+import { detectLang } from './detect-lang';
 
 export const SYSTEM_MAILBOX = 'info@voltsaudi.com';
 
@@ -209,6 +210,7 @@ async function insertMessage(
     bodyHtml: html,
     bodyText: text,
     snippet: msg.snippet ?? null,
+    detectedLanguage: detectLang(text || msg.snippet || msgSubject),
     attachmentCount,
     sentAt,
   });

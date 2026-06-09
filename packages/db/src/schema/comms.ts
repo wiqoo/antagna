@@ -105,6 +105,10 @@ export const emailMessages = pgTable(
     bodyHtml: text('body_html'),
     bodyText: text('body_text'),
     snippet: text('snippet'),
+    // Heuristic primary language of the body ('ar' | 'en' | 'mixed' | null) set
+    // at ingest (free, codepoint-ratio). Drives the EN-mode "show original"
+    // toggle + in-locale AI generation without re-detecting on every view.
+    detectedLanguage: text('detected_language'),
 
     attachmentCount: integer('attachment_count').notNull().default(0),
 
@@ -199,6 +203,7 @@ export const whatsappMessages = pgTable('whatsapp_messages', {
   matchedProfileId: uuid('matched_profile_id').references(() => profiles.id),
   messageType: text('message_type'), // 'text' | 'image' | 'video' | 'audio' | 'document'
   bodyText: text('body_text'),
+  detectedLanguage: text('detected_language'), // 'ar' | 'en' | 'mixed' | null (heuristic at ingest)
   mediaUrl: text('media_url'),
   rawPayload: jsonb('raw_payload'),
   aiSummary: text('ai_summary'),

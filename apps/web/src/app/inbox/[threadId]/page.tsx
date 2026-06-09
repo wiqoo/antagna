@@ -70,6 +70,7 @@ type Msg = {
   bodyText: string | null;
   snippet: string | null;
   attachmentCount: number;
+  detectedLanguage: string | null;
   aiSummary: string | null;
   aiSuggestedActions: unknown;
   sentAt: string;
@@ -234,7 +235,7 @@ export default async function InboxThreadPage({
   const mR = await db.execute(sql`
     SELECT id::text AS id, direction, from_email AS "fromEmail", from_name AS "fromName",
            to_emails AS "toEmails", subject, body_text AS "bodyText", snippet,
-           attachment_count AS "attachmentCount",
+           attachment_count AS "attachmentCount", detected_language AS "detectedLanguage",
            ai_summary AS "aiSummary", ai_suggested_actions AS "aiSuggestedActions",
            sent_at AS "sentAt"
     FROM email_messages
@@ -497,7 +498,7 @@ export default async function InboxThreadPage({
                               <Sparkles size={9} className="inline" /> {m.aiSummary}
                             </p>
                           )}
-                          <EmailBody text={m.bodyText?.trim() || m.snippet || '(فارغة)'} />
+                          <EmailBody text={m.bodyText?.trim() || m.snippet || '(فارغة)'} lang={m.detectedLanguage} />
                           {m.attachmentCount > 0 && (
                             <p className="mt-2 inline-flex items-center gap-1 text-[10px] text-[var(--text-dim)]">
                               <Paperclip size={10} /> {m.attachmentCount} مرفق
