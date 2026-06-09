@@ -89,9 +89,14 @@ export function makeFormat(locale: string): Formatter {
     },
     currency: (n, opts) => {
       if (n === null || n === undefined || Number.isNaN(n)) return '—';
-      const decimals = opts?.decimals ?? 0;
       const ccy = opts?.currency ?? 'SAR';
-      const v = n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      // Default: preserve the value's natural decimals (matches the old
+      // toLocaleString('en-US') exactly — never silently rounds an invoice).
+      // Pass opts.decimals only to force a fixed precision.
+      const v =
+        opts?.decimals != null
+          ? n.toLocaleString('en-US', { minimumFractionDigits: opts.decimals, maximumFractionDigits: opts.decimals })
+          : n.toLocaleString('en-US');
       if (ccy === 'SAR') return l === 'en' ? `SAR ${v}` : `${v} ر.س`;
       return l === 'en' ? `${ccy} ${v}` : `${v} ${ccy}`;
     },

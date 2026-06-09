@@ -26,6 +26,7 @@ import {
   Sparkles, FolderPlus, Network, ArrowRight, ExternalLink,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { getFormat } from '@/lib/format';
 import { LeadsBoard, type LeadRow } from './leads-board';
 import { SuggestionsList } from '../inbox/suggestions/suggestions-list';
 
@@ -72,6 +73,7 @@ export default async function CrmPage({
   if (!user) redirect('/login?next=/crm');
 
   await requirePermission('client.read');
+  const f = await getFormat();
 
   const effectivePid = await getEffectiveProfileId();
 
@@ -357,7 +359,7 @@ export default async function CrmPage({
                         ) : '—'}
                       </td>
                       <td className="px-5 py-3.5 text-end font-mono text-xs text-[var(--text-muted)]">
-                        {!financialsHidden() && l.estimatedValue ? `${Number(l.estimatedValue).toLocaleString('en-US')} ر.س` : '—'}
+                        {!financialsHidden() && l.estimatedValue ? f.currency(Number(l.estimatedValue)) : '—'}
                       </td>
                       <td className="px-5 py-3.5">
                         {l.assignedName ? (
@@ -503,7 +505,7 @@ export default async function CrmPage({
                       <td className="px-5 py-3.5 font-mono text-sm">{Number(c.activeProjects ?? 0)}</td>
                       <td className="px-5 py-3.5 text-end">
                         {!financialsHidden() && c.totalRevenue ? (
-                          <span className="font-mono text-xs text-[var(--text-muted)]">{Number(c.totalRevenue).toLocaleString('en-US')} ر.س</span>
+                          <span className="font-mono text-xs text-[var(--text-muted)]">{f.currency(Number(c.totalRevenue))}</span>
                         ) : <span className="text-xs text-[var(--text-dim)]">—</span>}
                       </td>
                       <td className="px-5 py-3.5">

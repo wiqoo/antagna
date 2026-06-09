@@ -7,6 +7,7 @@ import { Shell } from '@/components/Shell';
 import { FileText, Sparkles, ArrowLeft, Brain, CheckCircle2, AlertTriangle, Clock, FileCheck2 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/authz';
+import { getFormat } from '@/lib/format';
 import {
   readCachedAnalyses,
   analyzeQuotation,
@@ -63,7 +64,6 @@ const STATUS_TONE: Record<QuoteStatus, 'info' | 'warning' | 'danger' | 'success'
   ready_to_invoice: 'success',
 };
 
-const fmtSar = (v: string | null) => (v ? `${Number(v).toLocaleString('en-US')} ر.س` : '—');
 function relAr(iso: string | null): string {
   if (!iso) return 'لا يوجد';
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
@@ -77,6 +77,8 @@ export default async function QuotationsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/quotations');
   const { profileId } = await requirePermission('project.read');
+  const f = await getFormat();
+  const fmtSar = (v: string | null) => f.currency(v == null || v === '' ? null : Number(v));
 
   const raw = (await db.execute(sql`
     WITH email_act AS (

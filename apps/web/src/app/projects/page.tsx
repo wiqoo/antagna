@@ -28,6 +28,7 @@ import { Shell } from '@/components/Shell';
 import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles, Rows3, Columns3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getTranslations } from 'next-intl/server';
+import { getFormat } from '@/lib/format';
 import { stageTone, stageLabelAr } from '@/lib/project-stage';
 import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import { ProjectsBoard, type BoardRow } from './projects-board';
@@ -55,6 +56,7 @@ export default async function ProjectsListPage({
 
   const supabase = await getSupabaseServerClient();
   const t = await getTranslations('pages.projects');
+  const f = await getFormat();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -500,14 +502,10 @@ export default async function ProjectsListPage({
                       )}
                     </td>
                     <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-muted)]">
-                      {r.deliveryDueAt
-                        ? new Date(r.deliveryDueAt).toISOString().slice(0, 10)
-                        : '—'}
+                      {f.date(r.deliveryDueAt)}
                     </td>
                     <td className="px-5 py-3.5 text-end font-mono text-xs text-[var(--text-muted)]">
-                      {r.contractedValueSar
-                        ? `${Number(r.contractedValueSar).toLocaleString('en-US')} ر.س`
-                        : '—'}
+                      {r.contractedValueSar ? f.currency(Number(r.contractedValueSar)) : '—'}
                     </td>
                     <td className="px-5 py-3.5">
                       {r.aiRiskLevel ? (
