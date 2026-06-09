@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import {
   ListWorkspace,
@@ -96,6 +97,16 @@ const IMPORTANCE_TONE: Record<string, 'danger' | 'warning' | 'neutral'> = {
 };
 const IMPORTANCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
+// English label maps (paired with the *_LABEL above); the list selects by locale
+// so status / category / importance render in-language with no runtime-layer flash.
+const STATUS_LABEL_EN: Record<string, string> = {
+  open: 'Open', in_progress: 'In progress', waiting_client: 'Awaiting client', closed: 'Archived', spam: 'Hidden',
+};
+const CATEGORY_LABEL_EN: Record<string, string> = {
+  actionable: 'Needs action', marketing: 'Marketing', newsletter: 'Newsletter', notification: 'Notification', spam: 'Spam',
+};
+const IMPORTANCE_LABEL_EN: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
+
 const NOISE = new Set(['marketing', 'newsletter', 'spam']);
 
 function fmtAge(ts: string | null): string {
@@ -121,6 +132,10 @@ function senderLabel(r: InboxThreadRow): string {
 }
 
 export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
+  const en = useLocale() === 'en';
+  const statusMap = en ? STATUS_LABEL_EN : STATUS_LABEL;
+  const categoryMap = en ? CATEGORY_LABEL_EN : CATEGORY_LABEL;
+  const importanceMap = en ? IMPORTANCE_LABEL_EN : IMPORTANCE_LABEL;
   const [showNoise, setShowNoise] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
@@ -327,7 +342,7 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
       cell: (r) =>
         r.category ? (
           <StatusPill tone={CATEGORY_TONE[r.category] ?? 'neutral'}>
-            {CATEGORY_LABEL[r.category] ?? r.category}
+            {categoryMap[r.category] ?? r.category}
           </StatusPill>
         ) : (
           <span className="text-[11px] text-[var(--text-dim)]">غير مُصنَّف</span>
@@ -340,7 +355,7 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
       sortValue: (r) => r.status,
       cell: (r) => (
         <StatusPill tone={THREAD_STATUS_TONE[r.status] ?? 'neutral'}>
-          {STATUS_LABEL[r.status] ?? r.status}
+          {statusMap[r.status] ?? r.status}
         </StatusPill>
       ),
     },
@@ -352,7 +367,7 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
       cell: (r) =>
         r.importance ? (
           <StatusPill tone={IMPORTANCE_TONE[r.importance] ?? 'neutral'}>
-            {IMPORTANCE_LABEL[r.importance] ?? r.importance}
+            {importanceMap[r.importance] ?? r.importance}
           </StatusPill>
         ) : (
           <span className="text-[11px] text-[var(--text-dim)]">—</span>
@@ -403,7 +418,7 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
           </p>
           {r.importance && (
             <StatusPill tone={IMPORTANCE_TONE[r.importance] ?? 'neutral'}>
-              {IMPORTANCE_LABEL[r.importance] ?? r.importance}
+              {importanceMap[r.importance] ?? r.importance}
             </StatusPill>
           )}
         </div>
@@ -416,11 +431,11 @@ export function InboxThreads({ rows }: { rows: InboxThreadRow[] }) {
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {r.category && (
             <StatusPill tone={CATEGORY_TONE[r.category] ?? 'neutral'}>
-              {CATEGORY_LABEL[r.category] ?? r.category}
+              {categoryMap[r.category] ?? r.category}
             </StatusPill>
           )}
           <StatusPill tone={THREAD_STATUS_TONE[r.status] ?? 'neutral'}>
-            {STATUS_LABEL[r.status] ?? r.status}
+            {statusMap[r.status] ?? r.status}
           </StatusPill>
           {r.projectCode && (
             <span className="font-mono text-[10px] text-[var(--accent)]">{r.projectCode}</span>

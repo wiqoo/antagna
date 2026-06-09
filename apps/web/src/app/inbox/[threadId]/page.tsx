@@ -25,6 +25,7 @@ import {
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getEffectiveProfileId, canAny } from '@/lib/authz';
 import { getFormat } from '@/lib/format';
+import { getLocale } from 'next-intl/server';
 import {
   summarizeThreadAction,
   generateNextActionsAction,
@@ -150,12 +151,32 @@ const ACTION_LABEL: Record<string, string> = {
   archive: 'أرشفة',
   ignore: 'تجاهل',
 };
-function actionText(a: unknown): string {
+// English label maps (paired with the *_AR above) — the page selects by locale
+// so email status / category / importance / reply / action render in-language
+// server-side (no runtime-layer flash). Falls back AR→key for unknown values.
+const STATUS_EN: Record<string, string> = {
+  new: 'New', open: 'Open', in_progress: 'In progress', awaiting_reply: 'Awaiting reply',
+  waiting_client: 'Awaiting client', replied: 'Replied', closed: 'Archived', archived: 'Archive', spam: 'Hidden',
+};
+const CATEGORY_EN: Record<string, string> = {
+  actionable: 'Needs action', marketing: 'Marketing', newsletter: 'Newsletter', notification: 'Notification', spam: 'Spam',
+};
+const IMPORTANCE_EN: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
+const REPLY_EN: Record<string, string> = {
+  needs_reply: 'Needs reply', no_reply_needed: 'No reply needed', awaiting_them: 'Awaiting them', handled_off_channel: 'Handled off-channel',
+};
+const ACTION_EN: Record<string, string> = {
+  reply: 'Reply', follow_up: 'Follow up', create_lead: 'Create lead', link_to_project: 'Link to project',
+  create_task: 'Create task', create_project: 'Create project', escalate: 'Escalate', archive: 'Archive', ignore: 'Ignore',
+};
+
+function actionText(a: unknown, locale: string): string {
   if (typeof a === 'string') return a;
   if (a && typeof a === 'object') {
     const o = a as { reason?: unknown; text?: unknown; action?: unknown; type?: unknown };
     const body = String(o.reason ?? o.text ?? o.action ?? '').trim();
-    const label = typeof o.type === 'string' ? (ACTION_LABEL[o.type] ?? null) : null;
+    const actionMap = locale === 'en' ? ACTION_EN : ACTION_LABEL;
+    const label = typeof o.type === 'string' ? (actionMap[o.type] ?? null) : null;
     if (body) return label ? `${label}: ${body}` : body;
     if (label) return label;
   }
@@ -245,6 +266,8 @@ export default async function InboxThreadPage({
 
   const messages = rows<Msg>(mR);
   const f = await getFormat();
+  const locale = await getLocale();
+  const en = locale === 'en';
 
   // "Needs reply" = last message was inbound and hasn't been answered.
   const needsReply =
@@ -258,7 +281,7 @@ export default async function InboxThreadPage({
     const a = messages[i]?.aiSuggestedActions;
     if (Array.isArray(a) && a.length > 0) {
       suggestedActions = (a as unknown[])
-        .map(actionText)
+        .map((x) => actionText(x, locale))
         .filter((s) => s && s !== '[object Object]')
         .slice(0, 6);
       break;
@@ -286,18 +309,24 @@ export default async function InboxThreadPage({
   // and a tidy secondary row (reply-status · importance · category) so the
   // header stops stacking 5-6 cramped pills. Restrained tones, dot + label.
   type Sig = { label: string; tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger' };
+  const statusMap = en ? STATUS_EN : STATUS_AR;
+  const replyMap = en ? REPLY_EN : REPLY_LABEL;
+  const importanceMap = en ? IMPORTANCE_EN : IMPORTANCE_AR;
+  const categoryMap = en ? CATEGORY_EN : CATEGORY_AR;
   const primaryState: Sig = thread.isUrgent
-    ? { label: `عاجل${thread.urgentReason ? ` · ${thread.urgentReason}` : ''}`, tone: 'danger' }
+    ? { label: `${en ? 'Urgent' : 'عاجل'}${thread.urgentReason ? ` · ${thread.urgentReason}` : ''}`, tone: 'danger' }
     : needsReply
-      ? { label: 'بانتظار ردّك', tone: 'warning' }
-      : { label: STATUS_AR[thread.status] ?? thread.status, tone: STATUS_TONE[thread.status] ?? 'neutral' };
+      ? { label: en ? 'Awaiting your reply' : 'بانتظار ردّك', tone: 'warning' }
+      : { label: statusMap[thread.status] ?? thread.status, tone: STATUS_TONE[thread.status] ?? 'neutral' };
   const signals: Sig[] = [];
-  if (!needsReply && thread.replyStatus && REPLY_LABEL[thread.replyStatus])
-    signals.push({ label: REPLY_LABEL[thread.replyStatus]!, tone: REPLY_TONE[thread.replyStatus] ?? 'neutral' });
-  if (thread.importance)
-    signals.push({ label: `أهمية ${IMPORTANCE_AR[thread.importance] ?? thread.importance}`, tone: IMPORTANCE_TONE[thread.importance] ?? 'neutral' });
+  if (!needsReply && thread.replyStatus && replyMap[thread.replyStatus])
+    signals.push({ label: replyMap[thread.replyStatus]!, tone: REPLY_TONE[thread.replyStatus] ?? 'neutral' });
+  if (thread.importance) {
+    const lvl = importanceMap[thread.importance] ?? thread.importance;
+    signals.push({ label: en ? `${lvl} priority` : `أهمية ${lvl}`, tone: IMPORTANCE_TONE[thread.importance] ?? 'neutral' });
+  }
   if (thread.category)
-    signals.push({ label: CATEGORY_AR[thread.category] ?? thread.category, tone: CATEGORY_TONE[thread.category] ?? 'neutral' });
+    signals.push({ label: categoryMap[thread.category] ?? thread.category, tone: CATEGORY_TONE[thread.category] ?? 'neutral' });
 
   return (
     <Shell user={{ email: user.email ?? '' }} activePath="/inbox">
