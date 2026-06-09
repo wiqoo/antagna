@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { StatusPill, MoneyDisplay } from '@antagna/ui';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { stageTone, stageLabel } from '@/lib/project-stage';
+import { getLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,7 @@ export default async function PortalPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const locale = await getLocale();
 
   const shareRes = (await db.execute<ShareRow>(sql`
     SELECT
@@ -163,7 +165,7 @@ export default async function PortalPage({
                 {share.project_code}
               </span>
               <StatusPill tone={stageTone(share.project_stage)}>
-                {stageLabelAr(share.project_stage)}
+                {stageLabel(share.project_stage, locale)}
               </StatusPill>
             </div>
             <h1 className="text-[40px] font-bold leading-[1.1] tracking-tight md:text-[48px]">

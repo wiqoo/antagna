@@ -6,8 +6,9 @@ import { PageHeader, Card, CardHeader, StatusPill, EmptyState, Avatar } from '@a
 import { Shell } from '@/components/Shell';
 import { ArrowLeft, Award, Briefcase, History, Mail, Phone } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { stageTone, stageLabel } from '@/lib/project-stage';
 import { requirePermission, getEffectiveProfileId } from '@/lib/authz';
+import { getLocale } from 'next-intl/server';
 import { financialsHidden } from '@/lib/financials';
 
 export const dynamic = 'force-dynamic';
@@ -49,6 +50,7 @@ export default async function TeamMemberPage({
 
   // Page guard: lacking team.read → /dashboard (signed-out → /login).
   await requirePermission('team.read');
+  const locale = await getLocale();
   const effectivePid = await getEffectiveProfileId();
 
   // The profile read goes through v_team_safe (drop-in for profiles), which
@@ -216,7 +218,7 @@ export default async function TeamMemberPage({
                     </div>
                     {a.stage && (
                       <StatusPill tone={stageTone(a.stage)} withDot={false}>
-                        {stageLabelAr(a.stage)}
+                        {stageLabel(a.stage, locale)}
                       </StatusPill>
                     )}
                   </li>

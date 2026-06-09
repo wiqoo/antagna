@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Avatar, StatusPill } from '@antagna/ui';
-import { PROJECT_STAGE_ORDER, stageLabelAr, stageTone } from '@/lib/project-stage';
+import { PROJECT_STAGE_ORDER, stageLabel, stageTone } from '@/lib/project-stage';
 
 export type BoardRow = {
   id: string;
@@ -24,7 +24,7 @@ const riskDot: Record<string, string> = {
 };
 
 /** Read-only kanban: one column per pipeline stage, project cards inside. */
-export function ProjectsBoard({ rows }: { rows: BoardRow[] }) {
+export function ProjectsBoard({ rows, locale }: { rows: BoardRow[]; locale: string }) {
   const byStage = new Map<string, BoardRow[]>();
   for (const s of PROJECT_STAGE_ORDER) byStage.set(s, []);
   for (const r of rows) {
@@ -40,7 +40,7 @@ export function ProjectsBoard({ rows }: { rows: BoardRow[] }) {
           <div key={stage} className="flex w-[268px] shrink-0 flex-col gap-2">
             <div className="flex items-center justify-between px-0.5">
               <StatusPill tone={stageTone(stage)} withDot={false}>
-                {stageLabelAr(stage)}
+                {stageLabel(stage, locale)}
               </StatusPill>
               <span className="font-mono text-[11px] text-[var(--text-dim)]">
                 {items.length}
