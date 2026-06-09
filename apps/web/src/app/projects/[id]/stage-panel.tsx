@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Check, ArrowLeft, X, Loader2, Archive, History, Clock, ChevronDown, GitBranch } from 'lucide-react';
 import { StatusPill } from '@antagna/ui';
 import {
   PROJECT_STAGE_ORDER,
-  PROJECT_STAGE_LABELS_AR,
-  stageLabelAr,
+  stageLabel,
   stageTone,
 } from '@/lib/project-stage';
 import { transitionStage } from './actions';
@@ -34,6 +34,7 @@ export function StagePanel({
   history: StageHistoryItem[];
 }) {
   const router = useRouter();
+  const locale = useLocale();
   const [pending, start] = useTransition();
   const [busyStage, setBusyStage] = useState<string | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
@@ -111,7 +112,7 @@ export function StagePanel({
                       (current ? 'font-bold text-[var(--text)]' : done ? 'text-[var(--text-muted)]' : 'text-[var(--text-dim)]')
                     }
                   >
-                    {PROJECT_STAGE_LABELS_AR[s] ?? s}
+                    {stageLabel(s, locale)}
                   </span>
                 </div>
                 {i < order.length - 1 && (
@@ -130,7 +131,7 @@ export function StagePanel({
       {/* ── Current stage + progress ── */}
       <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3 text-[12px]">
         <span className="text-[var(--text-dim)]">المرحلة الحالية</span>
-        <StatusPill tone={stageTone(currentStage)}>{stageLabelAr(currentStage)}</StatusPill>
+        <StatusPill tone={stageTone(currentStage)}>{stageLabel(currentStage, locale)}</StatusPill>
         {!isTerminal && (
           <span className="text-[11px] text-[var(--text-dim)]">
             · {curIdx + 1} من {order.length} ({progress}%)
@@ -152,7 +153,7 @@ export function StagePanel({
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[var(--accent)] px-4 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {spin(primary) ? <Loader2 size={13} className="animate-spin" /> : <ArrowLeft size={13} className="rtl:rotate-180" />}
-            التالي: {stageLabelAr(primary)}
+            التالي: {stageLabel(primary, locale)}
           </button>
         )}
 
@@ -182,7 +183,7 @@ export function StagePanel({
                       >
                         <span className="inline-flex items-center gap-1.5">
                           {spin(s) ? <Loader2 size={12} className="animate-spin" /> : isForward ? <ArrowLeft size={12} className="text-[var(--accent)] rtl:rotate-180" /> : <span className="text-[var(--text-dim)]">↩</span>}
-                          {stageLabelAr(s)}
+                          {stageLabel(s, locale)}
                         </span>
                         <span className="text-[9px] text-[var(--text-dim)]">{isForward ? 'تقدّم' : 'رجوع'}</span>
                       </button>

@@ -38,7 +38,8 @@ import {
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getFormat } from '@/lib/format';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { getLocale } from 'next-intl/server';
+import { stageTone, stageLabel } from '@/lib/project-stage';
 import { SubmitButton } from '@antagna/ui';
 import { addContact, enrichClientAction } from '../actions';
 import { linkBrandToAgency, unlinkBrandFromAgency } from '@/app/crm/actions';
@@ -92,6 +93,7 @@ export default async function ClientDetailPage({
   // Page guard: must hold client.read (redirects to /dashboard if denied).
   await requirePermission('client.read');
   const f = await getFormat();
+  const locale = await getLocale();
 
   // Field-level masking (D-037/D-039): client + contacts (+ the contact-methods
   // join, which is keyed on the masked contacts entity) read the v_*_safe views.
@@ -716,7 +718,7 @@ export default async function ClientDetailPage({
                     </span>
                   )}
                   <StatusPill tone={stageTone(p.stage)}>
-                    {stageLabelAr(p.stage)}
+                    {stageLabel(p.stage, locale)}
                   </StatusPill>
                 </Link>
               </li>

@@ -36,6 +36,7 @@ import {
 } from '@antagna/ui';
 import { Shell } from '@/components/Shell';
 import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
+import { getLocale } from 'next-intl/server';
 import { RealtimeComments } from '@/components/RealtimeComments';
 import {
   ArrowLeft,
@@ -55,7 +56,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { stageTone, stageLabel } from '@/lib/project-stage';
 import { postComment } from './actions';
 import { StagePanel } from './stage-panel';
 import {
@@ -109,6 +110,7 @@ export default async function ProjectDetailPage({
 
   // Read gate (granular RBAC). Lacking project.read → redirect to /dashboard.
   await requirePermission('project.read');
+  const locale = await getLocale();
 
   const activeProfiles = await db
     .select({ id: profiles.id, displayName: profiles.displayName })
@@ -502,8 +504,8 @@ export default async function ProjectDetailPage({
   const stageEnteredAt = stageLog.find((l) => l.toStage === project.stage)?.changedAt ?? null;
   const inStageLabel = stageEnteredAt ? arRel(stageEnteredAt) : null;
   const stageHistory = stageLog.slice(0, 5).map((l) => ({
-    fromLabel: l.fromStage ? stageLabelAr(l.fromStage) : null,
-    toLabel: stageLabelAr(l.toStage),
+    fromLabel: l.fromStage ? stageLabel(l.fromStage, locale) : null,
+    toLabel: stageLabel(l.toStage, locale),
     byName: l.changedByName ?? null,
     whenLabel: arRel(l.changedAt),
     reason: l.reason ?? null,
@@ -608,7 +610,7 @@ export default async function ProjectDetailPage({
                   {project.code}
                 </span>
                 <StatusPill tone={stageTone(project.stage)}>
-                  {stageLabelAr(project.stage)}
+                  {stageLabel(project.stage, locale)}
                 </StatusPill>
                 {project.aiRiskLevel && (
                   <StatusPill
@@ -1023,11 +1025,11 @@ export default async function ProjectDetailPage({
                 >
                   <div className="flex items-center gap-2 text-sm">
                     <StatusPill tone={stageTone(s.fromStage ?? '')}>
-                      {stageLabelAr(s.fromStage)}
+                      {stageLabel(s.fromStage, locale)}
                     </StatusPill>
                     <span className="text-[var(--text-dim)]">→</span>
                     <StatusPill tone={stageTone(s.toStage)}>
-                      {stageLabelAr(s.toStage)}
+                      {stageLabel(s.toStage, locale)}
                     </StatusPill>
                   </div>
                   <div className="text-end text-xs text-[var(--text-muted)]">

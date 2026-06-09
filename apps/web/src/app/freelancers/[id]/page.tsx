@@ -7,7 +7,8 @@ import { Shell } from '@/components/Shell';
 import { ArrowLeft, Star, MapPin, Briefcase, Mail, Sparkles } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { can, requirePermission } from '@/lib/authz';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { getLocale } from 'next-intl/server';
+import { stageTone, stageLabel } from '@/lib/project-stage';
 import { addFreelancerAvailability, removeFreelancerAvailability } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,7 @@ export default async function FreelancerDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/freelancers/${id}`);
   await requirePermission('team.read');
+  const locale = await getLocale();
 
   // Financial/PII fields (rate, email, payout method) are a narrower grant
   // than directory access — masked unless the viewer holds financials.read.
@@ -244,7 +246,7 @@ export default async function FreelancerDetailPage({
                     </div>
                     {a.stage && (
                       <StatusPill tone={stageTone(a.stage)} withDot={false}>
-                        {stageLabelAr(a.stage)}
+                        {stageLabel(a.stage, locale)}
                       </StatusPill>
                     )}
                   </li>

@@ -8,8 +8,9 @@ import {
   Calendar, ChevronRight, ChevronLeft, CalendarDays, Rows3, LayoutGrid,
 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { stageLabelAr } from '@/lib/project-stage';
+import { stageLabel } from '@/lib/project-stage';
 import { listGoogleEvents } from '@/lib/google-calendar';
+import { getLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,7 @@ export default async function CalendarPage({
   searchParams: Promise<{ view?: string; anchor?: string }>;
 }) {
   const sp = await searchParams;
+  const locale = await getLocale();
   const view: View = sp.view === 'week' ? 'week' : sp.view === 'agenda' ? 'agenda' : 'month';
   const anchor = parseAnchor(sp.anchor);
 
@@ -124,7 +126,7 @@ export default async function CalendarPage({
     if (s.shoot_ends) push({ date: ymd(new Date(s.shoot_ends)), time: null, kind: 'shoot', title: `نهاية تصوير: ${s.title_ar ?? s.project_title}`, sub: s.client ?? s.project_code, href: `/projects/${s.project_id}`, tone: 'accent' });
   }
   for (const d of deliveriesRes as unknown as Array<{ project_id: string; project_code: string; project_title: string; title_ar: string | null; stage: string; delivery_due: Date; client: string | null }>) {
-    push({ date: ymd(new Date(d.delivery_due)), time: null, kind: 'delivery', title: `تسليم: ${d.title_ar ?? d.project_title}`, sub: `${d.project_code}${d.client ? ` · ${d.client}` : ''} · ${stageLabelAr(d.stage)}`, href: `/projects/${d.project_id}`, tone: 'warning' });
+    push({ date: ymd(new Date(d.delivery_due)), time: null, kind: 'delivery', title: `تسليم: ${d.title_ar ?? d.project_title}`, sub: `${d.project_code}${d.client ? ` · ${d.client}` : ''} · ${stageLabel(d.stage, locale)}`, href: `/projects/${d.project_id}`, tone: 'warning' });
   }
   for (const r of reservationsRes as unknown as Array<{ id: string; starts_at: Date; ends_at: Date; eq_code: string | null; eq_model: string | null; project_code: string | null; project_id: string | null }>) {
     push({ date: ymd(new Date(r.starts_at)), time: new Date(r.starts_at).toISOString().slice(11, 16), kind: 'reservation', title: r.eq_code ? `حجز: ${r.eq_code} ${r.eq_model ?? ''}` : 'حجز مجموعة معدات', sub: r.project_code, href: r.project_id ? `/projects/${r.project_id}` : null, tone: 'info' });

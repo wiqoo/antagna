@@ -37,7 +37,8 @@ import {
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { can, requirePermission } from '@/lib/authz';
 import { getFormat } from '@/lib/format';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { getLocale } from 'next-intl/server';
+import { stageTone, stageLabel } from '@/lib/project-stage';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +76,7 @@ export default async function ContactDetailPage({
   // profile id we hand to the masking transaction (resolved once).
   const { profileId } = await requirePermission('client.read');
   const f = await getFormat();
+  const locale = await getLocale();
 
   // ONE transaction wraps EVERY masked read for this page: the contact + its
   // client (v_contacts_safe ⨝ v_clients_safe) and the client's projects
@@ -351,7 +353,7 @@ export default async function ContactDetailPage({
                       {f.currency(Number(p.contractedValueSar))}
                     </span>
                   )}
-                  <StatusPill tone={stageTone(p.stage)}>{stageLabelAr(p.stage)}</StatusPill>
+                  <StatusPill tone={stageTone(p.stage)}>{stageLabel(p.stage, locale)}</StatusPill>
                 </Link>
               </li>
             ))}

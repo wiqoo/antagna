@@ -27,9 +27,9 @@ import {
 import { Shell } from '@/components/Shell';
 import { Briefcase, Plus, Search, X, ArrowUpRight, Sparkles, Rows3, Columns3 } from 'lucide-react';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 import { getFormat } from '@/lib/format';
-import { stageTone, stageLabelAr } from '@/lib/project-stage';
+import { stageTone, stageLabel } from '@/lib/project-stage';
 import { getEffectiveProfileId, requirePermission } from '@/lib/authz';
 import { ProjectsBoard, type BoardRow } from './projects-board';
 
@@ -57,6 +57,7 @@ export default async function ProjectsListPage({
   const supabase = await getSupabaseServerClient();
   const t = await getTranslations('pages.projects');
   const f = await getFormat();
+  const locale = await getLocale();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -326,7 +327,7 @@ export default async function ProjectsListPage({
           >
             <option value="">المرحلة: الكل</option>
             {projectStageEnum.enumValues.map((s) => (
-              <option key={s} value={s}>{stageLabelAr(s)}</option>
+              <option key={s} value={s}>{stageLabel(s, locale)}</option>
             ))}
           </select>
           <select
@@ -416,7 +417,7 @@ export default async function ProjectsListPage({
             />
           </Card>
         ) : (
-          <ProjectsBoard rows={boardRows} />
+          <ProjectsBoard rows={boardRows} locale={locale} />
         )
       ) : (
       /* Table */
@@ -486,7 +487,7 @@ export default async function ProjectsListPage({
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusPill tone={stageTone(r.stage)}>
-                        {stageLabelAr(r.stage)}
+                        {stageLabel(r.stage, locale)}
                       </StatusPill>
                     </td>
                     <td className="px-5 py-3.5">
