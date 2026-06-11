@@ -22,6 +22,7 @@ import { extractMeetingNotes } from './meeting-notes';
 import { extractEmail } from './email-intel/extract';
 import { generateSuggestionsForExtraction } from './email-intel/generate';
 import { summarizeConversation } from './email-intel/conversation';
+import { promptDateAnchor, isPastDeadline } from './today';
 
 export interface SummarizeReport {
   startedAt: string;
@@ -56,6 +57,7 @@ Given a thread (subject + the FULL message history, inbound ↓ and outbound ↑
   "reply_status": "needs_reply" | "no_reply_needed" | "awaiting_them" | "handled_off_channel",
   "urgent": true | false,
   "urgent_reason": "<short Arabic phrase, ONLY when urgent>",
+  "urgent_deadline_iso": "<YYYY-MM-DD of the deadline driving urgency, else null>",
   "topic_tags": ["..."],
   "suggested_actions": [
     { "type": "reply" | "create_lead" | "link_to_project" | "archive" | "follow_up" | "ignore",
@@ -69,7 +71,7 @@ reply_status — compare the LAST inbound (↓) vs the LAST outbound (↑):
 - no_reply_needed: nothing to answer — auto-confirmation, newsletter, thank-you, or a "no-reply" / out-of-office / automated SIGNATURE.
 - handled_off_channel: a note below says there was recent WhatsApp/phone contact with this client that likely handled the matter.
 Read the SIGNATURE of the latest message: a "no-reply"/automated/out-of-office signature ⇒ usually no_reply_needed.
-urgent: true ONLY when it must be handled within ~1 hour (angry client, a deadline within the hour, an operational emergency). Otherwise false. urgent_reason: one short Arabic phrase, only when urgent.
+urgent: true ONLY when it must be handled SOON (an angry client, an operational emergency, or a real deadline that is TODAY or in the near future). A deadline that has ALREADY PASSED is NEVER urgent — it is history; do not say "today"/"soon" about a past date. Compare every date against today's date given at the top of the message. urgent_reason: one short Arabic phrase, only when urgent. urgent_deadline_iso: the YYYY-MM-DD of the deadline that makes it urgent (so we can verify it deterministically), or null when urgency isn't deadline-driven.
 
 Categories:
 - business: real client/partner conversations, RFPs, project work
@@ -92,6 +94,7 @@ interface ClaudeResponse {
   reply_status?: string;
   urgent?: boolean;
   urgent_reason?: string;
+  urgent_deadline_iso?: string | null;
   topic_tags: string[];
   suggested_actions: { type: string; reason: string }[];
 }
@@ -354,7 +357,12 @@ export async function summarizeThreads(
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ] as any,
-        messages: [{ role: 'user', content: transcript + crossChannelNote + memNote }],
+        messages: [
+          {
+            role: 'user',
+            content: `${promptDateAnchor()}\n\n${transcript}${crossChannelNote}${memNote}`,
+          },
+        ],
       });
 
       report.totalInputTokens += resp.usage.input_tokens;
@@ -423,6 +431,13 @@ export async function summarizeThreads(
       const weRepliedLast = msgs[msgs.length - 1]?.direction === 'outbound';
       if (weRepliedLast && replyStatus !== 'handled_off_channel') {
         replyStatus = 'awaiting_them';
+        isUrgent = false;
+      }
+
+      // Deterministic time guard: the model has no clock, so never let a deadline
+      // that has ALREADY PASSED drive urgency (a Feb deadline surfacing as
+      // "urgent — due today" in June). Date math lives in code, not the LLM.
+      if (isUrgent && isPastDeadline(parsed.urgent_deadline_iso)) {
         isUrgent = false;
       }
 

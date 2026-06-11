@@ -7,6 +7,7 @@ import { requirePermissionAction, canMany, getEffectiveProfileId } from '@/lib/a
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getAnthropic, ANTHROPIC_MODELS, recordUsage, retrieveMemory, indexMemory, assertAiBudget } from '@antagna/ai';
 import { ingestGmail, SYSTEM_MAILBOX } from '@/lib/gmail-ingest';
+import { promptDateAnchor } from '@/lib/today';
 
 const rows = <T,>(r: unknown): T[] => r as unknown as T[];
 
@@ -172,7 +173,7 @@ export async function summarizeThreadAction(threadId: string): Promise<void> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any,
       messages: [
-        { role: 'user', content: `هذه المحادثة:\n\n${convo}${memNote}\n\nأخرج الـ JSON فقط.` },
+        { role: 'user', content: `${promptDateAnchor()}\n\nهذه المحادثة:\n\n${convo}${memNote}\n\nأخرج الـ JSON فقط.` },
       ],
     });
     await recordUsage({ feature: 'email_thread_summary', model: ANTHROPIC_MODELS.sonnet, inputTokens: resp.usage.input_tokens ?? 0, outputTokens: resp.usage.output_tokens ?? 0, cacheReadTokens: (resp.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0, cacheWriteTokens: (resp.usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens ?? 0 });
@@ -273,6 +274,7 @@ export async function generateNextActionsAction(threadId: string): Promise<void>
         {
           role: 'user',
           content:
+            `${promptDateAnchor()}\n\n` +
             `المحادثة:\n${convo}\n\n` +
             (memoryContext
               ? `ذاكرة ذات صلة من تعاملاتنا السابقة:\n${memoryContext}\n\n`

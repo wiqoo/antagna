@@ -13,6 +13,7 @@ import { db, emailMessages, emailThreads, emailExtractions } from '@antagna/db';
 import { eq, sql } from 'drizzle-orm';
 import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage, retrieveMemory, indexMemory } from '@antagna/ai';
 import type { ExtractedEmail } from './types';
+import { promptDateAnchor } from '../today';
 import {
   processMessageAttachments,
   getAttachmentTextForMessage,
@@ -210,7 +211,9 @@ export async function extractEmail(
     return { ok: false, messageId: messageDbId, error: 'body_too_short' };
   }
 
-  const userPrompt = `Subject: ${thread?.subject ?? msg.subject ?? '(none)'}
+  const userPrompt = `${promptDateAnchor()}
+
+Subject: ${thread?.subject ?? msg.subject ?? '(none)'}
 Latest inbound from: ${msg.fromName ?? ''} <${msg.fromEmail}>
 
 ──── Conversation (oldest → newest) ────
