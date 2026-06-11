@@ -214,21 +214,38 @@ export async function summarizeThreads(
 
       if (msgs.length === 0) continue;
 
-      // Build a compact transcript. Bound total body to ~6k chars.
+      // Build a compact transcript, NEWEST-BIASED. We walk messages from newest
+      // → oldest accumulating up to the char budget, then reverse back to
+      // chronological order for the model to read. This GUARANTEES the most
+      // recent messages (our latest reply, the thread's current state) are
+      // always in the prompt; on a long thread the OLDEST messages get dropped
+      // instead. (Previously the loop ran oldest → newest and broke at the
+      // budget, so on long threads the newest messages — including our closing
+      // reply — were truncated away and the summary/reply-state reflected the
+      // thread's START, not where it actually stands now.)
+      const MAX_TRANSCRIPT_CHARS = 8000;
       let totalChars = 0;
-      const lines: string[] = [`Subject: ${thread.subject ?? '(no subject)'}`];
-      for (const m of msgs) {
+      const picked: string[] = [];
+      let truncatedOlder = false;
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const m = msgs[i];
+        if (!m) continue;
         const body =
           (m.bodyText ?? m.snippet ?? '').trim().replace(/\s+/g, ' ').slice(0, 800);
         const from = m.fromName ? `${m.fromName} <${m.fromEmail}>` : m.fromEmail;
         const line = `\n[${m.direction === 'inbound' ? '↓ IN' : '↑ OUT'}] ${from} @ ${new Date(m.sentAt).toISOString().slice(0, 10)}\n${body}`;
-        if (totalChars + line.length > 6000) {
-          lines.push('\n[...truncated...]');
+        // Always keep the most recent message even if it alone blows the budget.
+        if (picked.length > 0 && totalChars + line.length > MAX_TRANSCRIPT_CHARS) {
+          truncatedOlder = true;
           break;
         }
-        lines.push(line);
+        picked.push(line);
         totalChars += line.length;
       }
+      picked.reverse();
+      const lines: string[] = [`Subject: ${thread.subject ?? '(no subject)'}`];
+      if (truncatedOlder) lines.push('\n[...older messages truncated...]');
+      lines.push(...picked);
       const transcript = lines.join('\n');
 
       // Cross-channel awareness: was there recent WhatsApp contact with this
@@ -343,12 +360,24 @@ export async function summarizeThreads(
 
       // Smart reply-need + urgency (migration 069). Default reply_status from
       // needs_reply when the model omits it.
-      const replyStatus = REPLY_STATUSES.has(String(parsed.reply_status))
+      let replyStatus = REPLY_STATUSES.has(String(parsed.reply_status))
         ? (parsed.reply_status as string)
         : parsed.needs_reply
           ? 'needs_reply'
           : 'no_reply_needed';
-      const isUrgent = parsed.urgent === true && triageCategory === 'actionable';
+      let isUrgent = parsed.urgent === true && triageCategory === 'actionable';
+
+      // Deterministic guard: if the LAST message in the thread is ours
+      // (outbound), we already had the last word — there is nothing for us to
+      // reply to. Never let the thread sit as needs_reply/urgent in that case
+      // (the ball is in their court). This is a SQL fact, not an AI guess, so it
+      // overrides the model — and it's the backstop that keeps a thread we just
+      // closed from showing "needs urgent reply".
+      const weRepliedLast = msgs[msgs.length - 1]?.direction === 'outbound';
+      if (weRepliedLast && replyStatus !== 'handled_off_channel') {
+        replyStatus = 'awaiting_them';
+        isUrgent = false;
+      }
 
       await db
         .update(emailThreads)
@@ -366,11 +395,15 @@ export async function summarizeThreads(
         })
         .where(eq(emailThreads.id, thread.id));
 
-      // Attach suggested actions to the most recent inbound message (the one
-      // we'd be responding to). If no inbound, attach to the latest message.
+      // Attach suggested actions to the message the thread page surfaces — the
+      // LATEST message overall (the page reads suggestions newest-first). When
+      // we replied last, the next step is "follow up / await them", not "reply
+      // to their old request"; anchoring to the latest inbound would resurface a
+      // stale "reply now" on a thread we already answered. If somehow there's no
+      // last message, fall back to the latest inbound.
       const targetMsg =
-        [...msgs].reverse().find((m) => m.direction === 'inbound') ??
-        msgs[msgs.length - 1];
+        msgs[msgs.length - 1] ??
+        [...msgs].reverse().find((m) => m.direction === 'inbound');
       if (targetMsg && parsed.suggested_actions?.length) {
         await db
           .update(emailMessages)
