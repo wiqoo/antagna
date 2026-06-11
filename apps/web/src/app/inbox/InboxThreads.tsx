@@ -107,7 +107,11 @@ const CATEGORY_LABEL_EN: Record<string, string> = {
 };
 const IMPORTANCE_LABEL_EN: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
 
-const NOISE = new Set(['marketing', 'newsletter', 'spam']);
+// Hidden-by-default categories (the `showNoise` toggle brings them back).
+// notification + automated join the set so vendor/tool emails (Adobe, Envato,
+// Frame.io, receipts, calendar accepts) and machine mail (bounces, our own
+// platform notifications) don't crowd out real client conversations.
+const NOISE = new Set(['marketing', 'newsletter', 'spam', 'notification', 'automated']);
 
 function fmtAge(ts: string | null): string {
   if (!ts) return '—';

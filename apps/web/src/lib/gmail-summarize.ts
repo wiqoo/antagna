@@ -113,6 +113,27 @@ const TRIAGE_CATEGORY: Record<string, string> = {
 };
 const NOISE_TRIAGE = new Set(['marketing', 'newsletter', 'spam']);
 
+// Our own app domain — password-reset / digest / escalation mails the platform
+// sends, which land back in the shared mailbox. NOT voltsaudi.com (that's our
+// real outbound). Treated as system noise, never a client conversation.
+const OWN_SYSTEM_DOMAIN = 'antagna.me';
+
+/**
+ * Deterministic "this is machine noise, not a human" check — bounce notices
+ * (Mail Delivery Subsystem) and our own platform notifications. Used to
+ * short-circuit BEFORE the AI classifier so we never spend tokens (Haiku OR the
+ * deep Sonnet pipeline) on mail no human will ever read. A SQL/string fact.
+ */
+function isSystemSender(email: string | null, name: string | null): boolean {
+  const e = (email ?? '').toLowerCase().trim();
+  const n = (name ?? '').toLowerCase().trim();
+  if (!e) return false;
+  if (/^(mailer-daemon|postmaster)@/.test(e)) return true; // bounce
+  if (n.includes('mail delivery')) return true; // bounce (by display name)
+  if (e.endsWith(`@${OWN_SYSTEM_DOMAIN}`)) return true; // our own platform mail
+  return false;
+}
+
 function mapTriage(
   category: string,
   urgency: string,
@@ -213,6 +234,32 @@ export async function summarizeThreads(
         .orderBy(emailMessages.sentAt);
 
       if (msgs.length === 0) continue;
+
+      // ── FILTER BEFORE ANALYSIS ──────────────────────────────────────────
+      // If every inbound message in the thread is a system sender (a bounce or
+      // our own platform notification), classify it as machine noise and SKIP
+      // the AI entirely — no Haiku summary, no deep Sonnet pipeline. The full
+      // analysis only runs on threads that pass this filter (real human mail).
+      const inbound = msgs.filter((m) => m.direction === 'inbound');
+      const allInboundAreSystem =
+        inbound.length > 0 &&
+        inbound.every((m) => isSystemSender(m.fromEmail, m.fromName));
+      if (allInboundAreSystem) {
+        await db
+          .update(emailThreads)
+          .set({
+            category: 'automated',
+            importance: 'low',
+            replyStatus: 'no_reply_needed',
+            isUrgent: false,
+            urgentReason: null,
+            aiClassifiedAt: sql`now()`,
+            aiSummaryUpdatedAt: sql`now()`,
+            updatedAt: sql`now()`,
+          })
+          .where(eq(emailThreads.id, thread.id));
+        continue;
+      }
 
       // Build a compact transcript, NEWEST-BIASED. We walk messages from newest
       // → oldest accumulating up to the char budget, then reverse back to
@@ -439,6 +486,14 @@ export async function summarizeThreads(
         });
       }
 
+      // ── FULL ANALYSIS — ONLY AFTER THE FILTER ───────────────────────────
+      // The expensive pipeline (meeting-note extraction, deep Sonnet email
+      // intelligence + suggestion generation, cross-thread conversation
+      // summary, brain indexing) runs ONLY on threads that survive triage as
+      // a real client/business conversation. Noise (marketing / notification /
+      // automated / spam) gets the cheap Haiku classification above and stops
+      // there — we never burn Sonnet tokens on mail no human will read.
+      if (triageCategory === 'actionable') {
       // Meeting notes extraction (Read.ai, Gemini Notes, Meet recordings,
       // Fathom, Otter, Granola). No-op for ordinary threads.
       try {
@@ -492,6 +547,7 @@ export async function summarizeThreads(
           error: `convo: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
+      } // end: full analysis (actionable only)
     } catch (err) {
       report.errors.push({
         threadId: thread.id,

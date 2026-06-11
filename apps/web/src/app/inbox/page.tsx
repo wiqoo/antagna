@@ -209,7 +209,9 @@ export default async function InboxPage() {
     projectId: t.projectId,
   }));
 
-  const NOISE = new Set(['marketing', 'newsletter', 'spam']);
+  // Keep in sync with InboxThreads.tsx — notification + automated are hidden by
+  // default (vendor/tool mail, receipts, bounces, our own platform notices).
+  const NOISE = new Set(['marketing', 'newsletter', 'spam', 'notification', 'automated']);
   const isNoise = (t: ThreadQueryRow) =>
     t.status === 'spam' || (t.category != null && NOISE.has(t.category));
   const cleanThreads = threads.filter((t) => !isNoise(t));
