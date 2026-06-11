@@ -97,6 +97,8 @@ export async function applyRoutingAndLinking(
       )
       .limit(1);
 
+    const domain = extractDomain(normalized);
+
     if (methodMatch) {
       await db
         .update(emailThreads)
@@ -108,27 +110,48 @@ export async function applyRoutingAndLinking(
         .where(eq(emailThreads.id, threadId));
       applied.clientLinked = methodMatch.clientId;
       applied.contactLinked = methodMatch.contactId;
-    } else {
-      // Fallback: domain match against clients.website_url.
-      const domain = extractDomain(normalized);
-      if (domain) {
-        const [clientMatch] = await db
-          .select({ id: clients.id })
-          .from(clients)
-          .where(
-            and(
-              isNull(clients.archivedAt),
-              sql`lower(${clients.websiteUrl}) LIKE ${'%' + domain + '%'}`,
-            ),
-          )
-          .limit(1);
-        if (clientMatch) {
-          await db
-            .update(emailThreads)
-            .set({ clientId: clientMatch.id, updatedAt: sql`now()` })
-            .where(eq(emailThreads.id, threadId));
-          applied.clientLinked = clientMatch.id;
-        }
+
+      // SELF-LEARNING: a confirmed contact email just resolved this client, so
+      // remember its domain (unless free/personal). Every future thread from
+      // that domain then links automatically — no manual onboarding.
+      if (domain && !isFreeProvider(domain)) {
+        await db.execute(sql`
+          UPDATE clients
+          SET email_domains = (
+                SELECT array_agg(DISTINCT d) FROM unnest(email_domains || ${domain}) d
+              ),
+              updated_at = now()
+          WHERE id = ${methodMatch.clientId}
+            AND NOT (${domain} = ANY(email_domains))
+        `);
+      }
+    } else if (domain && !isFreeProvider(domain)) {
+      // Fallback: match the sender domain against clients.email_domains by
+      // SUFFIX (so auto.mynaghi.com matches a stored mynaghi.com), with the
+      // legacy website_url LIKE as a last resort. Free providers never reach
+      // here, so individuals on gmail are never mis-linked.
+      const [clientMatch] = await db
+        .select({ id: clients.id })
+        .from(clients)
+        .where(
+          and(
+            isNull(clients.archivedAt),
+            sql`(
+              EXISTS (
+                SELECT 1 FROM unnest(${clients.emailDomains}) AS dd
+                WHERE ${domain} = dd OR ${domain} LIKE '%.' || dd
+              )
+              OR (${clients.websiteUrl} IS NOT NULL AND lower(${clients.websiteUrl}) LIKE ${'%' + domain + '%'})
+            )`,
+          ),
+        )
+        .limit(1);
+      if (clientMatch) {
+        await db
+          .update(emailThreads)
+          .set({ clientId: clientMatch.id, updatedAt: sql`now()` })
+          .where(eq(emailThreads.id, threadId));
+        applied.clientLinked = clientMatch.id;
       }
     }
   }
@@ -228,4 +251,16 @@ export async function applyRoutingAndLinking(
 function extractDomain(email: string): string | null {
   const m = email.toLowerCase().match(/@([a-z0-9.-]+)/);
   return m?.[1] ?? null;
+}
+
+// Free / personal email providers — a sender here tells us about a PERSON, not
+// an organization, so it must never be learned as a client domain or used to
+// match one (else every gmail sender collapses onto one client).
+const FREE_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'hotmail.com', 'outlook.com', 'live.com',
+  'yahoo.com', 'icloud.com', 'me.com', 'aol.com', 'proton.me', 'protonmail.com',
+]);
+
+function isFreeProvider(domain: string): boolean {
+  return FREE_EMAIL_DOMAINS.has(domain.toLowerCase());
 }

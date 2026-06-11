@@ -16,7 +16,8 @@
  */
 import { db, emailThreads, emailMessages } from '@antagna/db';
 import { eq, isNull, or, sql, desc, and } from 'drizzle-orm';
-import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage, retrieveMemory } from '@antagna/ai';
+import { getAnthropic, ANTHROPIC_MODELS, assertAiBudget, recordUsage, retrieveMemory, indexMemory } from '@antagna/ai';
+import { detectLang } from './detect-lang';
 import { applyRoutingAndLinking } from './gmail-routing';
 import { extractMeetingNotes } from './meeting-notes';
 import { extractEmail } from './email-intel/extract';
@@ -481,8 +482,10 @@ export async function summarizeThreads(
       // Run routing + linking right after the summary is written so the
       // thread immediately gets categorized (auto-close marketing, link to
       // client, create lead if business).
+      let linkedClientId: string | null = thread.clientId;
       try {
         const routed = await applyRoutingAndLinking(thread.id);
+        if (routed.clientLinked) linkedClientId = routed.clientLinked;
         if (routed.statusSet === 'closed') report.threadsAutoClosed++;
         if (routed.clientLinked) report.threadsLinkedToClient++;
         if (routed.leadCreated) report.leadsCreated++;
@@ -561,6 +564,33 @@ export async function summarizeThreads(
           threadId: thread.id,
           error: `convo: ${err instanceof Error ? err.message : String(err)}`,
         });
+      }
+
+      // OUTBOUND DOCUMENTATION → CLIENT BRAIN. When we email a client to put a
+      // phone/WhatsApp agreement on the record ("بنبعتله ميل فيه اللي قلناه"),
+      // that recap IS institutional memory. Index the latest substantive
+      // outbound so future briefs/threads/quotes recall what we committed to.
+      // indexMemory upserts by (source, sourceId) — safe to re-run.
+      if (linkedClientId) {
+        const lastOutbound = [...msgs].reverse().find((m) => m.direction === 'outbound');
+        const body = (lastOutbound?.bodyText ?? '').trim();
+        if (lastOutbound && body.length >= 200) {
+          try {
+            await indexMemory({
+              scope: 'client',
+              scopeId: linkedClientId,
+              source: 'email_outbound',
+              sourceId: lastOutbound.id,
+              content: `بريد صادر للعميل${thread.subject ? ` — ${thread.subject}` : ''}:\n${body.slice(0, 2000)}`,
+              contentLang: detectLang(body) === 'en' ? 'en' : 'ar',
+            });
+          } catch (err) {
+            report.errors.push({
+              threadId: thread.id,
+              error: `outbound_brain: ${err instanceof Error ? err.message : String(err)}`,
+            });
+          }
+        }
       }
       } // end: full analysis (actionable only)
     } catch (err) {

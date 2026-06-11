@@ -46,6 +46,11 @@ export const clients = pgTable('clients', {
   city: text('city'),
   addressLines: text('address_lines'),
   websiteUrl: text('website_url'),
+  // Email domains that map inbound mail to this client (e.g. {mynaghi.com}).
+  // Matched by suffix so subdomains (auto./bmw.mynaghi.com) resolve too. Learned
+  // automatically when a thread links via a confirmed contact email, and
+  // editable. Never holds a free provider (gmail/hotmail/…).
+  emailDomains: text('email_domains').array().notNull().default(sql`'{}'::text[]`),
   logoUrl: text('logo_url'),
 
   defaultPaymentTermsKey: text('default_payment_terms_key'),
