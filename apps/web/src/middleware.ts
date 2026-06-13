@@ -8,6 +8,23 @@ export async function middleware(request: NextRequest) {
   // antagna-v2.vercel.app/api/*) keep working.
   const host = request.headers.get('host') ?? '';
   const path = request.nextUrl.pathname;
+
+  // Dedicated subdomain → the public, full-screen org chart. structure.antagna.me
+  // serves /structure with no app chrome; /api and assets pass straight through.
+  if (host.split(':')[0] === 'structure.antagna.me') {
+    if (
+      !path.startsWith('/structure') &&
+      !path.startsWith('/api') &&
+      !path.startsWith('/_next') &&
+      !path.startsWith('/monitoring')
+    ) {
+      const rewrite = request.nextUrl.clone();
+      rewrite.pathname = path === '/' ? '/structure' : `/structure${path}`;
+      return NextResponse.rewrite(rewrite);
+    }
+    return updateSession(request);
+  }
+
   if (
     host.endsWith('.vercel.app') &&
     !path.startsWith('/api') &&
