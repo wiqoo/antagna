@@ -64,5 +64,25 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
+  // SECURITY: an authenticated user with NO Antagna profile is an external
+  // partner (or unprovisioned) — they may use ONLY the public/external surfaces,
+  // never the internal app. The profiles_read RLS policy lets a user read their
+  // own row, so an empty result means "no profile" → bounce to the partner
+  // portal. Skipped for public/external/auth paths so partners reach their own
+  // login + portal normally.
+  if (user && !isPublicAsset && !isAuthPath) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+    if (!profile) {
+      const redirect = url.clone();
+      redirect.pathname = '/external/portal';
+      redirect.search = '';
+      return NextResponse.redirect(redirect);
+    }
+  }
+
   return supabaseResponse;
 }
