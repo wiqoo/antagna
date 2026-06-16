@@ -77,6 +77,10 @@ export async function acceptInvite(token: string, formData: FormData): Promise<v
     INSERT INTO ext_users (auth_user_id, role, partner_id, display_name)
     VALUES (${data.user.id}::uuid, 'partner', ${inv.partnerId}::uuid, ${name || null})
   `);
+  // SECURITY: an auth trigger auto-creates an Antagna profile for every new
+  // auth user. A partner must NOT have a profile (that would grant main-app
+  // access) — remove it so they exist only as an external partner.
+  await db.execute(sql`DELETE FROM profiles WHERE auth_user_id = ${data.user.id}::uuid`);
   await db.execute(sql`UPDATE partner_invites SET accepted_at = now() WHERE id = ${inv.id}::uuid`);
 
   const supabase = await getSupabaseServerClient();

@@ -34,11 +34,13 @@ export async function getExternalIdentity(): Promise<ExtIdentity> {
   `)) as unknown as Array<{ profileId: string | null; profileName: string | null; partnerId: string | null; extName: string | null }>;
   const r = rows[0] ?? { profileId: null, profileName: null, partnerId: null, extName: null };
 
-  if (r.profileId) {
-    return { authUserId: user.id, role: 'volt', partnerId: null, profileId: r.profileId, displayName: r.profileName, email: user.email ?? null };
-  }
+  // A partner ext_users row ALWAYS wins over a profile — a partner must never be
+  // treated as Volt staff even if an auth trigger created a stray profile row.
   if (r.partnerId) {
     return { authUserId: user.id, role: 'partner', partnerId: r.partnerId, profileId: null, displayName: r.extName, email: user.email ?? null };
+  }
+  if (r.profileId) {
+    return { authUserId: user.id, role: 'volt', partnerId: null, profileId: r.profileId, displayName: r.profileName, email: user.email ?? null };
   }
   return { authUserId: user.id, role: null, partnerId: null, profileId: null, displayName: null, email: user.email ?? null };
 }
