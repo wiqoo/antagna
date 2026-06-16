@@ -52,7 +52,7 @@ export default async function PartnersPage() {
                     {p.contactEmail && <span> · {p.contactEmail}</span>}
                   </div>
                 </div>
-                <span className="text-[11px] text-[var(--text-dim)]">{p.jobCount} شغلة</span>
+                <span className="text-[11px] text-[var(--text-dim)]">{p.jobCount} مشروع</span>
               </div>
             ))}
           </div>

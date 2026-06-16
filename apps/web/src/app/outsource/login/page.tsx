@@ -19,7 +19,7 @@ export default async function ExternalLoginPage({ searchParams }: { searchParams
         <div className="mb-6 flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--accent)] text-[17px] font-bold text-[#1a1a1a]">V</span>
           <div className="leading-tight">
-            <div className="text-[15px] font-semibold">الشغل الخارجي</div>
+            <div className="text-[15px] font-semibold">المشاريع الخارجية</div>
             <div className="text-[11px] text-[var(--text-dim)]">Volt Production</div>
           </div>
         </div>

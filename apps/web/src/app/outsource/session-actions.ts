@@ -7,6 +7,7 @@ import { db } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getExternalIdentity, requireVolt } from './auth';
+import { notifyInvite } from './notify';
 
 const s = (v: FormDataEntryValue | null, max = 200): string =>
   (v == null ? '' : String(v)).trim().slice(0, max);
@@ -14,24 +15,24 @@ const s = (v: FormDataEntryValue | null, max = 200): string =>
 export async function login(formData: FormData): Promise<void> {
   const email = s(formData.get('email'), 160).toLowerCase();
   const password = s(formData.get('password'), 200);
-  if (!email || !password) redirect('/external/login?error=missing');
+  if (!email || !password) redirect('/outsource/login?error=missing');
 
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect('/external/login?error=bad');
+  if (error) redirect('/outsource/login?error=bad');
 
   const id = await getExternalIdentity();
-  if (id.role === 'partner') redirect('/external/portal');
-  if (id.role === 'volt') redirect('/external');
+  if (id.role === 'partner') redirect('/outsource/portal');
+  if (id.role === 'volt') redirect('/outsource');
   // authenticated but not provisioned for this system
   await supabase.auth.signOut();
-  redirect('/external/login?error=noaccess');
+  redirect('/outsource/login?error=noaccess');
 }
 
 export async function logout(): Promise<void> {
   const supabase = await getSupabaseServerClient();
   await supabase.auth.signOut();
-  redirect('/external/login');
+  redirect('/outsource/login');
 }
 
 /** Volt: generate a fresh invite for the job's partner (link shown on the job). */
@@ -42,16 +43,24 @@ export async function createInvite(jobId: string): Promise<void> {
   `)) as unknown as Array<{ partnerId: string | null }>;
   const partnerId = rows[0]?.partnerId;
   if (!partnerId) return;
-  await db.execute(sql`
+  const ins = (await db.execute(sql`
     INSERT INTO partner_invites (partner_id, created_by)
     VALUES (${partnerId}::uuid, ${me.profileId ? sql`${me.profileId}::uuid` : sql`NULL`})
-  `);
-  revalidatePath(`/external/${jobId}`);
+    RETURNING token::text AS token
+  `)) as unknown as Array<{ token: string }>;
+  const pr = (await db.execute(sql`
+    SELECT name, contact_email AS "contactEmail" FROM partners WHERE id = ${partnerId}::uuid
+  `)) as unknown as Array<{ name: string; contactEmail: string | null }>;
+  const token = ins[0]?.token;
+  if (token) {
+    await notifyInvite({ to: pr[0]?.contactEmail ?? null, partnerName: pr[0]?.name ?? null, token }).catch(() => {});
+  }
+  revalidatePath(`/outsource/${jobId}`);
 }
 
 /** Partner: accept an invite → create their own account + sign in. */
 export async function acceptInvite(token: string, formData: FormData): Promise<void> {
-  const back = `/external/invite/${token}`;
+  const back = `/outsource/invite/${token}`;
   const rows = (await db.execute(sql`
     SELECT pi.id::text AS "id", pi.partner_id::text AS "partnerId", pi.accepted_at AS "acceptedAt",
            (pi.expires_at < now()) AS "expired"
@@ -85,5 +94,5 @@ export async function acceptInvite(token: string, formData: FormData): Promise<v
 
   const supabase = await getSupabaseServerClient();
   await supabase.auth.signInWithPassword({ email, password });
-  redirect('/external/portal');
+  redirect('/outsource/portal');
 }

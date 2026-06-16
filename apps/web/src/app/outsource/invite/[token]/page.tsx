@@ -34,19 +34,19 @@ export default async function InvitePage({
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--accent)] text-[17px] font-bold text-[#1a1a1a]">V</span>
           <div className="leading-tight">
             <div className="text-[15px] font-semibold">دعوة شريك</div>
-            <div className="text-[11px] text-[var(--text-dim)]">Volt Production · الشغل الخارجي</div>
+            <div className="text-[11px] text-[var(--text-dim)]">Volt Production · المشاريع الخارجية</div>
           </div>
         </div>
 
         {!usable ? (
           <div className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3.5 py-3 text-[13px] text-[var(--danger)]">
             {inv?.acceptedAt ? 'تم استخدام هذه الدعوة بالفعل.' : 'الدعوة غير صالحة أو منتهية.'}
-            <div className="mt-2"><a href="/external/login" className="text-[var(--accent)]">تسجيل الدخول ←</a></div>
+            <div className="mt-2"><a href="/outsource/login" className="text-[var(--accent)]">تسجيل الدخول ←</a></div>
           </div>
         ) : (
           <>
             <h1 className="mb-1 text-[19px] font-semibold">أهلاً {inv.partnerName} 👋</h1>
-            <p className="mb-5 text-[12.5px] text-[var(--text-dim)]">أنشئ حسابك للدخول ومتابعة شغلك مع Volt.</p>
+            <p className="mb-5 text-[12.5px] text-[var(--text-dim)]">أنشئ حسابك للدخول ومتابعة مشاريعك مع Volt.</p>
             {error && (
               <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-[12.5px] text-[var(--danger)]">
                 {ERR[error] ?? 'تعذّر إنشاء الحساب.'}

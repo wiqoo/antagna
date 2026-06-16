@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getEffectiveProfileId } from '@/lib/authz';
+import { notifyRevisionRequested } from './notify';
 
 async function actor(): Promise<string | null> {
   const supabase = await getSupabaseServerClient();
@@ -44,9 +45,9 @@ export async function createPartner(formData: FormData): Promise<void> {
       ${str(formData.get('contact_phone'), 40)}, ${str(formData.get('notes'))}
     )
   `);
-  revalidatePath('/external/partners');
-  revalidatePath('/external');
-  redirect('/external/partners');
+  revalidatePath('/outsource/partners');
+  revalidatePath('/outsource');
+  redirect('/outsource/partners');
 }
 
 // ── jobs ─────────────────────────────────────────────────────────────────────
@@ -70,9 +71,9 @@ export async function createJob(formData: FormData): Promise<void> {
     RETURNING id::text AS id
   `)) as unknown as Array<{ id: string }>;
   const id = rows[0]?.id;
-  revalidatePath('/external');
-  if (id) redirect(`/external/${id}`);
-  redirect('/external');
+  revalidatePath('/outsource');
+  if (id) redirect(`/outsource/${id}`);
+  redirect('/outsource');
 }
 
 export async function updateJob(jobId: string, formData: FormData): Promise<void> {
@@ -91,8 +92,8 @@ export async function updateJob(jobId: string, formData: FormData): Promise<void
       updated_at = now()
     WHERE id = ${jobId}::uuid
   `);
-  revalidatePath(`/external/${jobId}`);
-  revalidatePath('/external');
+  revalidatePath(`/outsource/${jobId}`);
+  revalidatePath('/outsource');
 }
 
 export async function setJobStatus(jobId: string, status: string): Promise<void> {
@@ -106,8 +107,8 @@ export async function setJobStatus(jobId: string, status: string): Promise<void>
         updated_at = now()
     WHERE id = ${jobId}::uuid
   `);
-  revalidatePath(`/external/${jobId}`);
-  revalidatePath('/external');
+  revalidatePath(`/outsource/${jobId}`);
+  revalidatePath('/outsource');
 }
 
 // ── material links (reuse external_links) ────────────────────────────────────
@@ -120,13 +121,13 @@ export async function addMaterialLink(jobId: string, formData: FormData): Promis
     INSERT INTO external_links (entity_type, entity_id, provider, url, label)
     VALUES ('external_job', ${jobId}::uuid, ${provider}, ${url}, ${str(formData.get('label'), 160)})
   `);
-  revalidatePath(`/external/${jobId}`);
+  revalidatePath(`/outsource/${jobId}`);
 }
 
 export async function removeMaterialLink(jobId: string, linkId: string): Promise<void> {
   await actor();
   await db.execute(sql`DELETE FROM external_links WHERE id = ${linkId}::uuid AND entity_id = ${jobId}::uuid`);
-  revalidatePath(`/external/${jobId}`);
+  revalidatePath(`/outsource/${jobId}`);
 }
 
 // ── payments ─────────────────────────────────────────────────────────────────
@@ -145,15 +146,15 @@ export async function addPayment(jobId: string, formData: FormData): Promise<voi
       ${pid ? sql`${pid}::uuid` : sql`NULL`}
     )
   `);
-  revalidatePath(`/external/${jobId}`);
-  revalidatePath('/external');
+  revalidatePath(`/outsource/${jobId}`);
+  revalidatePath('/outsource');
 }
 
 export async function deletePayment(jobId: string, paymentId: string): Promise<void> {
   await actor();
   await db.execute(sql`DELETE FROM external_payments WHERE id = ${paymentId}::uuid AND job_id = ${jobId}::uuid`);
-  revalidatePath(`/external/${jobId}`);
-  revalidatePath('/external');
+  revalidatePath(`/outsource/${jobId}`);
+  revalidatePath('/outsource');
 }
 
 // ── revisions ────────────────────────────────────────────────────────────────
@@ -170,7 +171,8 @@ export async function requestRevision(jobId: string, formData: FormData): Promis
     )
   `);
   await db.execute(sql`UPDATE external_jobs SET status = 'revisions', updated_at = now() WHERE id = ${jobId}::uuid AND status NOT IN ('delivered','cancelled')`);
-  revalidatePath(`/external/${jobId}`);
+  notifyRevisionRequested(jobId, note).catch(() => {});
+  revalidatePath(`/outsource/${jobId}`);
 }
 
 export async function setRevisionVersion(jobId: string, revisionId: string, formData: FormData): Promise<void> {
@@ -181,7 +183,7 @@ export async function setRevisionVersion(jobId: string, revisionId: string, form
     UPDATE external_job_revisions SET version_url = ${url}, status = 'submitted'
     WHERE id = ${revisionId}::uuid AND job_id = ${jobId}::uuid
   `);
-  revalidatePath(`/external/${jobId}`);
+  revalidatePath(`/outsource/${jobId}`);
 }
 
 export async function approveRevision(jobId: string, revisionId: string): Promise<void> {
@@ -190,7 +192,7 @@ export async function approveRevision(jobId: string, revisionId: string): Promis
     UPDATE external_job_revisions SET status = 'approved', resolved_at = now()
     WHERE id = ${revisionId}::uuid AND job_id = ${jobId}::uuid
   `);
-  revalidatePath(`/external/${jobId}`);
+  revalidatePath(`/outsource/${jobId}`);
 }
 
 // ── final delivery (attachment uploaded via /api/upload) ─────────────────────
@@ -201,6 +203,6 @@ export async function setFinal(jobId: string, attachmentId: string): Promise<voi
     SET final_attachment_id = ${attachmentId}::uuid, status = 'delivered', delivered_at = now(), updated_at = now()
     WHERE id = ${jobId}::uuid
   `);
-  revalidatePath(`/external/${jobId}`);
-  revalidatePath('/external');
+  revalidatePath(`/outsource/${jobId}`);
+  revalidatePath('/outsource');
 }

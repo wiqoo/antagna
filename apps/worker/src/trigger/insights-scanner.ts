@@ -180,6 +180,14 @@ Output JSON only.`;
       console.error('[insights-scanner] deadline-notifier failed:', err);
     }
 
+    // External-work final-deadline reminders (also piggybacked).
+    try {
+      const { runExternalDeadlines } = await import('./external-deadlines');
+      await runExternalDeadlines();
+    } catch (err) {
+      console.error('[insights-scanner] external-deadlines failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,

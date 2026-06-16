@@ -52,19 +52,19 @@ export default async function ExternalJobsPage() {
       <main className="mx-auto max-w-5xl px-5 py-7">
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <h1 className="text-[20px] font-semibold">الشغل الخارجي</h1>
+          <h1 className="text-[20px] font-semibold">المشاريع الخارجية</h1>
           <p className="text-[12px] text-[var(--text-dim)]">
-            {jobs.length} شغلات · {active} قيد العمل · مستحق علينا {fmtSar(owed)} ر.س
+            {jobs.length} مشاريع · {active} قيد العمل · مستحق علينا {fmtSar(owed)} ر.س
           </p>
         </div>
-        <Link href="/external/new" className="rounded-lg bg-[var(--accent)] px-3.5 py-2 text-[13px] font-medium text-[#1a1a1a] hover:bg-[var(--accent-hover)]">
-          + شغلة جديدة
+        <Link href="/outsource/new" className="rounded-lg bg-[var(--accent)] px-3.5 py-2 text-[13px] font-medium text-[#1a1a1a] hover:bg-[var(--accent-hover)]">
+          + مشروع جديد
         </Link>
       </div>
 
       {jobs.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--line)] py-16 text-center text-[var(--text-dim)]">
-          لا شغلات بعد — ابدأ بإضافة شغلة جديدة.
+          لا مشاريع بعد — ابدأ بإضافة مشروع جديد.
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)]">
@@ -72,7 +72,7 @@ export default async function ExternalJobsPage() {
             <thead>
               <tr className="border-b border-[var(--line)] text-[11px] text-[var(--text-dim)]">
                 <th className="px-3 py-2.5 text-start font-medium">الكود</th>
-                <th className="px-3 py-2.5 text-start font-medium">الشغلة</th>
+                <th className="px-3 py-2.5 text-start font-medium">المشروع</th>
                 <th className="px-3 py-2.5 text-start font-medium">الشريك</th>
                 <th className="px-3 py-2.5 text-start font-medium">الحالة</th>
                 <th className="px-3 py-2.5 text-start font-medium">الموعد</th>
@@ -89,10 +89,10 @@ export default async function ExternalJobsPage() {
                 return (
                   <tr key={j.id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface-hover)]">
                     <td className="px-3 py-3 font-mono text-[12px] text-[var(--text-dim)]">
-                      <Link href={`/external/${j.id}`} className="block">{j.code}</Link>
+                      <Link href={`/outsource/${j.id}`} className="block">{j.code}</Link>
                     </td>
                     <td className="px-3 py-3">
-                      <Link href={`/external/${j.id}`} className="block font-medium hover:text-[var(--accent)]">
+                      <Link href={`/outsource/${j.id}`} className="block font-medium hover:text-[var(--accent)]">
                         {j.title}
                         {j.projectCode && <span className="mr-1.5 text-[10px] text-[var(--text-dim)]">↳ {j.projectCode}</span>}
                       </Link>

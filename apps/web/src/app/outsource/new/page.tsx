@@ -22,12 +22,12 @@ export default async function NewJobPage() {
       <ManageHeader />
       <main className="px-5 py-7">
       <div className="mx-auto max-w-2xl">
-      <Link href="/external" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← رجوع</Link>
-      <h1 className="mb-5 text-[20px] font-semibold">شغلة خارجية جديدة</h1>
+      <Link href="/outsource" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← رجوع</Link>
+      <h1 className="mb-5 text-[20px] font-semibold">مشروع خارجي جديد</h1>
 
       <form action={createJob} className="flex flex-col gap-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-5">
         <div>
-          <label className={label}>عنوان الشغلة *</label>
+          <label className={label}>عنوان المشروع *</label>
           <input name="title" required className={field} placeholder="مثال: BMW X5 — مونتاج الإطلاق" />
         </div>
 
@@ -41,7 +41,7 @@ export default async function NewJobPage() {
               ))}
             </select>
             {partners.length === 0 && (
-              <p className="mt-1 text-[11px] text-[var(--text-dim)]">لا شركاء بعد — <Link href="/external/partners" className="text-[var(--accent)]">أضف شريك</Link></p>
+              <p className="mt-1 text-[11px] text-[var(--text-dim)]">لا شركاء بعد — <Link href="/outsource/partners" className="text-[var(--accent)]">أضف شريك</Link></p>
             )}
           </div>
           <div>
@@ -52,7 +52,7 @@ export default async function NewJobPage() {
 
         <div>
           <label className={label}>السكوب</label>
-          <textarea name="scope" rows={2} className={field} placeholder="نطاق الشغل المطلوب…" />
+          <textarea name="scope" rows={2} className={field} placeholder="نطاق العمل المطلوب…" />
         </div>
         <div>
           <label className={label}>البريف</label>
@@ -64,8 +64,8 @@ export default async function NewJobPage() {
         </div>
 
         <div className="flex justify-end gap-2 pt-1">
-          <Link href="/external" className="rounded-lg border border-[var(--line-strong)] px-4 py-2 text-[13px] text-[var(--text-muted)]">إلغاء</Link>
-          <button type="submit" className="rounded-lg bg-[var(--accent)] px-4 py-2 text-[13px] font-medium text-[#1a1a1a] hover:bg-[var(--accent-hover)]">إنشاء الشغلة</button>
+          <Link href="/outsource" className="rounded-lg border border-[var(--line-strong)] px-4 py-2 text-[13px] text-[var(--text-muted)]">إلغاء</Link>
+          <button type="submit" className="rounded-lg bg-[var(--accent)] px-4 py-2 text-[13px] font-medium text-[#1a1a1a] hover:bg-[var(--accent-hover)]">إنشاء المشروع</button>
         </div>
       </form>
       </div>

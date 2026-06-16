@@ -104,7 +104,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <ManageHeader name={me.displayName} />
       <main className="mx-auto max-w-5xl px-5 py-7">
     <div>
-      <Link href="/external" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← رجوع للقائمة</Link>
+      <Link href="/outsource" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← رجوع للقائمة</Link>
 
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
@@ -142,8 +142,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
       {inviteToken && !partnerHasAccount && (
         <div className="mb-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[12.5px]">
-          ✉ رابط دعوة الشريك (يُرسل بالإيميل في المرحلة ٣ — انسخه الآن):
-          <code className="mt-1 block break-all rounded bg-[var(--bg)] px-2 py-1 text-[11px] text-[var(--accent)]">/external/invite/{inviteToken}</code>
+          ✉ أُرسل رابط الدعوة بالإيميل للشريك — أو انسخه:
+          <code className="mt-1 block break-all rounded bg-[var(--bg)] px-2 py-1 text-[11px] text-[var(--accent)]">/outsource/invite/{inviteToken}</code>
         </div>
       )}
 
@@ -303,7 +303,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             <h3 className="mb-1.5 text-[11px] uppercase tracking-wide text-[var(--text-dim)]">تنبيهات الإيميل</h3>
             <span className="text-[var(--accent)]">✉ للشريك</span> بريف · طلب تعديل · تذكير موعد<br />
             <span className="text-[var(--accent)]">✉ لفولت</span> رفع نسخة · تسليم · اقتراب موعد
-            <p className="mt-1.5 text-[10px] text-[var(--text-dim)]">(تُفعّل في المرحلة ٣)</p>
           </div>
         </div>
       </div>

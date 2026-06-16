@@ -50,7 +50,7 @@ export default async function PortalJobPage({ params }: { params: Promise<{ id: 
     <>
       <PortalHeader name={me.displayName} />
       <main className="mx-auto max-w-3xl px-5 py-7">
-        <Link href="/external/portal" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← شغلاتي</Link>
+        <Link href="/outsource/portal" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← مشاريعي</Link>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="text-[20px] font-semibold">{job.title}</h1>
@@ -122,7 +122,7 @@ export default async function PortalJobPage({ params }: { params: Promise<{ id: 
           </div>
 
           <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-            <h3 className="mb-1.5 text-[11px] uppercase tracking-wide text-[var(--text-dim)]">حسابك (لهذه الشغلة)</h3>
+            <h3 className="mb-1.5 text-[11px] uppercase tracking-wide text-[var(--text-dim)]">حسابك (لهذا المشروع)</h3>
             <div className="flex justify-between border-b border-dashed border-[var(--line)] py-1.5 text-[13px]"><span className="text-[var(--text-muted)]">المتفق</span><span className="tabular-nums">{fmtSar(agreed)}</span></div>
             <div className="flex justify-between border-b border-dashed border-[var(--line)] py-1.5 text-[13px]"><span className="text-[var(--text-muted)]">المدفوع لك</span><span className="tabular-nums text-[var(--success)]">{fmtSar(paid)}</span></div>
             <div className="flex justify-between py-1.5 text-[13px]"><span className="text-[var(--text-muted)]">المتبقي لك</span><span className="tabular-nums text-[var(--warning)]">{fmtSar(agreed - paid)}</span></div>

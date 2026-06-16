@@ -49,14 +49,14 @@ export async function getExternalIdentity(): Promise<ExtIdentity> {
 export async function requireVolt(): Promise<ExtIdentity> {
   const id = await getExternalIdentity();
   if (id.role === 'volt') return id;
-  if (id.role === 'partner') redirect('/external/portal');
-  redirect('/external/login');
+  if (id.role === 'partner') redirect('/outsource/portal');
+  redirect('/outsource/login');
 }
 
 /** Gate the partner portal. Redirects Volt staff to management, others to login. */
 export async function requirePartner(): Promise<ExtIdentity & { partnerId: string }> {
   const id = await getExternalIdentity();
   if (id.role === 'partner' && id.partnerId) return id as ExtIdentity & { partnerId: string };
-  if (id.role === 'volt') redirect('/external');
-  redirect('/external/login');
+  if (id.role === 'volt') redirect('/outsource');
+  redirect('/outsource/login');
 }
