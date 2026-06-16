@@ -11,6 +11,9 @@ import {
   setRevisionVersion, addMaterialLink, removeMaterialLink, setJobStatus,
 } from '../actions';
 import { FinalUpload } from './FinalUpload';
+import { requireVolt } from '../auth';
+import { ManageHeader } from '../ManageHeader';
+import { createInvite } from '../session-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +40,7 @@ const dateAr = (d: string | null) =>
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const me = await requireVolt();
 
   const jobs = (await db.execute(sql`
     SELECT j.id::text, j.code, j.title, j.status, j.scope, j.brief,
@@ -82,7 +86,23 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     } catch { /* ignore */ }
   }
 
+  // Partner account / pending-invite state (drives "ادعُ الشريك").
+  let inviteToken: string | null = null;
+  let partnerHasAccount = false;
+  if (job.partnerId) {
+    const st = (await db.execute(sql`
+      SELECT
+        (SELECT token::text FROM partner_invites WHERE partner_id = ${job.partnerId}::uuid AND accepted_at IS NULL AND expires_at > now() ORDER BY created_at DESC LIMIT 1) AS "token",
+        EXISTS(SELECT 1 FROM ext_users WHERE partner_id = ${job.partnerId}::uuid AND role='partner') AS "hasAccount"
+    `)) as unknown as Array<{ token: string | null; hasAccount: boolean }>;
+    inviteToken = st[0]?.token ?? null;
+    partnerHasAccount = st[0]?.hasAccount ?? false;
+  }
+
   return (
+    <>
+      <ManageHeader name={me.displayName} />
+      <main className="mx-auto max-w-5xl px-5 py-7">
     <div>
       <Link href="/external" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← رجوع للقائمة</Link>
 
@@ -105,12 +125,25 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <button className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[12px] font-medium text-[#1a1a1a]">بدء التنفيذ</button>
             </form>
           )}
+          {job.partnerId && !partnerHasAccount && complete && (
+            <form action={createInvite.bind(null, job.id)}>
+              <button className="rounded-lg border border-[var(--line-strong)] px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]">🔗 ادعُ الشريك</button>
+            </form>
+          )}
+          {partnerHasAccount && <span className="self-center rounded-lg bg-[var(--success)]/10 px-2.5 py-1.5 text-[11px] text-[var(--success)]">✓ للشريك حساب</span>}
         </div>
       </div>
 
       {!complete && (
         <div className="mb-4 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3.5 py-2.5 text-[12.5px]">
           ⚠ بيانات ناقصة — أكمل: {cl.filter((c) => !c.ok).map((c) => c.label).join('، ')} قبل إرسالها للشريك.
+        </div>
+      )}
+
+      {inviteToken && !partnerHasAccount && (
+        <div className="mb-4 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[12.5px]">
+          ✉ رابط دعوة الشريك (يُرسل بالإيميل في المرحلة ٣ — انسخه الآن):
+          <code className="mt-1 block break-all rounded bg-[var(--bg)] px-2 py-1 text-[11px] text-[var(--accent)]">/external/invite/{inviteToken}</code>
         </div>
       )}
 
@@ -275,5 +308,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
     </div>
+      </main>
+    </>
   );
 }

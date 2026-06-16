@@ -2,6 +2,8 @@ import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { createPartner } from '../actions';
 import { PARTNER_KINDS, SPECIALTIES, SPECIALTY_LABEL } from '../data';
+import { requireVolt } from '../auth';
+import { ManageHeader } from '../ManageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +17,7 @@ interface PartnerRow {
 }
 
 export default async function PartnersPage() {
+  await requireVolt();
   const partners = (await db.execute(sql`
     SELECT p.id::text, p.name, p.kind, p.specialties,
            p.contact_name AS "contactName", p.contact_email AS "contactEmail",
@@ -23,7 +26,10 @@ export default async function PartnersPage() {
   `)) as unknown as PartnerRow[];
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_320px]">
+    <>
+      <ManageHeader />
+      <main className="mx-auto max-w-5xl px-5 py-7">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_320px]">
       <div>
         <h1 className="mb-4 text-[20px] font-semibold">الشركاء</h1>
         {partners.length === 0 ? (
@@ -88,6 +94,8 @@ export default async function PartnersPage() {
           + إضافة شريك
         </button>
       </form>
-    </div>
+      </div>
+      </main>
+    </>
   );
 }

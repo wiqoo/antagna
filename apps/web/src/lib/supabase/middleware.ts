@@ -40,6 +40,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname.startsWith('/monitoring') ||
     url.pathname.startsWith('/p/') || // client portal — public read of share_token URLs
     url.pathname.startsWith('/structure') || // public org chart (structure.antagna.me)
+    url.pathname.startsWith('/external') || // external-work module owns its own login (volt + partner accounts)
     url.pathname === '/offline' || // PWA offline fallback (precached by sw.js)
     // Dev-only: let the /preview design labs render without auth (for local
     // visual iteration with Playwright). Never public in production.

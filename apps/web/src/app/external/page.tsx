@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { fmtSar, jobStatusLabel, jobStatusTone, isComplete } from './data';
+import { requireVolt } from './auth';
+import { ManageHeader } from './ManageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,7 @@ interface JobRow {
 }
 
 export default async function ExternalJobsPage() {
+  const me = await requireVolt();
   const jobs = (await db.execute(sql`
     SELECT j.id::text, j.code, j.title, j.status,
            j.final_due_at AS "finalDueAt", j.agreed_amount_sar AS "agreedAmountSar",
@@ -44,7 +47,9 @@ export default async function ExternalJobsPage() {
   const active = jobs.filter((j) => j.status === 'in_progress' || j.status === 'review' || j.status === 'revisions').length;
 
   return (
-    <div>
+    <>
+      <ManageHeader name={me.displayName} />
+      <main className="mx-auto max-w-5xl px-5 py-7">
       <div className="mb-5 flex items-end justify-between">
         <div>
           <h1 className="text-[20px] font-semibold">الشغل الخارجي</h1>
@@ -117,6 +122,7 @@ export default async function ExternalJobsPage() {
         </div>
       )}
       <p className="mt-2.5 text-[11px] text-[var(--text-dim)]">● مكتمل = جاهز للإرسال للشريك · ● ناقص = أكمل البيانات أولاً.</p>
-    </div>
+      </main>
+    </>
   );
 }

@@ -3,13 +3,14 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setFinal } from '../actions';
+import { portalSetFinal } from '../portal-actions';
 
 /**
  * Uploads the FINAL deliverable straight to the system (Supabase Storage) via
  * the shared two-step /api/upload protocol, then links it to the job. Volt then
  * previews + downloads it (rendered by the parent from a signed URL).
  */
-export function FinalUpload({ jobId, hasFinal }: { jobId: string; hasFinal: boolean }) {
+export function FinalUpload({ jobId, hasFinal, mode = 'volt' }: { jobId: string; hasFinal: boolean; mode?: 'volt' | 'partner' }) {
   const ref = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -44,8 +45,9 @@ export function FinalUpload({ jobId, hasFinal }: { jobId: string; hasFinal: bool
         body: file,
       });
       if (!put.ok) throw new Error('فشل رفع الملف');
-      // 3) link it to the job + mark delivered
-      await setFinal(jobId, signed.attachmentId);
+      // 3) link it to the job + mark delivered (scoped by perspective)
+      if (mode === 'partner') await portalSetFinal(jobId, signed.attachmentId);
+      else await setFinal(jobId, signed.attachmentId);
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'خطأ غير متوقع');

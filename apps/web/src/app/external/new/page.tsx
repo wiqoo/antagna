@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { createJob } from '../actions';
+import { requireVolt } from '../auth';
+import { ManageHeader } from '../ManageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,12 +12,16 @@ const field =
 const label = 'mb-1.5 block text-[11px] text-[var(--text-muted)]';
 
 export default async function NewJobPage() {
+  await requireVolt();
   const partners = (await db.execute<{ id: string; name: string; kind: string }>(sql`
     SELECT id::text, name, kind FROM partners WHERE active ORDER BY name
   `)) as unknown as Array<{ id: string; name: string; kind: string }>;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <>
+      <ManageHeader />
+      <main className="px-5 py-7">
+      <div className="mx-auto max-w-2xl">
       <Link href="/external" className="mb-3 inline-block text-[12.5px] text-[var(--text-muted)] hover:text-[var(--text)]">← رجوع</Link>
       <h1 className="mb-5 text-[20px] font-semibold">شغلة خارجية جديدة</h1>
 
@@ -62,6 +68,8 @@ export default async function NewJobPage() {
           <button type="submit" className="rounded-lg bg-[var(--accent)] px-4 py-2 text-[13px] font-medium text-[#1a1a1a] hover:bg-[var(--accent-hover)]">إنشاء الشغلة</button>
         </div>
       </form>
-    </div>
+      </div>
+      </main>
+    </>
   );
 }
