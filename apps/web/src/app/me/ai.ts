@@ -41,7 +41,9 @@ export async function askMyBrain(ownerId: string, question: string): Promise<str
     return txt && txt.type === 'text' ? txt.text : 'لم أتمكن من الإجابة.';
   } catch (e) {
     console.error('[me_ask]', e);
-    return e instanceof Error && e.name === 'AiBudgetError' ? 'تجاوزت حد تكلفة الـAI لهذا الشهر.' : `تعذّرت الإجابة (${e instanceof Error ? e.message.slice(0, 120) : 'خطأ'}).`;
+    if (e instanceof Error && e.name === 'AiBudgetError') return 'تجاوزت حد تكلفة الـAI لهذا الشهر.';
+    if (e instanceof Error && /credit balance|low to access/i.test(e.message)) return 'خدمة الـAI غير متاحة مؤقتاً — رصيد Anthropic محتاج شحن.';
+    return 'تعذّرت الإجابة — جرّب تاني.';
   }
 }
 
