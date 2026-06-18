@@ -40,7 +40,8 @@ export async function askMyBrain(ownerId: string, question: string): Promise<str
     const txt = resp.content.find((b) => b.type === 'text');
     return txt && txt.type === 'text' ? txt.text : 'لم أتمكن من الإجابة.';
   } catch (e) {
-    return e instanceof Error && e.message.includes('budget') ? 'تجاوزت حد تكلفة الـAI لهذا الشهر.' : 'حصل خطأ — جرّب تاني.';
+    console.error('[me_ask]', e);
+    return e instanceof Error && e.name === 'AiBudgetError' ? 'تجاوزت حد تكلفة الـAI لهذا الشهر.' : `تعذّرت الإجابة (${e instanceof Error ? e.message.slice(0, 120) : 'خطأ'}).`;
   }
 }
 
