@@ -196,6 +196,14 @@ Output JSON only.`;
       console.error('[insights-scanner] me-reminders failed:', err);
     }
 
+    // Personal-system learning loop (re-distill profile + regenerate insights).
+    try {
+      const { runMeLearn } = await import('./me-learn');
+      await runMeLearn();
+    } catch (err) {
+      console.error('[insights-scanner] me-learn failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,

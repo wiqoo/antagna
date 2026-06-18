@@ -9,19 +9,24 @@ export default async function MorePage() {
   const me = await requireOwner();
   const c = (await db.execute(sql`
     SELECT
+      (SELECT count(*)::int FROM me_inbox WHERE owner_id=${me.profileId}::uuid AND processed=false) AS inbox,
+      (SELECT count(*)::int FROM me_projects WHERE owner_id=${me.profileId}::uuid AND status='active') AS projects,
       (SELECT count(*)::int FROM me_waiting WHERE owner_id=${me.profileId}::uuid AND resolved=false) AS waiting,
       (SELECT count(*)::int FROM me_recurring WHERE owner_id=${me.profileId}::uuid AND active=true) AS recurring,
       (SELECT count(*)::int FROM me_notes WHERE owner_id=${me.profileId}::uuid) AS notes
-  `)) as unknown as Array<{ waiting: number; recurring: number; notes: number }>;
-  const { waiting = 0, recurring = 0, notes = 0 } = c[0] ?? {};
+  `)) as unknown as Array<{ inbox: number; projects: number; waiting: number; recurring: number; notes: number }>;
+  const { inbox = 0, projects = 0, waiting = 0, recurring = 0, notes = 0 } = c[0] ?? {};
 
   const links = [
+    { href: '/me/inbox', icon: '📥', label: 'الوارد', sub: inbox > 0 ? `${inbox} محتاجة ترتيب` : 'صفر — نضيف ✨' },
+    { href: '/me/projects', icon: '📁', label: 'المشاريع', sub: `${projects} مشروع فعّال` },
+    { href: '/me/calendar', icon: '📅', label: 'الكالندر', sub: 'مواعيدك + من انتجنا' },
     { href: '/me/waiting', icon: '⏳', label: 'المعلّق', sub: `${waiting} مستني رد/تسليم` },
-    { href: '/me/ask', icon: '🧠', label: 'اسأل مخّك', sub: 'اسأل عن أي حاجة في بياناتك' },
     { href: '/me/notes', icon: '📝', label: 'الملاحظات', sub: `${notes} ملاحظة مرجعية` },
     { href: '/me/review', icon: '🔄', label: 'المراجعة الأسبوعية', sub: 'مراجعة + ملخص بالـAI' },
     { href: '/me/growth', icon: '📈', label: 'التطوّر', sub: 'أهداف · عادات · تحليلات' },
     { href: '/me/recurring', icon: '♻️', label: 'المتكرر', sub: `${recurring} مهمة متكررة` },
+    { href: '/me/ask', icon: '🧠', label: 'اسأل مخّك', sub: 'اسأل عن أي حاجة في بياناتك' },
   ];
 
   return (

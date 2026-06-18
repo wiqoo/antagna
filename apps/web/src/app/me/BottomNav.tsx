@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+const MORE_ROUTES = ['/me/more', '/me/inbox', '/me/projects', '/me/waiting', '/me/recurring', '/me/notes', '/me/growth', '/me/review', '/me/ask'];
+
 const items = [
-  { href: '/me', label: 'النهارده', icon: '☀️', match: (p: string) => p === '/me' },
-  { href: '/me/inbox', label: 'الوارد', icon: '📥', match: (p: string) => p.startsWith('/me/inbox') },
-  { href: '/me/projects', label: 'المشاريع', icon: '📁', match: (p: string) => p.startsWith('/me/projects') },
-  { href: '/me/more', label: 'المزيد', icon: '⋯', match: (p: string) => ['/me/more', '/me/waiting', '/me/recurring', '/me/notes', '/me/growth', '/me/review', '/me/ask'].some((x) => p.startsWith(x)) },
+  { href: '/me', label: 'اليوم', icon: '☀️', match: (p: string) => p === '/me' || p.startsWith('/me/calendar') },
+  { href: '/me/assistant', label: 'مساعدك', icon: '💬', match: (p: string) => p.startsWith('/me/assistant') },
+  { href: '/me/money', label: 'الفلوس', icon: '💰', match: (p: string) => p.startsWith('/me/money') },
+  { href: '/me/insights', label: 'رؤى', icon: '📊', match: (p: string) => p.startsWith('/me/insights') },
+  { href: '/me/more', label: 'المزيد', icon: '⋯', match: (p: string) => MORE_ROUTES.some((x) => p.startsWith(x)) },
 ];
 
 export function BottomNav() {
@@ -20,10 +23,10 @@ export function BottomNav() {
           <Link
             key={it.href}
             href={it.href}
-            className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px]"
+            className="flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]"
             style={{ color: active ? 'var(--accent)' : 'var(--text-dim)' }}
           >
-            <span className="text-[18px] leading-none">{it.icon}</span>
+            <span className="text-[17px] leading-none">{it.icon}</span>
             {it.label}
           </Link>
         );

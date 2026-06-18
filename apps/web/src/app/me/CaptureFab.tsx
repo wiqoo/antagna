@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { captureItem } from './actions';
 
 // Frictionless capture: floating button → sheet with text + voice (Web Speech).
 export function CaptureFab() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -60,6 +61,9 @@ export function CaptureFab() {
       setBusy(false);
     }
   }
+
+  // the assistant route has its own input bar — no floating capture there
+  if (pathname === '/me/assistant') return null;
 
   return (
     <>
