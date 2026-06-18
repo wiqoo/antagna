@@ -3,6 +3,8 @@ import { sql } from 'drizzle-orm';
 import { db } from '@antagna/db';
 import { requireOwner } from './auth';
 import { createTask, toggleTask, setTaskToday } from './actions';
+import { toggleHabitToday } from './actions2';
+import { ensureTodayRecurring } from './lib';
 import { PRIORITY_TONE, todayRiyadh, dateAr } from './data';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +17,28 @@ interface Task {
 export default async function TodayPage() {
   const me = await requireOwner();
   const today = todayRiyadh();
+  await ensureTodayRecurring(me.profileId);
+
+  // habits for the quick-check strip
+  const habits = (await db.execute(sql`
+    SELECT h.id::text, h.title, EXISTS(SELECT 1 FROM me_habit_logs l WHERE l.habit_id=h.id AND l.log_date=${today}::date) AS done
+    FROM me_habits h WHERE h.owner_id=${me.profileId}::uuid AND h.active=true ORDER BY h.created_at
+  `)) as unknown as Array<{ id: string; title: string; done: boolean }>;
+
+  // optional pull from Antagna (his own work) — best-effort, never breaks the page
+  let antagna: Array<{ title: string; proj: string | null; pid: string; dueAt: string | null }> = [];
+  try {
+    antagna = (await db.execute(sql`
+      SELECT pt.title, COALESCE(p.title_ar, p.title) AS proj, pt.project_id::text AS pid, pt.due_at AS "dueAt"
+      FROM project_tasks pt JOIN projects p ON p.id = pt.project_id
+      WHERE pt.assignee_id = ${me.profileId}::uuid
+        AND pt.status IN ('pending','in_progress','blocked')
+        AND pt.due_at IS NOT NULL AND (pt.due_at AT TIME ZONE 'Asia/Riyadh')::date <= ${today}::date
+      ORDER BY pt.due_at LIMIT 20
+    `)) as unknown as typeof antagna;
+  } catch {
+    antagna = [];
+  }
 
   const tasks = (await db.execute(sql`
     SELECT t.id::text, t.title, t.priority, t.status, t.is_today AS "isToday",
@@ -73,6 +97,18 @@ export default async function TodayPage() {
         </Link>
       )}
 
+      {habits.length > 0 && (
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+          {habits.map((h) => (
+            <form key={h.id} action={toggleHabitToday.bind(null, h.id, today)}>
+              <button className="flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px]" style={{ borderColor: h.done ? 'transparent' : 'var(--line)', background: h.done ? 'var(--accent)' : 'transparent', color: h.done ? '#1a1a1a' : 'var(--text-muted)' }}>
+                {h.done ? '✓' : '○'} {h.title}
+              </button>
+            </form>
+          ))}
+        </div>
+      )}
+
       <form action={createTask} className="mb-4 flex gap-2">
         <input type="hidden" name="is_today" value="1" />
         <input name="title" required placeholder="أضف مهمة للنهارده…" className="flex-1 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3 py-2.5 text-[14px] outline-none focus:border-[var(--accent)]" />
@@ -94,6 +130,21 @@ export default async function TodayPage() {
           </div>
         ) : todays.map((t) => row(t))}
       </section>
+
+      {antagna.length > 0 && (
+        <details className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3.5">
+          <summary className="cursor-pointer text-[12.5px] font-semibold text-[var(--text-muted)]">🔗 من انتجنا ({antagna.length})</summary>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {antagna.map((a, i) => (
+              <a key={i} href={`/projects/${a.pid}`} className="flex items-center justify-between border-b border-[var(--line)] py-1.5 text-[13px] last:border-0">
+                <span className="min-w-0 flex-1">{a.title}{a.proj && <span className="text-[11px] text-[var(--text-dim)]"> · {a.proj}</span>}</span>
+                <span className="text-[10px] text-[var(--text-dim)]">{a.dueAt ? dateAr(a.dueAt) : ''}</span>
+              </a>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[10px] text-[var(--text-dim)]">شغلك في انتجنا المستحق — للعرض فقط.</p>
+        </details>
+      )}
     </div>
   );
 }

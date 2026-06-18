@@ -188,6 +188,14 @@ Output JSON only.`;
       console.error('[insights-scanner] external-deadlines failed:', err);
     }
 
+    // Personal-system daily reminders (overdue / aged waiting).
+    try {
+      const { runMeReminders } = await import('./me-reminders');
+      await runMeReminders();
+    } catch (err) {
+      console.error('[insights-scanner] me-reminders failed:', err);
+    }
+
     return {
       ranId: ctx.run.id,
       durationMs: Date.now() - startedAt,

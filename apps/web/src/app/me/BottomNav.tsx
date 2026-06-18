@@ -7,6 +7,7 @@ const items = [
   { href: '/me', label: 'النهارده', icon: '☀️', match: (p: string) => p === '/me' },
   { href: '/me/inbox', label: 'الوارد', icon: '📥', match: (p: string) => p.startsWith('/me/inbox') },
   { href: '/me/projects', label: 'المشاريع', icon: '📁', match: (p: string) => p.startsWith('/me/projects') },
+  { href: '/me/more', label: 'المزيد', icon: '⋯', match: (p: string) => ['/me/more', '/me/waiting', '/me/recurring', '/me/notes', '/me/growth', '/me/review', '/me/ask'].some((x) => p.startsWith(x)) },
 ];
 
 export function BottomNav() {
