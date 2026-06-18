@@ -9,6 +9,25 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const path = request.nextUrl.pathname;
 
+  // Dedicated subdomain → Mohammed's personal system. me.antagna.me serves /me
+  // (requires Antagna login — it is NOT in the public allowlist); /api + assets
+  // pass straight through.
+  if (host.split(':')[0] === 'me.antagna.me') {
+    if (
+      !path.startsWith('/me') &&
+      !path.startsWith('/api') &&
+      !path.startsWith('/_next') &&
+      !path.startsWith('/monitoring') &&
+      !path.startsWith('/login') &&
+      !path.startsWith('/auth')
+    ) {
+      const rewrite = request.nextUrl.clone();
+      rewrite.pathname = path === '/' ? '/me' : `/me${path}`;
+      return NextResponse.rewrite(rewrite);
+    }
+    return updateSession(request);
+  }
+
   // Dedicated subdomain → the public, full-screen org chart. structure.antagna.me
   // serves /structure with no app chrome; /api and assets pass straight through.
   if (host.split(':')[0] === 'structure.antagna.me') {
